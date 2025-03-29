@@ -1,0 +1,7 @@
+{
+  "Social Media": ["facebook.com", "twitter.com", "linkedin.com"],
+  "News": ["nytimes.com", "bbc.com", "theguardian.com"],
+  "Shopping": ["amazon.", "ebay.", "etsy.com"],
+  "Work/Productivity": ["docs.google.com", "mail.google.com", "github.com", "stackoverflow.com"],
+  "Entertainment": ["youtube.com", "netflix.com", "spotify.com"]
+}

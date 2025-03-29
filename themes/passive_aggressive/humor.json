@@ -1,0 +1,23 @@
+{
+  "themeId": "passive_aggressive",
+  "themeName": "Passive-Aggressive",
+  "intensityLevels": { "level1": "It's fine.", "level2": "Sure, go ahead." },
+  "quips": {
+    "highTabCount": [
+      { "level": "level1", "text": "Quite the collection you're curating." },
+      { "level": "level2", "text": "Is the goal to eventually use *all* the RAM?" }
+    ],
+    "oldTab": [
+      { "level": "level1", "text": "This one's still here. Waiting." },
+      { "level": "level2", "text": "Did you perhaps mean to close this last Tuesday?" }
+    ]
+  },
+  "easterEggs": {
+    "answerToEverything": [ { "text": "42 tabs. Deeply meaningful, I'm sure." } ],
+    "archiveVisit": [ { "text": "Visiting the past? How... retrospective." } ]
+  },
+  "errors": {
+    "storage_fail": [ { "text": "Remembering your preferences seems to be... challenging right now." } ],
+    "api_unavailable": [ { "text": "That function appears to be taking an unscheduled break." } ]
+  }
+}

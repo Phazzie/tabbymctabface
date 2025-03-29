@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "TabbyMcTabface",
+  "version": "1.0",
+  "description": "A Chrome extension for managing tabs with personality.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "notifications",
+    "tabGroups"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "options_page": "options/options.html"
+}
