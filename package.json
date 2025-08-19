@@ -1,0 +1,38 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "This document outlines the Product Requirements (PRD) and Technical Design for the Minimum Viable Product (MVP) of the TabbyMcTabface Chrome Extension. It serves as a guide for development, ensuring alignment on goals, features, architecture, and implementation details. The target audience includes AI coding assistants requiring technical specifics and future human developers needing project context.",
+  "main": "background.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phazzie/tabbymctabface.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Phazzie/tabbymctabface/issues"
+  },
+  "homepage": "https://github.com/Phazzie/tabbymctabface#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-typescript": "^7.27.1",
+    "babel-jest": "^30.0.5",
+    "copy-webpack-plugin": "^13.0.1",
+    "jest": "^30.0.5",
+    "jest-chrome": "^0.8.0",
+    "jest-environment-jsdom": "^30.0.5",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.2",
+    "webpack-cli": "^6.0.1"
+  }
+}
