@@ -1,0 +1,1073 @@
+# Seam-Driven Development (SDD) Prompt Series for TabbyMcTabface
+
+## Meta-Instructions
+
+**PROMPT 0 (Understanding Check)**: "Before beginning the TabbyMcTabface design document generation, confirm your understanding of the Seam-Driven Development (SDD) approach:
+
+1. **Requirements First**: Define what we're building before how
+2. **Seam Identification**: Every interaction point, data crossing boundaries, and module interface is a seam
+3. **UI-First Design**: Generate UI mockups early to discover seams
+4. **Contract Definition**: Define explicit contracts at every seam
+5. **CI Validation**: Contracts must be validated in continuous integration
+6. **Code & Test Generation**: Generate implementation and tests together
+7. **Regenerate Over Debug**: If debugging takes >2 attempts, regenerate instead
+8. **Top-Level Documentation**: Every file has header comments explaining: what, why, and how data flows
+
+Respond with a 3-4 sentence summary confirming your understanding of SDD principles and how they'll guide TabbyMcTabface development."
+
+---
+
+## SECTION I: REQUIREMENTS DEFINITION
+
+**PROMPT 1**: "Begin Section I of the TabbyMcTabface Design Document: **I. REQUIREMENTS DEFINITION**. Write **1.1 Core Requirements** as a numbered list of functional and non-functional requirements. Format each requirement as:
+
+- **REQ-[ID]**: [Requirement statement]
+  - **Type**: Functional/Non-functional
+  - **Priority**: P0 (MVP Critical) / P1 (Important) / P2 (Nice-to-have)
+  - **Acceptance Criteria**: Measurable success criteria
+
+Include requirements for:
+- Tab grouping capability
+- 'Feeling Lucky?' random tab closure
+- Passive-aggressive humor delivery
+- Chrome extension performance (<100ms interaction responses)
+- Browser compatibility (Chrome v90+)
+- Data persistence requirements
+- Privacy and security constraints
+
+Target: 10-15 requirements total. Be specific and measurable."
+
+**PROMPT 2**: "Continue Section I: **I. REQUIREMENTS DEFINITION**. Write **1.2 Target Audience Profile** using the Jobs-to-be-Done framework:
+
+- **Primary Persona**: Intelligent user with potential ADD/ADHD
+- **Job to be Done**: [What task are they hiring TabbyMcTabface to accomplish?]
+- **Pain Points**: List 3-4 specific frustrations with current tab management
+- **Desired Outcomes**: What success looks like for this user
+- **Emotional Needs**: Why humor matters (beyond pure functionality)
+- **Browsing Behaviors**: Typical patterns (tab hoarding, context switching, etc.)
+
+Target: 8-10 sentences creating empathetic user understanding. Be specific about browsing behaviors and motivations."
+
+**PROMPT 3**: "Complete Section I: **I. REQUIREMENTS DEFINITION**. Write **1.3 Core Value Proposition Canvas**:
+
+- **Customer Gains**: What benefits does TabbyMcTabface provide?
+- **Pain Relievers**: What frustrations does it eliminate?
+- **Products & Services**: What specifically does TabbyMcTabface offer?
+- **Unique Differentiator**: The one thing that makes it different from other tab managers
+
+Format as a bulleted hierarchy. Target: 10-12 total bullets capturing the complete value proposition. End with a single-sentence UVP (Unique Value Proposition) summary that captures the essence: functional tab management + passive-aggressive personality."
+
+---
+
+## SECTION II: UI-FIRST SEAM DISCOVERY
+
+**PROMPT 4**: "Begin Section II: **II. UI-FIRST SEAM DISCOVERY**. Write **2.1 UI Component Wireframes**. For each UI component, provide:
+
+**2.1.1 Popup UI Main View**
+- ASCII wireframe (using `+`, `-`, `|` characters)
+- Component labels
+- User interaction points (buttons, inputs)
+- Data display areas
+- Annotate with seam markers like `[SEAM-01: UserAction→TabCore]`
+
+**2.1.2 Tab Group Interface**
+- Visual representation in browser tab bar
+- Grouping indicators
+- User controls
+- Annotate seams
+
+**2.1.3 Notification Displays**
+- Chrome notification format
+- In-popup notification format
+- Annotate seams
+
+For each wireframe, mark ALL interaction points and data crossings as seams. Target: 3 complete wireframes with 5-8 seam annotations each."
+
+**PROMPT 5**: "Continue Section II: **II. UI-FIRST SEAM DISCOVERY**. Write **2.2 User Interaction Flows**. Map out 4 primary user flows:
+
+**Flow 1: Creating a Tab Group**
+```
+Step 1: User clicks 'New Group' button [SEAM-01: UI→TabCore]
+Step 2: UI displays group name input
+Step 3: User enters name, selects tabs
+Step 4: User confirms [SEAM-02: UI→TabCore: {name, tabIds[]}]
+Step 5: TabCore validates input
+Step 6: TabCore calls Chrome API [SEAM-03: TabCore→ChromeAPI]
+Step 7: Chrome API creates group, returns groupId
+Step 8: TabCore returns success [SEAM-04: TabCore→UI: {groupId, status}]
+Step 9: UI displays confirmation
+```
+
+**Flow 2: Clicking 'Feeling Lucky?'**
+```
+[Same detailed format with seam annotations]
+```
+
+**Flow 3: Receiving Passive-Aggressive Quip**
+```
+[Same detailed format with seam annotations]
+```
+
+**Flow 4: Triggering Easter Egg**
+```
+[Same detailed format with seam annotations]
+```
+
+For each flow:
+- Number each step explicitly
+- Mark EVERY seam with `[SEAM-XX: ModuleA→ModuleB: dataType]`
+- Identify data transformations
+- Note error paths
+
+Target: 4 complete flows with 8-12 steps each, clearly marking 5-8 seams per flow."
+
+**PROMPT 6**: "Complete Section II: **II. UI-FIRST SEAM DISCOVERY**. Write **2.3 Comprehensive Seams Catalog**. Create a detailed table of ALL seams discovered from UI design:
+
+| Seam ID | Seam Name | Source Module | Target Module | Data In | Data Out | Errors | Contract Priority |
+|---------|-----------|---------------|---------------|---------|----------|--------|-------------------|
+| SEAM-01 | GroupCreationRequest | UI | TabCore | {groupName: string, tabIds: number[]} | {success: boolean, groupId?: number, error?: string} | InvalidName, NoTabsSelected, ChromeAPIFailure | P0 |
+| SEAM-02 | FeelingLuckyTrigger | UI | TabCore | {excludePinned: boolean} | {closedTabId: number, remainingCount: number} | NoTabsToClose | P0 |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+
+Include seams for:
+- UI ↔ Tab Management Core (5-7 seams)
+- UI ↔ Humor System (3-4 seams)
+- Tab Management ↔ Humor System (2-3 seams)
+- Humor System ↔ Personality Module (2-3 seams)
+- Humor System ↔ Quip Storage (2-3 seams)
+- All modules ↔ Chrome APIs (4-6 seams)
+- Internal module seams (3-5 seams)
+
+Target: 25-35 identified seams. Be exhaustive—every data crossing point is a seam. Every seam MUST have a contract."
+
+---
+
+## SECTION III: CONTRACT DEFINITIONS
+
+**PROMPT 7**: "Begin Section III: **III. CONTRACT DEFINITIONS**. Write **3.1 Contract-First Development Principles**. Explain the contract-first approach for TabbyMcTabface using SDD:
+
+- **What is a Contract**: Interface signature + data schema + behavior guarantees + performance SLA
+- **Contract Elements**: 
+  - Input schema (TypeScript types)
+  - Output schema (TypeScript types)
+  - Error conditions (enumerated)
+  - Performance guarantees (latency, throughput)
+  - Side effects documentation
+- **Contract as Tests**: How contracts become test specifications
+- **Contract Validation in CI**: Automated contract compliance checking
+- **Breaking Changes**: How contract versioning prevents breaking changes
+- **Living Documentation**: Contracts as executable documentation
+
+Reference SDD principles explicitly. Explain how contracts enable 'regenerate over debug' by providing clear specifications. Target: 8-10 sentences establishing contract philosophy with concrete examples."
+
+**PROMPT 8**: "Continue Section III: **III. CONTRACT DEFINITIONS**. Write **3.2 Core Interface Contracts** with complete TypeScript definitions.
+
+**3.2.1 ITabManager Contract**:
+````typescript
+/**
+ * CONTRACT: Tab Management Core
+ * PURPOSE: Manages browser tab lifecycle, grouping, and state
+ * DATA FLOW: UI → TabManager → Chrome Tabs API → TabManager → UI
+ * 
+ * SEAMS COVERED: SEAM-01, SEAM-02, SEAM-03, SEAM-04, SEAM-05
+ * 
+ * PERFORMANCE GUARANTEES:
+ * - createGroup(): <50ms
+ * - closeRandomTab(): <30ms
+ * - getAllGroups(): <20ms
+ * 
+ * ERROR HANDLING:
+ * - All methods return Result<T, TabManagerError> type
+ * - Never throws exceptions
+ * - Graceful degradation on Chrome API failures
+ */
+
+interface ITabManager {
+  /**
+   * Creates a new tab group with specified tabs
+   * @param groupName - Human-readable group name (1-50 chars)
+   * @param tabIds - Array of valid tab IDs to group
+   * @returns Result with groupId on success, error on failure
+   * @throws Never - returns error in Result type
+   */
+  createGroup(
+    groupName: string, 
+    tabIds: number[]
+  ): Promise<Result<GroupCreationSuccess, TabManagerError>>;
+
+  /**
+   * Closes a random tab excluding pinned/active tabs
+   * @param options - Configuration for tab selection
+   * @returns Result with closed tab info and trigger for humor system
+   * @throws Never
+   */
+  closeRandomTab(
+    options: RandomTabOptions
+  ): Promise<Result<TabClosureResult, TabManagerError>>;
+
+  // ... continue with ALL methods
+}
+
+type GroupCreationSuccess = {
+  groupId: number;
+  groupName: string;
+  tabCount: number;
+  timestamp: number;
+};
+
+type TabManagerError = 
+  | { type: 'InvalidGroupName'; details: string }
+  | { type: 'NoTabsSelected'; details: string }
+  | { type: 'ChromeAPIFailure'; details: string; originalError: unknown }
+  | { type: 'PermissionDenied'; details: string };
+
+// ... continue with ALL types
+````
+
+**3.2.2 IHumorSystem Contract**:
+- Interface managing humor orchestration across all trigger events
+- Methods: `deliverQuip()`, `checkEasterEggs()`, `trackRecentQuips()`
+- Returns Result types, never throws
+- Performance: <100ms total delivery time
+- Graceful degradation: Falls silent on errors rather than breaking UX
+
+**3.2.3 IHumorPersonality Contract**:
+- Pluggable interface for different humor personalities
+- Methods: `getPassiveAggressiveQuip()`, `getEasterEggQuip()`, `getMetadata()`
+- V1: Single "TabbyMcTabface" personality, designed for easy extension
+- Future: Drop in new personalities without changing HumorSystem
+
+**3.2.4 IQuipStorage Contract**:
+- Abstracts all data access for quips and easter eggs
+- Methods: `getPassiveAggressiveQuips()`, `getEasterEggQuips()`, `initialize()`
+- Validates JSON schema on load, returns empty arrays on corruption
+- In-memory caching after initial load for <10ms access times
+
+Target: Clearly communicate the contract design philosophy - every seam gets an interface, all interfaces use Result types for errors, performance SLAs are explicit."
+
+**PROMPT 9**: "Continue Section III: **III. CONTRACT DEFINITIONS**. Write **3.3 Data Schema Contracts**. 
+
+**3.3.1 Passive-Aggressive Quips JSON Schema**:
+- File: `quips/passive-aggressive.json`
+- Structure: version, level, array of quips
+- Each quip: id (PA-001 format), text (10-200 chars), triggerTypes array, metadata
+- Validated with JSON Schema v7 in CI pipeline
+- Example: 5 sample quips showing variety of triggers and tones
+
+**3.3.2 Easter Egg Definitions JSON Schema**:
+- File: `easter-eggs/definitions.json`
+- Structure: version, array of easter eggs
+- Each easter egg: id (EE-001 format), type, conditions object (AND-combined), quips array, metadata
+- Conditions can combine: tabCount, domainRegex, hourRange, titleContains
+- Example: 5 easter eggs from common to legendary difficulty
+
+**3.3.3 Runtime Data Structures**:
+- BrowserContext: Captures current state for easter egg evaluation
+- QuipDeliveryResult: Tracks delivery method, timestamp, user response
+- HumorTrigger: Standardized event format for all humor triggers
+
+Target: Establish that data schemas ARE contracts - they're versioned, validated in CI, and changes to schemas are breaking changes requiring regeneration."
+
+**PROMPT 10**: "Complete Section III: **III. CONTRACT DEFINITIONS**. Write **3.4 Chrome API Wrapper Contracts**.
+
+**3.4.1 Rationale for API Wrapping**:
+- Chrome APIs are external seams - we don't control them
+- Wrapping enables mocking for tests (no real browser needed)
+- Provides consistent Result-type error handling
+- Enables regeneration if Chrome changes APIs
+- Makes permission requirements explicit
+
+**3.4.2 IChromeTabsAPI Contract**:
+- Wraps: chrome.tabs.query, chrome.tabs.group, chrome.tabs.update, chrome.tabs.remove
+- All methods return Result types
+- Error mapping: Chrome errors → our TabManagerError types
+- Performance tracking built into wrapper
+
+**3.4.3 IChromeNotificationsAPI Contract**:
+- Wraps: chrome.notifications.create, chrome.notifications.clear
+- Handles permission checks internally
+- Fallback behavior if notifications blocked
+
+Target: Communicate that external APIs are seams too - wrap them for testability and resilience."
+
+---
+
+## SECTION IV: CONTRACT VALIDATION IN CI
+
+**PROMPT 11**: "Begin Section IV: **IV. CONTRACT VALIDATION IN CI**. Write **4.1 CI Pipeline Overview**.
+
+Describe the automated contract validation pipeline that runs on every commit:
+
+**4.1.1 Pipeline Stages**:
+1. **JSON Schema Validation**: All data files validated against schemas
+2. **TypeScript Type Checking**: Ensures all implementations match interfaces
+3. **Contract Test Execution**: Tests that verify contract guarantees (inputs, outputs, errors, performance)
+4. **Integration Tests**: Validate seam interactions work as specified
+5. **Breaking Change Detection**: Compares contracts to previous version, flags breaking changes
+
+**4.1.2 Contract-First Test Generation**:
+- Every interface method automatically generates test stubs
+- Contract defines: valid inputs, expected outputs, error cases, performance SLA
+- Tests verify ALL aspects of contract
+- If test fails twice, regenerate implementation from contract
+
+**4.1.3 "Regenerate Over Debug" Automation**:
+- CI tracks test failure count per implementation
+- After 2 failures on same test: automated PR suggests regeneration
+- Regeneration uses contract as specification + current test failures as constraints
+- Faster than debugging when contract is clear
+
+Target: Establish CI as the contract enforcement mechanism - contracts aren't just documentation, they're executable specifications."
+
+**PROMPT 12**: "Continue Section IV: **IV. CONTRACT VALIDATION IN CI**. Write **4.2 Contract Testing Strategy**.
+
+**4.2.1 Contract Test Structure**:
+Each contract generates these test categories:
+- **Input Validation Tests**: All valid inputs accepted, invalid rejected with correct error type
+- **Output Verification Tests**: Return types match schema, no nulls where non-nullable
+- **Error Handling Tests**: Every error condition explicitly tested
+- **Performance Tests**: Methods meet SLA guarantees
+- **Side Effect Tests**: Document and verify any state changes
+
+**4.2.2 Example Contract Test (ITabManager.createGroup)**:
+```typescript
+describe('ITabManager.createGroup CONTRACT', () => {
+  it('accepts valid group names 1-50 chars', ...)
+  it('rejects empty group name with InvalidGroupName error', ...)
+  it('rejects >50 char name with InvalidGroupName error', ...)
+  it('rejects empty tabIds with NoTabsSelected error', ...)
+  it('returns groupId on success', ...)
+  it('completes in <50ms (95th percentile)', ...)
+  it('handles Chrome API failure gracefully', ...)
+});
+```
+
+**4.2.3 Seam Integration Tests**:
+- Test data flow across seam boundaries
+- Example: UI sends createGroup request → TabCore processes → Chrome API called → Result flows back
+- Mock Chrome API to test error propagation
+- Verify contract guarantees hold across seam
+
+Target: Show how contracts generate comprehensive test suites automatically."
+
+**PROMPT 13**: "Complete Section IV: **IV. CONTRACT VALIDATION IN CI**. Write **4.3 Breaking Change Prevention**.
+
+**4.3.1 Contract Versioning**:
+- Every contract has semantic version
+- Major version bump = breaking change (interface signature change, error type change)
+- Minor version = backward-compatible addition (new optional field)
+- Patch version = documentation/comment update
+
+**4.3.2 Automated Breaking Change Detection**:
+- CI compares current contracts to main branch contracts
+- Flags any breaking changes in PR
+- Requires explicit approval + migration plan for breaking changes
+- Suggests regeneration of dependent modules
+
+**4.3.3 Contract Migration Strategy**:
+- Breaking change identified → update contract version
+- Generate new implementation from new contract
+- Run old tests against new implementation to verify no regression
+- Update dependent modules (often via regeneration)
+- Deploy with version check
+
+Target: Explain how contract-first prevents cascading breakages and enables safe evolution."
+
+---
+
+## SECTION V: CODE & TEST GENERATION FROM CONTRACTS
+
+**PROMPT 14**: "Begin Section V: **V. CODE & TEST GENERATION FROM CONTRACTS**. Write **5.1 Generation-First Development Philosophy**.
+
+**5.1.1 Why Generate Instead of Write**:
+- Contracts are complete specifications - AI can generate valid implementations
+- Generated code adheres to contracts by construction
+- Tests are generated alongside implementation - always in sync
+- Regeneration is faster than debugging when contract is clear
+- Consistency across codebase (same patterns, same error handling)
+
+**5.1.2 Human Role in Generated Code**:
+- Humans write contracts (the WHAT and interface)
+- AI generates implementation (the HOW)
+- Humans review generated code for correctness and maintainability
+- Humans refine contracts based on implementation feedback
+- Iterative: Contract → Generate → Review → Refine Contract → Regenerate
+
+**5.1.3 When to Regenerate vs. Debug**:
+- **Regenerate**: Contract is clear, implementation has bugs, >2 debug attempts
+- **Debug**: Contract unclear, edge case not in contract, quick obvious fix
+- **Refine Contract & Regenerate**: Implementation reveals contract incompleteness
+
+Target: Shift mindset from 'write code' to 'specify contracts then generate code'."
+
+**PROMPT 15**: "Continue Section V: **V. CODE & TEST GENERATION FROM CONTRACTS**. Write **5.2 Generation Prompts for TabbyMcTabface**.
+
+**5.2.1 Module Generation Prompt Template**:
+```
+Generate implementation of [InterfaceName] contract with following requirements:
+1. Implements all methods per contract signature
+2. Returns Result types for all operations
+3. Meets performance SLAs documented in contract
+4. Handles all enumerated error cases
+5. Includes top-level file comment explaining: WHAT this module does, WHY it exists, HOW data flows through it
+6. Generate corresponding test suite covering all contract guarantees
+7. Use provided contract as single source of truth
+8. If contract is ambiguous, ask for clarification - do not assume
+```
+
+**5.2.2 Example: Generating TabManager from ITabManager Contract**:
+Prompt: "Generate TabManager.ts implementing ITabManager contract. Include:
+- Chrome API wrapper injection (IChromeTabsAPI)
+- Random tab selection using crypto.getRandomValues()
+- Group validation logic
+- Complete error handling
+- Performance logging
+- Top-level documentation
+Also generate TabManager.test.ts with full contract test coverage."
+
+**5.2.3 Test Generation from Contracts**:
+- Every method → test suite
+- Every error type → error handling test
+- Every performance SLA → performance test
+- Every data type → valid/invalid input tests
+
+Target: Provide concrete generation prompts that others can use to regenerate modules."
+
+**PROMPT 16**: "Complete Section V: **V. CODE & TEST GENERATION FROM CONTRACTS**. Write **5.3 Regeneration Workflow**.
+
+**5.3.1 Triggering Regeneration**:
+When to regenerate:
+- New contract version published
+- Test failures exceed threshold (>2 attempts)
+- Performance regression detected
+- Dependency contract changed (breaking change)
+
+**5.3.2 Regeneration Process**:
+1. Pull latest contract version
+2. Review contract changes vs. current implementation
+3. Run generation prompt with contract + context (existing tests, performance data)
+4. AI generates new implementation + tests
+5. Run full test suite including contract tests
+6. Compare: new vs. old performance, test coverage, complexity
+7. Human review of generated code
+8. Commit if passes all checks
+
+**5.3.3 Preserving Custom Logic Through Regeneration**:
+- Mark custom sections with `// CUSTOM: [description]` comments
+- Generation prompt: 'Preserve sections marked CUSTOM'
+- AI integrates custom logic into generated structure
+- Alternative: Extract custom logic to separate pluggable module
+
+Target: Make regeneration a routine, low-friction process - not a scary rewrite."
+
+---
+
+## SECTION VI: TOP-LEVEL DOCUMENTATION STANDARD
+
+**PROMPT 17**: "Begin Section VI: **VI. TOP-LEVEL DOCUMENTATION STANDARD**. Write **6.1 File Header Template**.
+
+Every generated file MUST have top-level comment block:
+
+```typescript
+/**
+ * FILE: TabManager.ts
+ * 
+ * WHAT: Implements core tab management operations (grouping, random closure, state tracking)
+ * 
+ * WHY: Abstracts Chrome tabs API behind type-safe, testable interface. Enables humor system
+ *      to react to tab events without direct coupling to browser APIs.
+ * 
+ * HOW DATA FLOWS:
+ *   1. UI sends tab operation request (via ITabManager interface)
+ *   2. TabManager validates inputs
+ *   3. TabManager calls Chrome API (via IChromeTabsAPI wrapper)
+ *   4. Chrome API performs operation, returns result
+ *   5. TabManager maps result to our Result type
+ *   6. On tab events: TabManager emits event to HumorSystem
+ *   7. Result flows back to UI
+ * 
+ * SEAMS:
+ *   - IN: UI → TabManager (SEAM-01, SEAM-02, SEAM-05)
+ *   - OUT: TabManager → ChromeAPI (SEAM-20)
+ *   - OUT: TabManager → HumorSystem (SEAM-08)
+ * 
+ * CONTRACT: ITabManager v1.0.0
+ * GENERATED: 2025-10-10 (from contract v1.0.0)
+ * CUSTOM SECTIONS: None
+ */
+```
+
+**6.1.1 Required Elements**:
+- FILE: Filename
+- WHAT: One-sentence description
+- WHY: Rationale - why this module exists
+- HOW DATA FLOWS: Numbered list showing data movement
+- SEAMS: Inbound and outbound seams
+- CONTRACT: Interface version this implements
+- GENERATED: Timestamp and contract version
+- CUSTOM SECTIONS: List any hand-written code sections
+
+Target: Standardize documentation so ANY developer (or AI) can understand data flow at a glance."
+
+**PROMPT 18**: "Continue Section VI: **VI. TOP-LEVEL DOCUMENTATION STANDARD**. Write **6.2 Method-Level Documentation**.
+
+**6.2.1 Method Comment Template**:
+```typescript
+/**
+ * Creates a new tab group with specified tabs
+ * 
+ * DATA IN: groupName (validated 1-50 chars), tabIds[] (non-empty, validated Chrome IDs)
+ * DATA OUT: Result<GroupCreationSuccess, TabManagerError>
+ * 
+ * SEAM: SEAM-01 (UI → TabCore)
+ * 
+ * FLOW:
+ *   1. Validate groupName length
+ *   2. Validate tabIds non-empty
+ *   3. Call chromeAPI.createGroup(tabIds)
+ *   4. If success: call chromeAPI.updateGroup() with name
+ *   5. If success: emit TabGroupCreated event → HumorSystem
+ *   6. Return Result with groupId
+ * 
+ * ERRORS:
+ *   - InvalidGroupName: Name empty or >50 chars
+ *   - NoTabsSelected: tabIds empty
+ *   - ChromeAPIFailure: Chrome API call failed
+ * 
+ * PERFORMANCE: <50ms (95th percentile)
+ */
+async createGroup(
+  groupName: string,
+  tabIds: number[]
+): Promise<Result<GroupCreationSuccess, TabManagerError>> {
+  // Implementation
+}
+```
+
+**6.2.2 Why This Level of Detail**:
+- Enables regeneration without reading implementation
+- Documents the contract guarantee at point of use
+- Explains data transformations explicitly
+- Makes seams visible in code
+
+Target: Every method is self-documenting about its contract obligations."
+
+**PROMPT 19**: "Complete Section VI: **VI. TOP-LEVEL DOCUMENTATION STANDARD**. Write **6.3 Data Flow Diagrams in Code**.
+
+**6.3.1 Module-Level Flow ASCII Diagrams**:
+Include in file header for complex modules:
+
+```
+/**
+ * DATA FLOW DIAGRAM:
+ * 
+ *   ┌─────────┐                    ┌──────────────┐
+ *   │   UI    │───createGroup()───▶│  TabManager  │
+ *   └─────────┘                    └──────┬───────┘
+ *                                         │
+ *                                         │ chrome.tabs.group()
+ *                                         ▼
+ *                                  ┌──────────────┐
+ *                                  │  ChromeAPI   │
+ *                                  └──────┬───────┘
+ *                                         │
+ *                                         │ groupId
+ *                                         ▼
+ *   ┌─────────┐                    ┌──────────────┐
+ *   │   UI    │◀──Result<Success>──│  TabManager  │
+ *   └─────────┘                    └──────┬───────┘
+ *                                         │
+ *                                         │ TabGroupCreated event
+ *                                         ▼
+ *                                  ┌──────────────┐
+ *                                  │ HumorSystem  │
+ *                                  └──────────────┘
+ */
+```
+
+**6.3.2 When to Include Diagrams**:
+- Module coordinates >3 other modules
+- Data flows through multiple transformations
+- Error paths are complex
+- Helps visualize seam interactions
+
+Target: Make data flow visual for complex modules."
+
+---
+
+## SECTION VII: SDD TOOLING & AUTOMATION
+
+**PROMPT 20**: "Begin Section VII: **VII. SDD TOOLING & AUTOMATION**. Write **7.1 Essential SDD Tools for TabbyMcTabface**.
+
+**7.1.1 Contract Validation Tools**:
+- **TypeScript Compiler**: Type-checks implementations against interfaces
+- **JSON Schema Validator**: Validates data files against schemas in CI (ajv, joi)
+- **Contract Test Generator**: Auto-generates test stubs from interface definitions
+- **Breaking Change Detector**: Compares contract versions, flags breaking changes (api-extractor)
+
+**7.1.2 Code Generation Tools**:
+- **GitHub Copilot with SDD Instructions**: Custom instructions for contract-first generation
+- **Claude/GPT with SDD Prompts**: Uses generation prompt templates from Section V
+- **Test Generator**: Creates comprehensive test suites from contracts
+
+**7.1.3 Monitoring & Metrics**:
+- **Debug Attempt Counter**: Tracks failed fix attempts → triggers regeneration
+- **Performance Monitor**: Validates SLA compliance in production
+- **Contract Coverage**: Ensures every seam has a contract
+- **Test Coverage**: Contract tests must cover all error types
+
+Target: Identify specific tools needed to operationalize SDD."
+
+**PROMPT 21**: "Continue Section VII: **VII. SDD TOOLING & AUTOMATION**. Write **7.2 Custom Automations to Build**.
+
+**7.2.1 Seam Catalog Generator**:
+- Scans codebase for interface boundaries
+- Generates/updates seam catalog table automatically
+- Flags missing contracts
+- Outputs markdown table for design doc
+- Implementation: Node.js script using TypeScript AST parser
+
+**7.2.2 Contract-to-Test Generator**:
+- Reads TypeScript interface
+- Generates Jest test suite with:
+  - Test for each method
+  - Test for each error type
+  - Performance test for each SLA
+  - Input validation tests
+- Outputs: `[Interface].contract.test.ts`
+- Implementation: Template-based generation from interface AST
+
+**7.2.3 Regeneration Trigger Bot**:
+- Monitors CI test results
+- Counts consecutive failures per module
+- After threshold (2 failures): Posts PR comment suggesting regeneration
+- Includes: Contract version, failed tests, generation prompt
+- Implementation: GitHub Actions workflow + custom script
+
+**7.2.4 Documentation Validator**:
+- Checks every .ts file has required header format
+- Validates WHAT/WHY/HOW DATA FLOWS sections present
+- Ensures SEAMS listed match seam catalog
+- CI fails if documentation incomplete
+- Implementation: ESLint custom rule or standalone script
+
+Target: Automate the repetitive parts of SDD compliance."
+
+**PROMPT 22**: "Complete Section VII: **VII. SDD TOOLING & AUTOMATION**. Write **7.3 GitHub Copilot & Cursor Integration**.
+
+**7.3.1 .github/copilot-instructions.md**:
+Create instructions file for Copilot:
+```markdown
+# TabbyMcTabface - Seam-Driven Development Instructions
+
+When generating code for TabbyMcTabface:
+
+1. ALWAYS implement the specified contract interface
+2. ALWAYS include top-level file comment with: WHAT, WHY, HOW DATA FLOWS, SEAMS
+3. ALWAYS use Result<T, E> types for error handling - never throw exceptions
+4. ALWAYS include method comments documenting: DATA IN, DATA OUT, SEAM, FLOW, ERRORS, PERFORMANCE
+5. Generate tests alongside implementation - contract tests mandatory
+6. If contract is ambiguous, ASK - don't assume
+7. Preserve sections marked // CUSTOM: when regenerating
+8. Reference seam IDs (SEAM-XX) in comments
+
+Performance SLAs from contracts are mandatory - use async/await, avoid blocking operations.
+
+Error handling pattern:
+- Return Result<Success, Error> types
+- Map external errors to domain error types
+- Never let Chrome API errors leak to UI layer
+```
+
+**7.3.2 .cursorrules**:
+```markdown
+# Cursor Rules for TabbyMcTabface SDD
+
+- Every interface implementation must be generated from its contract
+- File headers are mandatory: WHAT, WHY, HOW DATA FLOWS, SEAMS
+- Result types for all operations that can fail
+- Tests generated with implementation, not after
+- Regenerate > Debug after 2 failed fix attempts
+- Ask for contract clarification before making assumptions
+- All seam crossings must be documented with SEAM-XX IDs
+```
+
+**7.3.3 Custom Agents (agents.md)**:
+```markdown
+# SDD Agent: Contract Generator
+**Role**: Generate TypeScript interfaces from seam descriptions
+**Input**: Seam catalog entry (SEAM-XX with data in/out)
+**Output**: Complete TypeScript interface with JSDoc
+
+# SDD Agent: Implementation Generator
+**Role**: Generate module implementation from contract
+**Input**: Interface definition + contract documentation
+**Output**: .ts file with implementation + .test.ts file
+
+# SDD Agent: Regeneration Assistant
+**Role**: Assist with regenerating failing modules
+**Input**: Contract version + test failures
+**Output**: Updated implementation + test results
+
+# SDD Agent: Documentation Validator
+**Role**: Ensure all files have proper SDD headers
+**Input**: File path
+**Output**: Validation report with missing elements
+```
+
+Target: Configure AI coding assistants for SDD workflow."
+
+---
+
+## SECTION VIII: SDD COMPLIANCE CHECKLIST
+
+**PROMPT 23**: "Write Section VIII: **VIII. SDD COMPLIANCE CHECKLIST**. Create a checklist for validating SDD adherence:
+
+**8.1 Pre-Implementation Checklist**:
+- [ ] Requirements defined with acceptance criteria (Section I complete)
+- [ ] UI wireframes created (Section II.1 complete)
+- [ ] User flows mapped with seam annotations (Section II.2 complete)
+- [ ] Comprehensive seam catalog completed - 25-35 seams (Section II.3 complete)
+- [ ] Contracts defined for ALL seams (Section III complete)
+- [ ] Data schemas defined and versioned (Section III.3 complete)
+- [ ] Generation prompts prepared (Section V.2 complete)
+- [ ] CI pipeline configured for contract validation
+
+**8.2 During Implementation Checklist**:
+- [ ] Generate code from contracts (not writing from scratch)
+- [ ] Include file header: WHAT, WHY, HOW DATA FLOWS, SEAMS
+- [ ] Include method documentation: DATA IN/OUT, SEAM, FLOW, ERRORS
+- [ ] Generate tests alongside implementation
+- [ ] All contract tests pass
+- [ ] All integration tests pass
+- [ ] Performance SLAs met (<50ms for core operations)
+- [ ] If debugging >2 times: Regenerate instead
+- [ ] Mark custom code sections with // CUSTOM: comments
+
+**8.3 Pre-Commit Checklist**:
+- [ ] All contracts versioned (semantic versioning)
+- [ ] JSON schemas validated against sample data
+- [ ] TypeScript type-checks pass (strict mode)
+- [ ] Contract tests pass (100% of contract guarantees tested)
+- [ ] Integration tests pass (seam interactions validated)
+- [ ] Performance tests pass (SLA compliance verified)
+- [ ] Documentation validator passes (all headers present)
+- [ ] No breaking changes (or migration plan exists)
+- [ ] All seams documented in catalog
+
+**8.4 Maintenance Checklist**:
+- [ ] Failed module: Check contract clarity first
+- [ ] Contract change: Update version, regenerate implementations
+- [ ] New feature: Define seams BEFORE implementing
+- [ ] Bug fix: Is contract incomplete? Update contract, regenerate
+- [ ] Performance issue: Check if SLA in contract is achievable
+- [ ] Refactoring: Verify contracts still accurate after refactor
+
+Target: Provide actionable checklist for staying SDD-compliant throughout development lifecycle."
+
+---
+
+## SECTION IX: IMPLEMENTATION ROADMAP
+
+**PROMPT 24**: "Write Section IX: **IX. SDD IMPLEMENTATION ROADMAP**.
+
+**9.1 SDD Approach Summary**:
+TabbyMcTabface uses Seam-Driven Development to:
+1. **Define WHAT before HOW**: Requirements → Seams → Contracts → Code
+2. **Make boundaries explicit**: Every seam identified and governed by contract
+3. **Generate from specifications**: Implementations generated from contracts
+4. **Validate continuously**: Contracts validated in CI on every commit
+5. **Regenerate over debug**: After 2 failed fixes, regenerate from contract
+6. **Document data flow**: WHAT/WHY/HOW in every file header
+
+**9.2 Implementation Phases**:
+
+**Phase 1: Foundation** (Week 1 - Contract Definition)
+- Complete all 34 prompts in this series to generate design document
+- Define all seams (target: 25-35 seams in catalog)
+- Write all interface contracts (ITabManager, IHumorSystem, IHumorPersonality, IQuipStorage)
+- Define JSON schemas for data files
+- Set up CI pipeline with contract validation
+- **Deliverables**: Complete design doc, all contracts defined, CI configured
+- **Exit Criteria**: All contracts compile, JSON schemas validate sample data
+
+**Phase 2: Core Generation** (Week 2 - Tab Management)
+- Generate TabManager from ITabManager contract
+- Generate Chrome API wrappers (IChromeTabsAPI)
+- Generate contract test suites
+- Implement tab grouping functionality
+- Implement 'Feeling Lucky?' random tab closure
+- **Deliverables**: Working tab management, all contract tests passing
+- **Exit Criteria**: Tab grouping E2E test passes, performance <50ms
+
+**Phase 3: Humor System** (Week 3 - Personality & Quips)
+- Generate HumorSystem from IHumorSystem contract
+- Generate TabbyMcTabface personality from IHumorPersonality contract
+- Generate QuipStorage from IQuipStorage contract
+- Create 20+ passive-aggressive quips (JSON)
+- Create 5+ easter eggs (JSON)
+- **Deliverables**: Working humor delivery, quip content created
+- **Exit Criteria**: Humor integration tests pass, quips display correctly
+
+**Phase 4: Integration & Polish** (Week 4 - UI & Testing)
+- Generate popup UI components
+- Implement notification delivery
+- Complete integration testing across all seams
+- Performance optimization if needed
+- Documentation completion
+- **Deliverables**: Complete MVP, all tests passing
+- **Exit Criteria**: All E2E tests pass, performance SLAs met, docs complete
+
+**9.3 Success Metrics**:
+- **Contract Coverage**: 100% of seams have contracts
+- **Test Coverage**: 100% of contract guarantees tested
+- **Regeneration Efficiency**: <2 debug attempts before regeneration trigger
+- **Performance**: All SLAs met (<50ms core operations, <100ms total flows)
+- **Breaking Changes**: Zero unplanned breaking changes
+- **Documentation**: 100% of files have WHAT/WHY/HOW headers
+
+**9.4 Risk Mitigation**:
+- **Risk**: Contracts too rigid, slowing development
+  - **Mitigation**: Start with loose contracts, tighten based on implementation learnings
+- **Risk**: Regeneration produces worse code than manual fixes
+  - **Mitigation**: Human review required, preserve custom sections
+- **Risk**: Performance SLAs unachievable
+  - **Mitigation**: Profile early, adjust contracts if needed
+- **Risk**: Too many seams, overwhelming complexity
+  - **Mitigation**: Group related seams, use facade patterns
+
+Target: Provide clear roadmap from contracts to working MVP using SDD principles."
+
+---
+
+## SECTION X: APPENDICES
+
+**APPENDIX A: SDD Glossary**
+
+- **Seam**: Any boundary where data crosses between modules, components, or systems. If data flows across a line, it's a seam.
+- **Contract**: Interface signature + data schema + behavior guarantees + performance SLA. Contracts are versioned and validated in CI.
+- **Regenerate Over Debug**: After 2 failed debugging attempts, regenerate the implementation from its contract rather than continuing to debug.
+- **Contract Test**: Test that validates all aspects of a contract - valid inputs, expected outputs, error conditions, and performance SLAs.
+- **Breaking Change**: Modification to a contract that breaks existing implementations (signature change, error type change, SLA change).
+- **Seam Catalog**: Comprehensive table listing all seams in the system with their contracts, data flows, and error conditions.
+- **Result Type**: `Result<Success, Error>` pattern for explicit error handling without exceptions.
+- **SLA (Service Level Agreement)**: Performance guarantee specified in contract (e.g., "<50ms execution time").
+
+**APPENDIX B: Key SDD Principles**
+
+1. **Requirements First**: Always define WHAT before HOW
+2. **UI-First Discovery**: Use UI mockups to discover hidden seams
+3. **Contracts as Specifications**: Contracts are complete enough to generate implementations
+4. **Test-Contract Alignment**: Tests generated from contracts, always in sync
+5. **Fail Fast on Contracts**: CI validates contracts before allowing implementation changes
+6. **Regeneration Threshold**: 2 failed debug attempts = time to regenerate
+7. **Documentation Mandatory**: Every file has WHAT/WHY/HOW header
+8. **Seam Visibility**: All seam crossings annotated in code with SEAM-XX IDs
+
+**APPENDIX C: Recommended Tools & Libraries**
+
+**Contract Validation**:
+- TypeScript Compiler (tsc) - Type checking
+- Ajv or Joi - JSON Schema validation
+- api-extractor - Breaking change detection
+
+**Testing**:
+- Jest - Test framework
+- ts-jest - TypeScript support for Jest
+- @testing-library - UI component testing
+
+**Code Generation**:
+- GitHub Copilot with custom instructions
+- Claude/GPT via API for batch generation
+- TypeScript AST parsers (ts-morph) for custom generators
+
+**CI/CD**:
+- GitHub Actions - Workflow automation
+- Husky - Pre-commit hooks
+- ESLint with custom rules - Documentation validation
+
+**Chrome Extension**:
+- @types/chrome - TypeScript definitions
+- Plasmo or WXT - Modern extension framework (optional)
+- Vite - Build tooling
+
+**APPENDIX D: Sample Generation Prompts**
+
+**Prompt: Generate Module from Contract**:
+```
+Generate implementation of ITabManager contract for TabbyMcTabface Chrome extension.
+
+Contract location: contracts/ITabManager.ts
+Target file: src/core/TabManager.ts
+
+Requirements:
+1. Implement ALL methods from ITabManager interface
+2. Inject IChromeTabsAPI dependency (don't call chrome.* directly)
+3. Use crypto.getRandomValues() for random tab selection
+4. Return Result<T, TabManagerError> types (never throw exceptions)
+5. Meet performance SLAs: createGroup <50ms, closeRandomTab <30ms
+6. Include file header with: WHAT, WHY, HOW DATA FLOWS, SEAMS
+7. Include method comments with: DATA IN/OUT, SEAM, FLOW, ERRORS, PERFORMANCE
+8. Emit events to HumorSystem on tab operations
+
+Also generate src/core/TabManager.test.ts with:
+- Contract tests for all methods
+- Input validation tests
+- Error handling tests for all TabManagerError types
+- Performance tests for SLA compliance
+- Integration tests with mocked IChromeTabsAPI
+```
+
+**Prompt: Generate Contract Tests**:
+```
+Generate comprehensive contract test suite for IHumorSystem interface.
+
+Contract location: contracts/IHumorSystem.ts
+Target file: src/humor/__tests__/IHumorSystem.contract.test.ts
+
+Generate tests for:
+1. Each method signature matches contract
+2. All valid inputs accepted
+3. All invalid inputs rejected with correct error type
+4. Return types match Result<T, HumorError> pattern
+5. Performance SLAs met (<100ms total delivery time)
+6. Side effects documented and verified
+7. Graceful degradation (falls silent on errors)
+
+Use Jest framework, mock dependencies with jest.fn()
+```
+
+**APPENDIX E: Example File Header (Complete)**
+
+```typescript
+/**
+ * FILE: TabManager.ts
+ * 
+ * WHAT: Core tab management orchestrator - handles tab grouping, random closure,
+ *       and state tracking for TabbyMcTabface extension
+ * 
+ * WHY: Provides type-safe abstraction over Chrome Tabs API. Decouples UI from
+ *      browser APIs for testability. Emits events to HumorSystem without direct
+ *      coupling, enabling independent humor module evolution.
+ * 
+ * HOW DATA FLOWS:
+ *   1. UI calls method on ITabManager interface (SEAM-01, SEAM-02, SEAM-05)
+ *   2. TabManager validates all inputs (groupName length, tabIds non-empty)
+ *   3. TabManager calls IChromeTabsAPI wrapper methods (SEAM-20)
+ *   4. Chrome API executes operation (group creation, tab closure, etc.)
+ *   5. Chrome API returns result or error
+ *   6. TabManager maps Chrome errors to TabManagerError types
+ *   7. On success: TabManager emits event to IHumorSystem (SEAM-08)
+ *   8. TabManager returns Result<Success, Error> to UI
+ * 
+ * SEAMS:
+ *   IN:
+ *     - UI → TabManager (SEAM-01: createGroup)
+ *     - UI → TabManager (SEAM-02: closeRandomTab)
+ *     - UI → TabManager (SEAM-05: getAllGroups)
+ *   OUT:
+ *     - TabManager → ChromeTabsAPI (SEAM-20: all Chrome API calls)
+ *     - TabManager → HumorSystem (SEAM-08: event emissions)
+ * 
+ * CONTRACT: ITabManager v1.0.0
+ * 
+ * PERFORMANCE CONTRACTS:
+ *   - createGroup(): <50ms (95th percentile)
+ *   - closeRandomTab(): <30ms (95th percentile)
+ *   - getAllGroups(): <20ms (95th percentile)
+ * 
+ * ERROR HANDLING:
+ *   - Returns Result types, never throws exceptions
+ *   - Maps all Chrome API errors to TabManagerError types
+ *   - Graceful degradation on API failures
+ * 
+ * GENERATED: 2025-10-10 (from ITabManager v1.0.0)
+ * REGENERATED: Never
+ * CUSTOM SECTIONS: None
+ * 
+ * DEPENDENCIES:
+ *   - IChromeTabsAPI (injected, SEAM-20)
+ *   - IHumorSystem (event emission only, SEAM-08)
+ */
+
+import type { ITabManager, TabManagerError, GroupCreationSuccess } from '../contracts/ITabManager';
+import type { IChromeTabsAPI } from '../contracts/IChromeTabsAPI';
+import type { IHumorSystem } from '../contracts/IHumorSystem';
+import { Result } from '../utils/Result';
+
+export class TabManager implements ITabManager {
+  constructor(
+    private chromeAPI: IChromeTabsAPI,
+    private humorSystem: IHumorSystem
+  ) {}
+
+  /**
+   * Creates a new tab group with specified tabs
+   * 
+   * DATA IN: 
+   *   - groupName: string (validated 1-50 chars)
+   *   - tabIds: number[] (non-empty, validated Chrome tab IDs)
+   * 
+   * DATA OUT: 
+   *   - Result<GroupCreationSuccess, TabManagerError>
+   *   - GroupCreationSuccess = {groupId, groupName, tabCount, timestamp}
+   * 
+   * SEAM: SEAM-01 (UI → TabManager → ChromeAPI)
+   * 
+   * FLOW:
+   *   1. Validate groupName: length 1-50 chars
+   *   2. Validate tabIds: non-empty array
+   *   3. Call chromeAPI.createGroup(tabIds) [SEAM-20]
+   *   4. If error: map to TabManagerError, return Result.error
+   *   5. If success: call chromeAPI.updateGroup(groupId, {title: groupName})
+   *   6. Emit TabGroupCreated event to humorSystem [SEAM-08]
+   *   7. Return Result.ok with GroupCreationSuccess data
+   * 
+   * ERRORS:
+   *   - InvalidGroupName: groupName empty or >50 chars
+   *   - NoTabsSelected: tabIds empty array
+   *   - ChromeAPIFailure: Chrome API call failed (permission, invalid tab, etc.)
+   * 
+   * PERFORMANCE: <50ms (95th percentile)
+   * 
+   * @param groupName Human-readable group name (1-50 chars)
+   * @param tabIds Array of valid Chrome tab IDs to include in group
+   * @returns Promise resolving to Result with groupId or error
+   */
+  async createGroup(
+    groupName: string,
+    tabIds: number[]
+  ): Promise<Result<GroupCreationSuccess, TabManagerError>> {
+    // Implementation here...
+  }
+
+  // ... other methods
+}
+```
+
+---
+
+## END OF SDD PROMPT SERIES
+
+**Final Notes**:
+- This prompt series is designed to be executed sequentially, one prompt at a time
+- Each prompt builds on previous sections - don't skip prompts
+- Review and refine output after each prompt before proceeding
+- The complete design document will be 30-40 pages when all prompts are executed
+- Contracts are the foundation - invest time in getting them right
+- Regeneration is your friend - embrace it over prolonged debugging
+- Documentation is not optional - it enables regeneration and onboarding
+
+**Next Steps After Completing Prompt Series**:
+1. Execute Prompt 0 to confirm AI understanding
+2. Execute Prompts 1-6 to define requirements and discover seams
+3. Execute Prompts 7-10 to define all contracts
+4. Execute Prompts 11-13 to set up CI validation
+5. Execute Prompts 14-16 to prepare for code generation
+6. Execute Prompts 17-19 to establish documentation standards
+7. Execute Prompts 20-22 to configure tooling
+8. Execute Prompts 23-24 for checklists and roadmap
+9. Begin Phase 1 implementation: Contract definition
+10. Generate code from contracts, validate with contract tests
+
+**Questions or Clarifications**: Review APPENDIX D for example prompts, APPENDIX A for terminology

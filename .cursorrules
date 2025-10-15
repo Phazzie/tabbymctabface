@@ -1,0 +1,80 @@
+# Cursor Rules for TabbyMcTabface SDD
+
+## Seam-Driven Development Mode
+
+When working on TabbyMcTabface, you're using **Seam-Driven Development (SDD)**:
+
+- Every interface implementation must be generated from its contract
+- File headers are mandatory: WHAT, WHY, HOW DATA FLOWS, SEAMS
+- Result types for all operations that can fail
+- Tests generated with implementation, not after
+- Regenerate > Debug after 2 failed fix attempts
+- Ask for contract clarification before making assumptions
+- All seam crossings must be documented with SEAM-XX IDs
+
+## Mandatory Patterns
+
+### File Structure
+```typescript
+/**
+ * FILE: [name]
+ * WHAT: [what it does]
+ * WHY: [why it exists]
+ * HOW DATA FLOWS: [numbered steps]
+ * SEAMS: IN/OUT with IDs
+ * CONTRACT: [interface] v[version]
+ */
+```
+
+### Error Handling
+- Never throw exceptions
+- Always return `Result<Success, Error>` for fallible operations
+- Map external errors at seam boundaries
+
+### Chrome APIs
+- Never call `chrome.*` directly
+- Use IChromeTabsAPI or IChromeNotificationsAPI wrappers
+- Enables testing and regeneration
+
+### Testing
+- Generate tests when generating implementation
+- Contract tests for every interface method
+- Performance tests for SLA compliance
+
+## Performance Requirements
+- UI interactions: <100ms
+- Core operations: <50ms
+- Humor delivery: <100ms total
+
+## When You See These Patterns
+
+| Pattern | Meaning |
+|---------|---------|
+| `// CUSTOM:` | Preserve this section during regeneration |
+| `// === SEAM-XX: A → B ===` | Data crossing seam boundary |
+| `Result<T, E>` | Explicit error handling (never throw) |
+| `ITabManager`, `IHumorSystem` | Contracts - honor them exactly |
+
+## Regeneration Workflow
+
+If debugging takes >2 attempts:
+1. Stop debugging
+2. Pull latest contract version
+3. Regenerate implementation from contract
+4. Generate new tests from contract
+5. Verify all contract tests pass
+
+## Project Context
+
+- **Product**: TabbyMcTabface Chrome extension
+- **User**: Intelligent, ADD/ADHD tendencies, appreciates clever humor
+- **Tone**: Passive-aggressive, subtle, technically witty
+- **Target**: Chrome v90+
+
+## Quick Checks Before Code
+
+- [ ] Contract exists and is clear?
+- [ ] File header template ready?
+- [ ] Tests will be generated alongside code?
+- [ ] Performance SLAs from contract noted?
+- [ ] Seam IDs identified?

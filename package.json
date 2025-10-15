@@ -1,0 +1,43 @@
+{
+  "name": "tabby",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "agent": "node sdd-agents/cli.js",
+    "validate": "node sdd-agents/agents/documentation-validator.js",
+    "scan-seams": "node sdd-agents/agents/seam-catalog-generator.js",
+    "gen-contract": "node sdd-agents/agents/contract-generator.js",
+    "gen-tests": "node sdd-agents/agents/test-generator.js",
+    "analytics": "node sdd-agents/tools/pattern-analytics.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "build": "npm run clean && npm run compile && npm run copy-assets",
+    "build:watch": "tsc --watch",
+    "compile": "tsc",
+    "clean": "rm -rf dist",
+    "copy-assets": "cp manifest.json dist/ && cp popup.html dist/ && cp popup.css dist/ && cp popup.js dist/ && mkdir -p dist/icons && cp -r icons/* dist/icons/ 2>/dev/null || true",
+    "lint": "tsc --noEmit",
+    "package": "npm run build && cd dist && zip -r ../TabbyMcTabface-v1.0.0.zip .",
+    "dev": "npm run build:watch"
+  },
+  "keywords": [
+    "sdd",
+    "seam-driven",
+    "chrome-extension"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "TabbyMcTabface - Seam-Driven Chrome Extension",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/node": "^20.14.0",
+    "@vitest/ui": "^3.2.4",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.4"
+  }
+}
