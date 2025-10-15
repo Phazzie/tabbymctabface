@@ -194,7 +194,7 @@ export class MockHumorPersonality implements IHumorPersonality {
      * 
      * PERFORMANCE: <1ms (synchronous)
      */
-    supportsLevel(level: HumorLevel): boolean {
+    supportsLevel(_level: HumorLevel): boolean {
         // Mock supports all levels
         return true;
     }

@@ -57,7 +57,8 @@ export class HumorSystem implements IHumorSystem {
   private humorLevel: HumorLevel = 'default';
   private lastDeliveryTimestamp = 0;
   private readonly minDeliveryInterval = 5000; // 5 seconds between quips
-  private recentQuips: string[] = [];
+  private recentQuips: Set<string> = new Set(); // O(1) lookup
+  private recentQuipsList: string[] = []; // Maintains order for FIFO
   private readonly maxRecentQuips = 10;
   private notificationObservers: Array<(value: QuipNotification) => void> = [];
   private eventHandlers = new Map<TabEventType, Array<(event: TabEvent) => void>>();
@@ -69,7 +70,7 @@ export class HumorSystem implements IHumorSystem {
     private readonly easterEggFramework: IEasterEggFramework,
     private readonly quipStorage: IQuipStorage,
     private readonly notificationsAPI: IChromeNotificationsAPI
-  ) {}
+  ) { }
 
   /**
    * Observable stream of quip notifications
@@ -134,7 +135,7 @@ export class HumorSystem implements IHumorSystem {
 
       // Select quip (easter egg or passive-aggressive)
       const quipResult = await this.selectQuipForTrigger(trigger, context);
-      
+
       if (!quipResult.ok) {
         return quipResult;
       }
@@ -164,7 +165,7 @@ export class HumorSystem implements IHumorSystem {
   ): Promise<Result<{ quipText: string; isEasterEgg: boolean }, HumorError>> {
     // Check for easter eggs (SEAM-16)
     const easterEggResult = await this.easterEggFramework.checkTriggers(context);
-    
+
     let selectedQuip: string | null = null;
     let isEasterEgg = false;
 
@@ -172,7 +173,7 @@ export class HumorSystem implements IHumorSystem {
       // Easter egg matched!
       const match = easterEggResult.value;
       const easterEggQuips = await this.fetchEasterEggQuip(match);
-      
+
       if (easterEggQuips.ok && easterEggQuips.value.length > 0) {
         selectedQuip = this.selectRandomQuip(easterEggQuips.value);
         isEasterEgg = true;
@@ -182,7 +183,7 @@ export class HumorSystem implements IHumorSystem {
     // Fallback to passive-aggressive quips if no easter egg
     if (!selectedQuip) {
       const passiveAggressiveQuips = await this.fetchPassiveAggressiveQuip(trigger.type);
-      
+
       if (passiveAggressiveQuips.ok && passiveAggressiveQuips.value.length > 0) {
         selectedQuip = this.selectRandomQuip(passiveAggressiveQuips.value);
       }
@@ -260,7 +261,7 @@ export class HumorSystem implements IHumorSystem {
   ): Promise<Result<EasterEggMatch | null, HumorError>> {
     try {
       const result = await this.easterEggFramework.checkTriggers(context);
-      
+
       if (!result.ok) {
         return Result.error({
           type: 'EasterEggCheckFailed',
@@ -404,14 +405,15 @@ export class HumorSystem implements IHumorSystem {
 
   /**
    * Select random quip from array, avoiding recent duplicates
+   * Optimized: O(1) lookup using Set instead of O(n) array.includes()
    *
    * @private
    */
   private selectRandomQuip(quips: string[]): string | null {
     if (quips.length === 0) return null;
 
-    // Filter out recently used quips
-    const availableQuips = quips.filter(quip => !this.recentQuips.includes(quip));
+    // Filter out recently used quips - O(1) Set lookup
+    const availableQuips = quips.filter(quip => !this.recentQuips.has(quip));
 
     // If all quips were recent, use any quip
     const selectionPool = availableQuips.length > 0 ? availableQuips : quips;
@@ -433,7 +435,7 @@ export class HumorSystem implements IHumorSystem {
     isEasterEgg: boolean
   ): Promise<Result<string, HumorError>> {
     const title = isEasterEgg ? '🎯 Easter Egg!' : 'TabbyMcTabface';
-    
+
     const result = await this.notificationsAPI.create({
       type: 'basic',
       iconUrl: 'icon128.png',
@@ -455,15 +457,20 @@ export class HumorSystem implements IHumorSystem {
 
   /**
    * Add quip to recent history for deduplication
+   * Maintains both Set (O(1) lookup) and List (FIFO ordering)
    *
    * @private
    */
   private addToRecentQuips(quip: string): void {
-    this.recentQuips.unshift(quip);
-    
-    // Keep only last N quips
-    if (this.recentQuips.length > this.maxRecentQuips) {
-      this.recentQuips = this.recentQuips.slice(0, this.maxRecentQuips);
+    this.recentQuips.add(quip);
+    this.recentQuipsList.unshift(quip);
+
+    // Keep only last N quips (FIFO)
+    if (this.recentQuipsList.length > this.maxRecentQuips) {
+      const oldest = this.recentQuipsList.pop();
+      if (oldest) {
+        this.recentQuips.delete(oldest);
+      }
     }
   }
 
@@ -490,7 +497,7 @@ export class HumorSystem implements IHumorSystem {
    *
    * @private
    */
-  private emitTabEvent(event: TabEvent): void {
+  private _emitTabEvent(event: TabEvent): void {
     const handlers = this.eventHandlers.get(event.type);
     if (!handlers) return;
 

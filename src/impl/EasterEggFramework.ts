@@ -46,11 +46,34 @@ export class EasterEggFramework implements IEasterEggFramework {
   private easterEggs: EasterEggDefinition[] = [];
   private readonly easterEggMap = new Map<string, EasterEggDefinition>();
   private initialized = false;
+  private loadPromise: Promise<Result<void, EasterEggError>> | null = null; // Lazy load tracking
 
   /**
    * Constructor - inject QuipStorage dependency
    */
-  constructor(private readonly quipStorage: IQuipStorage) {}
+  constructor(private readonly quipStorage: IQuipStorage) { }
+
+  /**
+   * Ensure easter eggs are loaded (lazy initialization)
+   * Prevents duplicate loading if multiple calls happen simultaneously
+   *
+   * @private
+   */
+  private async ensureLoaded(): Promise<Result<void, EasterEggError>> {
+    // Already loaded
+    if (this.initialized) {
+      return Result.ok(undefined);
+    }
+
+    // Loading in progress - wait for it
+    if (this.loadPromise) {
+      return this.loadPromise;
+    }
+
+    // Start loading
+    this.loadPromise = this.initialize();
+    return this.loadPromise;
+  }
 
   /**
    * Initialize framework by loading easter eggs from storage
@@ -80,45 +103,53 @@ export class EasterEggFramework implements IEasterEggFramework {
     }
 
     try {
-      // Load all easter eggs from storage (all levels)
-      const levels = ['default', 'mild', 'intense'] as const;
-      const allEggs: EasterEggDefinition[] = [];
-
-      for (const level of levels) {
-        // Get unique easter egg types for this level
-        const eggsResult = await this.quipStorage.getEasterEggQuips('', level);
-        
-        if (eggsResult.ok) {
-          const eggs = eggsResult.value;
-          
-          // Convert EasterEggData to EasterEggDefinition
-          for (const egg of eggs) {
-            // Check if we already have this egg (avoid duplicates)
-            if (!this.easterEggMap.has(egg.id)) {
-              const definition: EasterEggDefinition = {
-                id: egg.id,
-                type: egg.type,
-                priority: this.calculatePriority(egg.metadata?.difficulty),
-                conditions: egg.conditions,
-                metadata: egg.metadata
-              };
-              
-              allEggs.push(definition);
-              this.easterEggMap.set(egg.id, definition);
-            }
-          }
-        }
+      // === SEAM-17: EasterEggFramework → QuipStorage ===
+      const eggsResult = await this.quipStorage.getAllEasterEggQuips();
+      if (!eggsResult.ok) {
+        return Result.error({
+          type: 'NoEasterEggsRegistered',
+          details: `Failed to load easter eggs from storage: ${eggsResult.error.details}`
+        });
       }
 
-      if (allEggs.length === 0) {
+      const eggs = eggsResult.value;
+      if (eggs.length === 0) {
         return Result.error({
           type: 'NoEasterEggsRegistered',
           details: 'No easter eggs loaded from storage'
         });
       }
 
-      // Sort by priority (highest first)
-      this.easterEggs = [...allEggs].sort((eggA, eggB) => eggB.priority - eggA.priority);
+      this.easterEggs = [];
+      this.easterEggMap.clear();
+
+      for (const egg of eggs) {
+        if (this.easterEggMap.has(egg.id)) {
+          // Skip duplicate IDs in aggregated data to maintain contract invariants
+          continue;
+        }
+
+        const definition: EasterEggDefinition = {
+          id: egg.id,
+          type: egg.type,
+          priority: this.calculatePriority(egg.metadata?.difficulty),
+          conditions: egg.conditions,
+          metadata: egg.metadata
+        };
+
+        this.easterEggMap.set(egg.id, definition);
+        this.easterEggs.push(definition);
+      }
+
+      if (this.easterEggs.length === 0) {
+        return Result.error({
+          type: 'NoEasterEggsRegistered',
+          details: 'No easter eggs available after processing aggregated data'
+        });
+      }
+
+      // Sort by priority (highest first) to maintain deterministic matching
+      this.easterEggs.sort((eggA, eggB) => eggB.priority - eggA.priority);
       this.initialized = true;
 
       return Result.ok(undefined);
@@ -153,18 +184,17 @@ export class EasterEggFramework implements IEasterEggFramework {
   async checkTriggers(
     context: BrowserContext
   ): Promise<Result<EasterEggMatch | null, EasterEggError>> {
-    if (!this.initialized) {
-      return Result.error({
-        type: 'NoEasterEggsRegistered',
-        details: 'EasterEggFramework not initialized. Call initialize() first.'
-      });
+    // Lazy-load easter eggs on first use
+    const loadResult = await this.ensureLoaded();
+    if (!loadResult.ok) {
+      return Result.error(loadResult.error as EasterEggError);
     }
 
     try {
       // Iterate through easter eggs in priority order
       for (const egg of this.easterEggs) {
         const matchResult = await this.evaluateEasterEgg(egg, context);
-        
+
         if (!matchResult.ok) {
           // Condition evaluation failed - return error
           return matchResult;

@@ -26,7 +26,7 @@
  */
 
 import { Result } from '../utils/Result';
-import { ChromeTab, ChromeTabGroup } from './IChromeTabsAPI';
+import { ChromeTab } from './IChromeTabsAPI';
 
 /**
  * CONTRACT: ITabManager

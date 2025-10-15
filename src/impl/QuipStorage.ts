@@ -61,7 +61,7 @@ export class QuipStorage implements IQuipStorage {
   /**
    * Constructor - inject Chrome storage dependency
    */
-  constructor(private readonly storageAPI: IChromeStorageAPI) {}
+  constructor(private readonly storageAPI: IChromeStorageAPI) { }
 
   /**
    * Initialize storage (load and cache data from Chrome storage)
@@ -107,7 +107,7 @@ export class QuipStorage implements IQuipStorage {
 
       // If no data exists, seed with defaults
       if (!storedData[QuipStorage.PASSIVE_AGGRESSIVE_KEY] ||
-          !storedData[QuipStorage.EASTER_EGGS_KEY]) {
+        !storedData[QuipStorage.EASTER_EGGS_KEY]) {
         await this.seedDefaultData();
       }
 
@@ -225,6 +225,38 @@ export class QuipStorage implements IQuipStorage {
       return Result.error({
         type: 'DataCorrupted',
         details: 'Error filtering easter egg quips',
+        dataType: 'easter-eggs'
+      });
+    }
+  }
+
+  /**
+   * Get all easter egg quips, optionally filtered by humor level
+   *
+   * SEAM: SEAM-17 (EasterEggFramework/Personality → QuipStorage)
+   */
+  async getAllEasterEggQuips(
+    level?: HumorLevel
+  ): Promise<Result<EasterEggData[], StorageError>> {
+    if (!this.initialized) {
+      return Result.error({
+        type: 'NotInitialized',
+        details: 'QuipStorage not initialized. Call initialize() first.'
+      });
+    }
+
+    try {
+      const filtered = level
+        ? this.easterEggQuips.filter(egg => egg.level === level)
+        : this.easterEggQuips;
+
+      // Return deep copy to protect internal cache from mutation
+      const cloned = JSON.parse(JSON.stringify(filtered)) as EasterEggData[];
+      return Result.ok(cloned);
+    } catch (error) {
+      return Result.error({
+        type: 'DataCorrupted',
+        details: 'Error aggregating easter egg quips',
         dataType: 'easter-eggs'
       });
     }

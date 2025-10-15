@@ -11,7 +11,7 @@
  *   2. Storage reads from JSON files (SEAM-14 - internal)
  *   3. Storage validates and caches data in memory
  *   4. Storage returns typed quip/easter egg arrays
- *   5. Personality selects appropriate content
+ *   5. Personality selects appropriate content (individual type or aggregated)
  * 
  * SEAMS:
  *   IN:  Personality → QuipStorage (SEAM-13, SEAM-17)
@@ -137,6 +137,34 @@ export interface IQuipStorage {
   ): Promise<Result<EasterEggData[], StorageError>>;
 
   /**
+   * Get all easter egg quips, optionally filtered by humor level
+   * 
+   * SEAM: SEAM-17 (EasterEggFramework/Personality → QuipStorage)
+   * 
+   * INPUT:
+   *   - level?: HumorLevel (optional filter; when omitted, returns all)
+   * 
+   * OUTPUT:
+   *   - Success: EasterEggData[] (array of all matching easter eggs)
+   *   - Error: StorageError
+   * 
+   * ERRORS:
+   *   - NotInitialized: initialize() not called yet
+   *   - DataCorrupted: Cached data is corrupted (rare)
+   * 
+   * PERFORMANCE: <10ms (95th percentile - in-memory cached)
+   * 
+   * GRACEFUL DEGRADATION:
+   *   - Returns empty array if no easter eggs match filter
+   * 
+   * @param level - Optional humor intensity level filter
+   * @returns Promise resolving to easter egg array
+   */
+  getAllEasterEggQuips(
+    level?: HumorLevel
+  ): Promise<Result<EasterEggData[], StorageError>>;
+
+  /**
    * Get all available trigger types (for debugging/validation)
    * 
    * INPUT: void
@@ -206,6 +234,7 @@ export interface EasterEggConditions {
   domainRegex?: string; // Active tab domain pattern
   hourRange?: { start: number; end: number }; // Hour range (0-23)
   titleContains?: string; // Active tab title contains text
+  urlContains?: string; // Active tab URL contains text
   groupCount?: number | { min?: number; max?: number }; // Group count
   customCheck?: string; // Custom condition ID (for complex logic)
 }

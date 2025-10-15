@@ -27,6 +27,7 @@
 export interface Ok<T> {
   readonly ok: true;
   readonly value: T;
+  isError(): this is Err<never>;
 }
 
 /**
@@ -35,6 +36,7 @@ export interface Ok<T> {
 export interface Err<E> {
   readonly ok: false;
   readonly error: E;
+  isError(): this is Err<E>;
 }
 
 /**
@@ -56,20 +58,26 @@ export namespace Result {
    * @returns Ok<T> result
    */
   export function ok<T>(value: T): Ok<T> {
-    return { ok: true, value };
-  }
-
-  /**
+    const result: Ok<T> = { 
+      ok: true, 
+      value,
+      isError(): result is Err<never> { return false; }
+    };
+    return result;
+  }  /**
    * Create a failed Result
    * 
    * @param error - Error value of type E
    * @returns Err<E> result
    */
   export function error<E>(error: E): Err<E> {
-    return { ok: false, error };
-  }
-
-  /**
+    const result: Err<E> = { 
+      ok: false, 
+      error,
+      isError(): result is Err<E> { return true; }
+    };
+    return result;
+  }  /**
    * Type guard to check if Result is Ok
    */
   export function isOk<T, E>(result: Result<T, E>): result is Ok<T> {

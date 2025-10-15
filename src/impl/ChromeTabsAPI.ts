@@ -296,15 +296,15 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
             details: `Chrome API error in ${operation}`,
             originalError: chromeError
         });
-    } private getChromeError(error: unknown): unknown {
+    } private _getChromeError(error: unknown): unknown {
         return chrome.runtime.lastError || error;
     }
 
-    private getErrorMessage(chromeError: unknown): string {
+    private _getErrorMessage(chromeError: unknown): string {
         return chromeError instanceof Error ? chromeError.message : String(chromeError);
     }
 
-    private mapSpecificError(
+    private _mapSpecificError(
         errorMessage: string,
         context?: { tabId?: number; groupId?: number }
     ): Result<never, ChromeAPIError> | null {
@@ -347,7 +347,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
         return message.includes('permission') || message.includes('Permission denied');
     }
 
-    private createGenericError(error: unknown, operation: string): Result<never, ChromeAPIError> {
+    private _createGenericError(error: unknown, operation: string): Result<never, ChromeAPIError> {
         return Result.error({
             type: 'ChromeAPIFailure',
             details: `Unknown error in ${operation}`,
@@ -355,7 +355,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
         });
     }
 
-    private createChromeAPIFailure(
+    private _createChromeAPIFailure(
         errorMessage: string,
         operation: string,
         originalError: unknown

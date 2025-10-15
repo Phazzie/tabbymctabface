@@ -25,8 +25,7 @@
 import {
   IChromeNotificationsAPI,
   NotificationOptions,
-  NotificationError,
-  NotificationType
+  NotificationError
 } from '../contracts/IChromeNotificationsAPI';
 import { Result } from '../utils/Result';
 

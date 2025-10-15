@@ -1208,7 +1208,7 @@ export const EASTER_EGGS: EasterEggData[] = [
   {
     id: 'EE-111',
     type: 'vim-quit',
-    conditions: { 
+    conditions: {
       domainRegex: 'stackoverflow\\.com',
       titleContains: 'how to exit vim'
     },

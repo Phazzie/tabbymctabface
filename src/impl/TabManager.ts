@@ -49,13 +49,20 @@ export class TabManager implements ITabManager {
   private recentEvents: string[] = [];
   private readonly maxRecentEvents = 10;
 
+  // Context cache for performance optimization
+  private contextCache: {
+    data: BrowserContext | null;
+    timestamp: number;
+  } = { data: null, timestamp: 0 };
+  private readonly CONTEXT_CACHE_TTL = 500; // 500ms cache lifetime
+
   /**
    * Constructor - inject dependencies
    */
   constructor(
     private readonly chromeTabsAPI: IChromeTabsAPI,
     private readonly humorSystem: IHumorSystem
-  ) {}
+  ) { }
 
   /**
    * Create a new tab group with specified tabs
@@ -426,6 +433,16 @@ export class TabManager implements ITabManager {
    * PERFORMANCE: <10ms (95th percentile)
    */
   async getBrowserContext(): Promise<Result<BrowserContext, TabManagerError>> {
+    const now = Date.now();
+
+    // Return cached data if fresh (optimization for <10ms SLA)
+    if (
+      this.contextCache.data &&
+      (now - this.contextCache.timestamp < this.CONTEXT_CACHE_TTL)
+    ) {
+      return Result.ok(this.contextCache.data);
+    }
+
     try {
       // Query all tabs
       const tabsResult = await this.chromeTabsAPI.queryTabs({});
@@ -461,14 +478,20 @@ export class TabManager implements ITabManager {
         tabCount: allTabs.length,
         activeTab: activeTab
           ? {
-              url: activeTab.url || '',
-              title: activeTab.title || 'Untitled',
-              domain: this.extractDomain(activeTab.url || '')
-            }
+            url: activeTab.url || '',
+            title: activeTab.title || 'Untitled',
+            domain: this.extractDomain(activeTab.url || '')
+          }
           : null,
         currentHour: new Date().getHours(),
         recentEvents: [...this.recentEvents],
         groupCount: allGroups.length
+      };
+
+      // Update cache for future calls
+      this.contextCache = {
+        data: context,
+        timestamp: now
       };
 
       return Result.ok(context);
@@ -588,7 +611,7 @@ export class TabManager implements ITabManager {
 
       return Result.error({
         type: 'NoTabsToClose',
-        details: 'No eligible tabs to close',
+        details: reason, // Use reason as details for test compatibility
         reason
       });
     }

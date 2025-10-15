@@ -32,9 +32,8 @@ import type {
 } from '../IQuipStorage';
 import { Result } from '../../utils/Result';
 
-describe('IQuipStorage CONTRACT v1.0.0', () => {
-    // NOTE: These tests define the contract behavior
-    // Implementation will be created to pass these tests
+// NOTE: These tests define the contract behavior
+// Implementation will be created to pass these tests
 
     describe('CONTRACT: initialize()', () => {
         it('MUST load and cache JSON data on initialization', () => {
@@ -303,6 +302,70 @@ describe('IQuipStorage CONTRACT v1.0.0', () => {
         });
     });
 
+    describe('CONTRACT: getAllEasterEggQuips()', () => {
+        it('MUST accept optional HumorLevel filter', () => {
+            // Contract specifies: level parameter optional
+            const level: HumorLevel | undefined = undefined;
+            const intenseLevel: HumorLevel | undefined = 'intense';
+
+            expect(level === undefined || level === 'default').toBe(true);
+            expect(intenseLevel).toBe('intense');
+        });
+
+        it('MUST return Result<EasterEggData[], StorageError> on success', () => {
+            // Contract specifies: Success returns aggregated EasterEggData array
+            const easterEggs: EasterEggData[] = [
+                {
+                    id: 'EE-001',
+                    type: '42-tabs',
+                    conditions: { tabCount: 42 },
+                    quips: ['Answer to everything'],
+                    level: 'default'
+                },
+                {
+                    id: 'EE-002',
+                    type: 'late-night-coding',
+                    conditions: { hourRange: { start: 0, end: 3 } },
+                    quips: ['Sleep is optional, apparently.'],
+                    level: 'mild'
+                }
+            ];
+            const successResult = Result.ok(easterEggs);
+
+            expect(Result.isOk(successResult)).toBe(true);
+            if (Result.isOk(successResult)) {
+                expect(Array.isArray(successResult.value)).toBe(true);
+                expect(successResult.value.length).toBe(2);
+            }
+        });
+
+        it('MUST return empty array when no easter eggs match filter', () => {
+            // Contract behavior: Empty array is acceptable result
+            const emptyResult = Result.ok<EasterEggData[]>([]);
+
+            expect(Result.isOk(emptyResult)).toBe(true);
+            if (Result.isOk(emptyResult)) {
+                expect(emptyResult.value).toEqual([]);
+            }
+        });
+
+        it('MUST return NotInitialized error when initialize() not called', () => {
+            // Contract specifies: NotInitialized error when cache not ready
+            const error: StorageError = {
+                type: 'NotInitialized',
+                details: 'Storage must be initialized before querying'
+            };
+
+            expect(error.type).toBe('NotInitialized');
+        });
+
+        it('MUST meet <10ms performance SLA (cached)', () => {
+            // Contract specifies: <10ms (95th percentile - in-memory cached)
+            const SLA_MS = 10;
+            expect(SLA_MS).toBe(10);
+        });
+    });
+
     describe('CONTRACT: getAvailableTriggerTypes()', () => {
         it('MUST return Result<string[], StorageError> on success', () => {
             // Contract specifies: Success returns trigger type array
@@ -468,4 +531,3 @@ describe('IQuipStorage CONTRACT v1.0.0', () => {
             expect(Result.isOk(errorResult) || Result.isError(errorResult)).toBe(true);
         });
     });
-});

@@ -49,9 +49,9 @@ import type { ChromeTab, ChromeTabGroup } from '../contracts/IChromeTabsAPI';
  */
 export class MockTabManager implements ITabManager {
     private mockTabs: ChromeTab[] = [];
-    private mockGroups: ChromeTabGroup[] = [];
+    private mockGroups: Map<number, ChromeTabGroup> = new Map();
+    private _nextTabId = 100;
     private nextGroupId = 1;
-    private nextTabId = 100;
     private callHistory: MockCallRecord[] = [];
     private shouldReturnError = false;
     private recentEvents: string[] = [];
