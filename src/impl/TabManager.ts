@@ -700,4 +700,14 @@ export class TabManager implements ITabManager {
       return '';
     }
   }
+
+  /**
+   * Invalidate the browser context cache (for testing or manual invalidation)
+   *
+   * PERFORMANCE: <1ms (synchronous)
+   * @internal
+   */
+  _invalidateContextCache(): void {
+    this.contextCache = { data: null, timestamp: 0 };
+  }
 }

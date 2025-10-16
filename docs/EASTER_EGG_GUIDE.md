@@ -74,7 +74,7 @@ Easter eggs should be:
 - **Mysterious**: Not knowing is part of the fun
 - **Rewarding**: Finding one feels like an achievement
 
-We built 105 of them so that even power users will still be discovering new ones months later.
+We built 160 of them so that even power users will still be discovering new ones months later.
 
 ---
 
@@ -101,7 +101,7 @@ We built 105 of them so that even power users will still be discovering new ones
 **We deliberately didn't include**:
 - Achievement tracker
 - Progress bars
-- "You found 23/105!" counters
+- "You found 23/160!" counters
 - Hint systems
 - Unlock notifications
 
@@ -118,7 +118,7 @@ We built 105 of them so that even power users will still be discovering new ones
 ✅ **Do**: Share screenshots of great quips  
 
 ❌ **Don't**: Post complete trigger lists  
-❌ **Don't**: Spoil all 105 easter eggs  
+❌ **Don't**: Spoil all 160 easter eggs  
 ❌ **Don't**: Create "how to unlock all easter eggs" guides  
 ❌ **Don't**: Ruin the mystery for everyone else  
 
@@ -220,7 +220,7 @@ A: Maybe. We like keeping you guessing.
 
 ## 🎁 The Real Achievement
 
-The real achievement isn't finding all 105 easter eggs.
+The real achievement isn't finding all 160 easter eggs.
 
 It's enjoying your browsing experience, getting occasional delightful surprises, and having a good laugh when TabbyMcTabface perfectly captures your chaotic tab situation with an oddly specific quip.
 

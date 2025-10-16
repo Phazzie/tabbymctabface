@@ -434,4 +434,72 @@ describe('Tab Management Integration Tests', () => {
       expect(notification?.message).toBeTruthy();
     });
   });
+
+  describe('Browser Context Caching (Performance)', () => {
+    it('getBrowserContext meets <10ms SLA on cache hit', async () => {
+      // Arrange
+      const tabs = createMockTabs(10);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+
+      // Warm cache with first call
+      await tabManager.getBrowserContext();
+
+      // Act - measure cache hit
+      const start = performance.now();
+      const result = await tabManager.getBrowserContext();
+      const duration = performance.now() - start;
+
+      // Assert
+      assertOk(result);
+      expect(duration).toBeLessThan(10); // <10ms SLA
+    });
+
+    it('cache returns same data within TTL (500ms)', async () => {
+      // Arrange
+      const tabs = createMockTabs(5);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+
+      // Act - get context twice within TTL
+      const result1 = await tabManager.getBrowserContext();
+      const result2 = await tabManager.getBrowserContext();
+
+      // Assert
+      assertOk(result1);
+      assertOk(result2);
+      expect(result1.value.tabCount).toBe(result2.value.tabCount);
+      expect(mockTabs.queryTabsCalls.length).toBe(1); // Chrome API called only once
+    });
+
+    it('cache invalidates after TTL (500ms)', async () => {
+      // Arrange
+      const tabs = createMockTabs(5);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+
+      // Act - get context, wait for TTL, get again
+      const result1 = await tabManager.getBrowserContext();
+      await new Promise(resolve => setTimeout(resolve, 510));
+      const result2 = await tabManager.getBrowserContext();
+
+      // Assert
+      assertOk(result1);
+      assertOk(result2);
+      expect(mockTabs.queryTabsCalls.length).toBeGreaterThan(1); // Called multiple times
+    });
+
+    it('cache can be manually invalidated for testing', async () => {
+      // Arrange
+      const tabs = createMockTabs(5);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+
+      // Act
+      await tabManager.getBrowserContext();
+      (tabManager as any)._invalidateContextCache();
+      const result = await tabManager.getBrowserContext();
+
+      // Assert
+      assertOk(result);
+      expect(mockTabs.queryTabsCalls.length).toBeGreaterThan(1);
+    });
+  });
 });
+

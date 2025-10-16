@@ -312,16 +312,195 @@ Future features we're considering:
 
 ---
 
-## 📜 Version History
+## � Troubleshooting
+
+### Popup Not Loading
+
+**Symptoms**: Extension icon shows, but popup window is blank or doesn't open
+
+**Solutions**:
+1. **Check Console Errors**:
+   - Right-click extension icon → Inspect Popup
+   - Look for JavaScript/TypeScript errors in console
+   - Check for `dist/popup.js` loading errors
+
+2. **Verify Build**:
+   ```bash
+   npm run build
+   ```
+   - Ensure `dist/popup.js` exists
+   - Check TypeScript compilation succeeded
+
+3. **Reload Extension**:
+   - Go to `chrome://extensions`
+   - Find TabbyMcTabface
+   - Click "Reload" icon
+   - Try opening popup again
+
+4. **Clear Extension Storage**:
+   - Right-click extension icon → Inspect Popup
+   - Application tab → Storage → Clear site data
+   - Reload extension
+
+### Notifications Not Appearing
+
+**Symptoms**: Actions work but no quips are shown
+
+**Solutions**:
+1. **Check Chrome Notification Permissions**:
+   - `chrome://settings/content/notifications`
+   - Ensure notifications are allowed
+   - Check TabbyMcTabface is not blocked
+
+2. **Test Notification System**:
+   - Click "I'm Feeling Lucky" multiple times
+   - If tabs close but no notifications, permission issue
+
+3. **Check Do Not Disturb**:
+   - macOS: System Preferences → Notifications → Do Not Disturb
+   - Windows: Settings → System → Focus Assist
+
+### Keyboard Shortcuts Not Working
+
+**Symptoms**: `Cmd+Shift+L` or `Ctrl+Shift+L` doesn't trigger "I'm Feeling Lucky"
+
+**Solutions**:
+1. **Check Shortcut Conflicts**:
+   - Go to `chrome://extensions/shortcuts`
+   - Find TabbyMcTabface
+   - Verify shortcut is enabled
+   - Change if conflicting with another extension
+
+2. **Platform-Specific Issues**:
+   - Mac: Use `Cmd+Shift+L`
+   - Windows/Linux: Use `Ctrl+Shift+L`
+   - Some apps override these globally
+
+### Easter Eggs Not Triggering
+
+**Symptoms**: Using extension normally but only seeing standard quips
+
+**Reality Check**:
+- Easter eggs are **intentionally rare**
+- 160 eggs across hundreds of possible actions
+- Some require very specific conditions
+- Discovery is gradual and natural
+
+**Tips**:
+- Don't actively hunt - they'll surprise you
+- Vary your tab usage patterns
+- Browse at different times of day
+- Try extreme tab counts (very high, very low)
+
+### Stats Not Updating
+
+**Symptoms**: Popup shows zero stats or stale data
+
+**Solutions**:
+1. **Refresh Popup**:
+   - Close popup window
+   - Re-open from toolbar
+   - Stats update on every popup open
+
+2. **Check Background Script**:
+   - Go to `chrome://extensions`
+   - Find TabbyMcTabface
+   - Click "Inspect views: background page"
+   - Check console for errors
+
+3. **Reset Storage**:
+   ```javascript
+   // In background page console:
+   chrome.storage.local.clear();
+   ```
+   - Reloads extension
+   - Stats will rebuild from current browser state
+
+### Extension Slowing Down Browser
+
+**Symptoms**: Chrome feels sluggish with TabbyMcTabface installed
+
+**Analysis**:
+- TabbyMcTabface is designed for <100ms operations
+- Should have minimal performance impact
+- If experiencing slowdowns, investigate:
+
+**Solutions**:
+1. **Check Tab Count**:
+   - Extension tested with 500+ tabs
+   - Extreme counts (1000+) may cause slowdowns
+   - Consider closing unused tabs
+
+2. **Disable Other Extensions**:
+   - Temporarily disable other extensions
+   - Check if TabbyMcTabface is the culprit
+   - Re-enable one by one to find conflict
+
+3. **Report Performance Issue**:
+   - Note your tab count
+   - Note actions that trigger slowdown
+   - File GitHub issue with details
+
+### Build Errors
+
+**Symptoms**: `npm run build` fails with TypeScript errors
+
+**Solutions**:
+1. **Clean Install**:
+   ```bash
+   rm -rf node_modules dist
+   npm install
+   npm run build
+   ```
+
+2. **Check TypeScript Version**:
+   ```bash
+   npx tsc --version
+   # Should be 5.6.0 or higher
+   ```
+
+3. **Check Node Version**:
+   ```bash
+   node --version
+   # Should be 18.x or higher
+   ```
+
+### Getting Help
+
+**Before Filing an Issue**:
+- [ ] Checked this troubleshooting guide
+- [ ] Tried reloading extension
+- [ ] Tried rebuilding (`npm run build`)
+- [ ] Checked browser console for errors
+- [ ] Verified Chrome version (v90+)
+
+**When Filing a GitHub Issue**:
+- Include Chrome version
+- Include TabbyMcTabface version
+- Include console error messages (if any)
+- Describe steps to reproduce
+- Include expected vs actual behavior
+
+**Community Support**:
+- Check existing GitHub issues first
+- Search docs for keywords
+- Ask in discussions (be specific)
+
+---
+
+## �📜 Version History
 
 **v1.0.0** (October 2025)
 - 🎉 Initial release
 - ✅ I'm Feeling Lucky feature
 - ✅ Tab group creation
+- ✅ TypeScript-based popup UI
 - ✅ 50 passive-aggressive quips
-- ✅ 105 context-aware easter eggs
+- ✅ 160 context-aware easter eggs
 - ✅ Keyboard shortcuts
 - ✅ Stats dashboard
+- ✅ Performance-optimized (<100ms operations)
+- ✅ Comprehensive test coverage (298+ tests)
 
 ---
 

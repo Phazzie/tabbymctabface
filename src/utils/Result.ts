@@ -58,25 +58,25 @@ export namespace Result {
    * @returns Ok<T> result
    */
   export function ok<T>(value: T): Ok<T> {
-    const result: Ok<T> = { 
-      ok: true, 
+    return {
+      ok: true,
       value,
-      isError(): result is Err<never> { return false; }
+      isError(): this is Err<never> { return false; }
     };
-    return result;
-  }  /**
+  }
+
+  /**
    * Create a failed Result
    * 
    * @param error - Error value of type E
    * @returns Err<E> result
    */
   export function error<E>(error: E): Err<E> {
-    const result: Err<E> = { 
-      ok: false, 
+    return {
+      ok: false,
       error,
-      isError(): result is Err<E> { return true; }
+      isError(): this is Err<E> { return true; }
     };
-    return result;
   }  /**
    * Type guard to check if Result is Ok
    */

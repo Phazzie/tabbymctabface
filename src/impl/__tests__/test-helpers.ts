@@ -46,6 +46,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   public createGroupCalls: Array<{ tabIds: number[] }> = [];
   public updateGroupCalls: Array<{ groupId: number; updates: GroupUpdateProperties }> = [];
   public removeTabCalls: Array<{ tabId: number }> = [];
+  public queryTabsCalls: Array<{ query: TabQueryInfo }> = [];
 
   constructor(initialTabs: ChromeTab[] = []) {
     this.tabs = initialTabs;
@@ -98,6 +99,8 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   }
 
   async queryTabs(query: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>> {
+    this.queryTabsCalls.push({ query });
+
     let results = [...this.tabs];
 
     if (query.active !== undefined) {
@@ -164,6 +167,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     this.createGroupCalls = [];
     this.updateGroupCalls = [];
     this.removeTabCalls = [];
+    this.queryTabsCalls = [];
   }
 }
 
