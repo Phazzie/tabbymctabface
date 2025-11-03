@@ -94,6 +94,15 @@ export namespace Conditions {
    * @param end - End hour (0-23)
    * @returns Condition object
    *
+   * @throws Error if hour out of range (0-23)
+   * 
+   * NOTE: This is a development-time factory function.
+   * The exception is a guard against developer errors during
+   * easter egg definition, not a runtime error path.
+   * Since this function is only called during data definition
+   * (not at runtime), this exception is acceptable under SDD.
+   * If this were a runtime function, it should return Result<T, E>.
+   *
    * @example
    * Conditions.timeRange(2, 5) // 2 AM - 5 AM (late night)
    */
