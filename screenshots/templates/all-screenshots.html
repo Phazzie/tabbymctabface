@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabbyMcTabface Screenshots for Chrome Web Store</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    .instructions {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .instructions h1 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .instructions p {
+      margin-bottom: 10px;
+      line-height: 1.6;
+      color: #666;
+    }
+    .instructions code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Courier New', monospace;
+    }
+    .screenshot {
+      width: 1280px;
+      height: 800px;
+      margin: 0 auto 40px auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .screenshot::before {
+      content: attr(data-number);
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      z-index: 10;
+    }
+    
+    /* Screenshot 1: Features */
+    .screenshot-1 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .screenshot-1 .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 60px;
+      max-width: 1100px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .screenshot-1 h1 {
+      font-size: 3.5em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .screenshot-1 .tagline {
+      font-size: 1.5em;
+      color: #666;
+      margin-bottom: 50px;
+    }
+    .screenshot-1 .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+    }
+    .screenshot-1 .feature {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 16px;
+      border: 2px solid #e9ecef;
+    }
+    .screenshot-1 .feature h2 {
+      font-size: 1.6em;
+      margin: 15px 0;
+      color: #333;
+    }
+    .screenshot-1 .feature p {
+      font-size: 1.1em;
+      line-height: 1.7;
+      color: #666;
+    }
+    .screenshot-1 .emoji {
+      font-size: 3em;
+    }
+    
+    /* Screenshot 2: Shortcuts */
+    .screenshot-2 {
+      background: #1a1a2e;
+      color: #eee;
+      padding: 80px 60px;
+    }
+    .screenshot-2 h1 {
+      font-size: 3.5em;
+      margin-bottom: 20px;
+      color: #6c5ce7;
+      text-align: center;
+    }
+    .screenshot-2 .subtitle {
+      text-align: center;
+      font-size: 1.5em;
+      margin-bottom: 70px;
+      opacity: 0.8;
+    }
+    .screenshot-2 .shortcuts {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      gap: 25px;
+    }
+    .screenshot-2 .shortcut {
+      background: #16213e;
+      padding: 35px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      border-left: 5px solid #6c5ce7;
+    }
+    .screenshot-2 .keys {
+      flex: 0 0 350px;
+      font-size: 1.4em;
+      font-weight: 600;
+    }
+    .screenshot-2 .kbd {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #0f3460;
+      border-radius: 8px;
+      border: 2px solid #6c5ce7;
+      margin: 0 6px;
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    }
+    .screenshot-2 .description {
+      flex: 1;
+      font-size: 1.3em;
+      line-height: 1.6;
+    }
+    .screenshot-2 .platform {
+      opacity: 0.6;
+      font-size: 0.9em;
+      margin-top: 8px;
+    }
+    
+    /* Screenshot 3: Privacy */
+    .screenshot-3 {
+      background: #0f0f0f;
+      color: #fff;
+      padding: 70px 60px;
+    }
+    .screenshot-3 h1 {
+      font-size: 3.8em;
+      margin-bottom: 20px;
+      color: #00d9ff;
+      text-align: center;
+    }
+    .screenshot-3 .subtitle {
+      text-align: center;
+      font-size: 1.8em;
+      margin-bottom: 70px;
+      color: #00ff88;
+    }
+    .screenshot-3 .features {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 35px;
+    }
+    .screenshot-3 .feature {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 40px;
+      border-radius: 20px;
+      border: 3px solid #00d9ff;
+    }
+    .screenshot-3 .feature h2 {
+      color: #00d9ff;
+      font-size: 1.8em;
+      margin: 20px 0 15px 0;
+    }
+    .screenshot-3 .feature p {
+      font-size: 1.3em;
+      line-height: 1.8;
+      opacity: 0.9;
+    }
+    .screenshot-3 .icon {
+      font-size: 3.5em;
+    }
+    .screenshot-3 .badge {
+      display: inline-block;
+      padding: 15px 30px;
+      background: #00ff88;
+      color: #000;
+      border-radius: 30px;
+      font-weight: 700;
+      margin-top: 60px;
+      font-size: 1.4em;
+      text-align: center;
+      width: 100%;
+    }
+    
+    /* Screenshot 4: Quips */
+    .screenshot-4 {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      padding: 70px 60px;
+    }
+    .screenshot-4 h1 {
+      font-size: 3.5em;
+      margin-bottom: 20px;
+      color: white;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .screenshot-4 .subtitle {
+      text-align: center;
+      font-size: 1.6em;
+      margin-bottom: 60px;
+      color: rgba(255,255,255,0.9);
+    }
+    .screenshot-4 .quips {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      gap: 25px;
+    }
+    .screenshot-4 .quip {
+      background: rgba(255,255,255,0.95);
+      padding: 35px;
+      border-radius: 16px;
+      font-size: 1.4em;
+      line-height: 1.6;
+      color: #333;
+      border-left: 6px solid #f5576c;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .screenshot-4 .quip::before {
+      content: '"';
+      font-size: 2em;
+      color: #f5576c;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .screenshot-4 .quip::after {
+      content: '"';
+      font-size: 2em;
+      color: #f5576c;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    /* Screenshot 5: Tech */
+    .screenshot-5 {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 70px 60px;
+    }
+    .screenshot-5 h1 {
+      font-size: 3.5em;
+      margin-bottom: 20px;
+      color: #61dafb;
+      text-align: center;
+    }
+    .screenshot-5 .subtitle {
+      text-align: center;
+      font-size: 1.5em;
+      margin-bottom: 60px;
+      color: #98c379;
+    }
+    .screenshot-5 .grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+    .screenshot-5 .item {
+      background: #21252b;
+      padding: 35px;
+      border-radius: 16px;
+      border: 2px solid #3e4451;
+      text-align: center;
+    }
+    .screenshot-5 .item h2 {
+      color: #61dafb;
+      font-size: 1.6em;
+      margin: 20px 0 15px 0;
+    }
+    .screenshot-5 .item p {
+      font-size: 1.2em;
+      line-height: 1.6;
+    }
+    .screenshot-5 .icon {
+      font-size: 3em;
+    }
+    .screenshot-5 .stats {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 1.3em;
+      color: #98c379;
+    }
+    .screenshot-5 .stat {
+      display: inline-block;
+      margin: 0 40px;
+    }
+    .screenshot-5 .stat strong {
+      font-size: 2em;
+      color: #61dafb;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="instructions">
+    <h1>📸 TabbyMcTabface Chrome Web Store Screenshots</h1>
+    <p><strong>Instructions:</strong></p>
+    <ol>
+      <li>Set your browser window to exactly <code>1280x800</code> (use DevTools Device Mode: F12 → Toggle Device Toolbar → Set Custom 1280x800)</li>
+      <li>Scroll to each screenshot below</li>
+      <li>Use your system screenshot tool to capture each one:
+        <ul>
+          <li><strong>Mac:</strong> Cmd+Shift+4 → Space → Click</li>
+          <li><strong>Windows:</strong> Snipping Tool or Win+Shift+S</li>
+          <li><strong>Linux:</strong> Screenshot tool</li>
+        </ul>
+      </li>
+      <li>Save as PNG: <code>01-features.png</code>, <code>02-shortcuts.png</code>, etc.</li>
+    </ol>
+  </div>
+
+  <!-- Screenshot 1: Features -->
+  <div class="screenshot screenshot-1" data-number="01">
+    <div class="container">
+      <h1>🐱 TabbyMcTabface</h1>
+      <p class="tagline">Passive-Aggressive Tab Management with Humor</p>
+      
+      <div class="features">
+        <div class="feature">
+          <div class="emoji">📁</div>
+          <h2>Smart Tab Grouping</h2>
+          <p>Organize your chaos with one-click tab grouping. Keyboard shortcuts make it instant.</p>
+        </div>
+        
+        <div class="feature">
+          <div class="emoji">🎲</div>
+          <h2>"Feeling Lucky?"</h2>
+          <p>Close a random tab with Cmd+Shift+L. Sometimes you need that push to let go.</p>
+        </div>
+        
+        <div class="feature">
+          <div class="emoji">💬</div>
+          <h2>75+ Snarky Quips</h2>
+          <p>Get passive-aggressive notifications that actually make you smile.</p>
+        </div>
+        
+        <div class="feature">
+          <div class="emoji">🥚</div>
+          <h2>160+ Easter Eggs</h2>
+          <p>Discover contextual humor triggered by your browsing habits. Try 42 tabs!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshot 2: Shortcuts -->
+  <div class="screenshot screenshot-2" data-number="02">
+    <h1>⌨️ Keyboard Shortcuts</h1>
+    <div class="subtitle">Power User Mode Activated</div>
+    
+    <div class="shortcuts">
+      <div class="shortcut">
+        <div class="keys">
+          <span class="kbd">Cmd</span> + <span class="kbd">Shift</span> + <span class="kbd">T</span>
+          <div class="platform">Ctrl+Shift+T on Windows/Linux</div>
+        </div>
+        <div class="description">
+          Open popup to create tab groups from selected tabs
+        </div>
+      </div>
+      
+      <div class="shortcut">
+        <div class="keys">
+          <span class="kbd">Cmd</span> + <span class="kbd">Shift</span> + <span class="kbd">L</span>
+          <div class="platform">Ctrl+Shift+L on Windows/Linux</div>
+        </div>
+        <div class="description">
+          "Feeling Lucky?" - Close a random tab with snarky commentary
+        </div>
+      </div>
+      
+      <div class="shortcut">
+        <div class="keys">
+          <span class="kbd">Click Extension Icon</span>
+        </div>
+        <div class="description">
+          View tab statistics and access all management features
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshot 3: Privacy -->
+  <div class="screenshot screenshot-3" data-number="03">
+    <h1>🔒 Privacy First</h1>
+    <div class="subtitle">✅ 0% Data Collection • 100% Local</div>
+    
+    <div class="features">
+      <div class="feature">
+        <div class="icon">🚫</div>
+        <h2>No Tracking</h2>
+        <p>Zero analytics, telemetry, or user tracking. Your browsing stays completely private.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="icon">🏠</div>
+        <h2>Local Only</h2>
+        <p>All data stored locally in your browser. Nothing sent to external servers ever.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="icon">🔓</div>
+        <h2>Open Source</h2>
+        <p>Fully auditable code on GitHub. See exactly what you're installing and running.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="icon">✅</div>
+        <h2>Secure</h2>
+        <p>Comprehensive security audit passed with flying colors. 0 vulnerabilities found.</p>
+      </div>
+    </div>
+    
+    <div class="badge">GDPR Compliant • No Personal Data</div>
+  </div>
+
+  <!-- Screenshot 4: Quips -->
+  <div class="screenshot screenshot-4" data-number="04">
+    <h1>💬 Passive-Aggressive Quips</h1>
+    <div class="subtitle">Because tab management should have personality</div>
+    
+    <div class="quips">
+      <div class="quip">
+        Oh look, another group. I'm sure you'll find it in a week.
+      </div>
+      
+      <div class="quip">
+        Feeling lucky? More like feeling overwhelmed by 47 tabs.
+      </div>
+      
+      <div class="quip">
+        42 tabs! Ah, I see you've discovered the meaning of life... and chaos.
+      </div>
+      
+      <div class="quip">
+        Creating a group called 'Work'? Let me know how that works out.
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshot 5: Tech -->
+  <div class="screenshot screenshot-5" data-number="05">
+    <h1>💻 Built for Developers</h1>
+    <div class="subtitle">Test-Driven, Type-Safe, Production-Ready</div>
+    
+    <div class="grid">
+      <div class="item">
+        <div class="icon">📘</div>
+        <h2>TypeScript</h2>
+        <p>Strict mode enabled for maximum type safety</p>
+      </div>
+      
+      <div class="item">
+        <div class="icon">✅</div>
+        <h2>384 Tests</h2>
+        <p>Comprehensive test coverage (99.7%)</p>
+      </div>
+      
+      <div class="item">
+        <div class="icon">🏗️</div>
+        <h2>SDD Architecture</h2>
+        <p>Seam-Driven Development principles</p>
+      </div>
+      
+      <div class="item">
+        <div class="icon">🔒</div>
+        <h2>Secure</h2>
+        <p>0 vulnerabilities, CSP enforced</p>
+      </div>
+      
+      <div class="item">
+        <div class="icon">📦</div>
+        <h2>Clean Code</h2>
+        <p>Result<T,E> pattern, no exceptions</p>
+      </div>
+      
+      <div class="item">
+        <div class="icon">🎯</div>
+        <h2>Manifest V3</h2>
+        <p>Latest Chrome extension standard</p>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat">
+        <strong>17K+</strong>
+        Lines of Code
+      </div>
+      <div class="stat">
+        <strong>32</strong>
+        Seams Documented
+      </div>
+      <div class="stat">
+        <strong>9</strong>
+        Contracts Defined
+      </div>
+    </div>
+  </div>
+</body>
+</html>
