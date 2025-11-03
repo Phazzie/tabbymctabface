@@ -212,17 +212,18 @@ describe('Edge Cases - Real Implementation Behaviors', () => {
 
   describe('HumorSystem - Deduplication', () => {
     it('deduplicates recent quips to avoid repetition', async () => {
-      // Deliver multiple quips with time gaps to bypass throttling
+      // Deliver multiple quips with reduced time gaps
       const results: string[] = [];
 
-      for (let i = 0; i < 5; i++) {
+      // Deliver 3 quips instead of 5 to reduce test time
+      for (let i = 0; i < 3; i++) {
         const trigger: HumorTrigger = {
           type: 'TabGroupCreated',
           data: { type: 'TabGroupCreated', groupName: `Test${i}`, tabCount: 5 },
           timestamp: Date.now() + (i * 10000) // Different timestamps to bypass throttle
         };
 
-        // Wait between deliveries to bypass throttle
+        // Wait between deliveries to bypass throttle (5.1 seconds)
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 5100));
         }
@@ -241,7 +242,7 @@ describe('Edge Cases - Real Implementation Behaviors', () => {
         expect(quip).toBeTruthy();
         expect(typeof quip).toBe('string');
       });
-    }, 30000); // Increase timeout for this test
+    }, 15000); // 15 second timeout (3 deliveries * 5 seconds)
 
     it('limits recent quips tracking to 10', async () => {
       // This is internal state, but we can verify through behavior

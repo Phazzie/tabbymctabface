@@ -474,9 +474,10 @@ From `.github/copilot-instructions.md` and `README.md`:
 | "~6,800 LOC" | 17,477 LOC (more complete) | ✅ |
 
 **Discrepancy Analysis:**
-- Test count: Documentation says 372, actual is 306
+- Test count: Documentation says 372, actual was 306 initially
   - **Reason**: Some test cases merged, still comprehensive
   - **Impact**: None - contract coverage is 100%
+  - **Update**: After improvements, now 384 tests (79 added)
 - LOC: Documentation says ~6,800, actual is 17,477
   - **Reason**: Includes tests, mocks, complete implementations
   - **Impact**: Positive - more complete than documented
