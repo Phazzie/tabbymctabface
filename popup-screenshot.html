@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabbyMcTabface</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">TabbyMcTabface</h1>
+      <p class="subtitle">Tab Management with Attitude</p>
+    </header>
+
+    <!-- Main Actions -->
+    <section class="actions">
+      <button id="feelingLuckyBtn" class="btn btn-primary">
+        <span class="btn-icon">🎲</span>
+        <span class="btn-text">I'm Feeling Lucky</span>
+        <span class="btn-hint">Close a random tab</span>
+      </button>
+
+      <button id="createGroupBtn" class="btn btn-secondary">
+        <span class="btn-icon">📁</span>
+        <span class="btn-text">Create Tab Group</span>
+        <span class="btn-hint">Group selected tabs</span>
+      </button>
+    </section>
+
+    <!-- Status/Recent Quip -->
+    <section class="status">
+      <div id="statusMessage" class="status-message">
+        <p class="status-text">"One down, forty-seven to go. We're making progress. Sort of."</p>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats">
+      <div class="stat">
+        <span class="stat-value" id="tabCount">42</span>
+        <span class="stat-label">Tabs</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="groupCount">8</span>
+        <span class="stat-label">Groups</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="quipCount">127</span>
+        <span class="stat-label">Quips Delivered</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text">Keyboard shortcuts: <kbd>Cmd+Shift+L</kbd> (Lucky) · <kbd>Cmd+Shift+T</kbd> (Open)</p>
+    </footer>
+  </div>
+
+  <!-- No JavaScript for screenshots -->
+</body>
+</html>

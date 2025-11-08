@@ -21,6 +21,7 @@
     "copy-assets": "cp manifest.json dist/ && cp popup.html dist/ && cp popup.css dist/ && mkdir -p dist/icons && cp -r icons/* dist/icons/ 2>/dev/null || true && mkdir -p dist/data/quips && cp -r src/data/quips/* dist/data/quips/ 2>/dev/null || true",
     "lint": "tsc --noEmit",
     "package": "npm run build && cd dist && zip -r ../TabbyMcTabface-v1.0.0.zip .",
+    "screenshot": "node scripts/take-screenshots.mjs",
     "dev": "npm run build:watch"
   },
   "keywords": [
@@ -38,6 +39,7 @@
     "@types/chrome": "^0.0.270",
     "@types/node": "^20.14.0",
     "@vitest/ui": "^3.2.4",
+    "playwright": "^1.56.1",
     "typescript": "^5.6.0",
     "vitest": "^3.2.4"
   }
