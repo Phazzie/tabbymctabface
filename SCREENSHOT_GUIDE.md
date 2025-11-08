@@ -25,15 +25,22 @@ npm install  # Install dependencies including Playwright
 
 ### Run the script
 ```bash
+npm run screenshot
+```
+
+Or directly:
+```bash
 node scripts/take-screenshots.mjs
 ```
 
-This will generate:
-- `screenshots/popup-main.png` - Full popup screenshot
-- `screenshots/popup-wide-1280x800.png` - Chrome Web Store large tile
-- `screenshots/popup-small-440x280.png` - Chrome Web Store small tile
+This will automatically generate **all required screenshots**:
+- `screenshots/popup-main.png` - Full popup screenshot (400x611)
+- `screenshots/popup-wide-1280x800.png` - Chrome Web Store large tile ✓
+- `screenshots/popup-small-440x280.png` - Chrome Web Store small tile ✓
 
-**Note**: If the script fails in your environment, use Method 2 below.
+**The script uses aggressive Chrome flags to work in restricted environments.**
+
+If you need to customize the content shown in screenshots, edit `popup-screenshot.html`.
 
 ---
 

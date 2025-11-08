@@ -14,14 +14,30 @@ const __dirname = path.dirname(__filename);
 
 async function takeScreenshots() {
   console.log('🚀 Launching browser...');
+
+  // Use aggressive flags to prevent crashes in restricted environments
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+      '--disable-extensions',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--single-process',
+      '--no-zygote'
+    ],
+    timeout: 60000
   });
 
   const context = await browser.newContext({
     viewport: { width: 400, height: 600 },
-    deviceScaleFactor: 1 // Standard display (avoid crash)
+    deviceScaleFactor: 1,
+    reducedMotion: 'reduce',
+    forcedColors: 'none'
   });
 
   const page = await context.newPage();
@@ -29,6 +45,7 @@ async function takeScreenshots() {
   // Log console messages for debugging
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
+  page.on('crash', () => console.error('PAGE CRASHED!'));
 
   // Create screenshots directory
   const screenshotsDir = path.join(__dirname, '..', 'screenshots');
@@ -39,9 +56,9 @@ async function takeScreenshots() {
   console.log('📸 Taking screenshot of popup...');
 
   // Navigate to the screenshot-friendly popup HTML file
-  const popupPath = path.join(__dirname, '..', 'test-screenshot.html');
+  const popupPath = path.join(__dirname, '..', 'popup-screenshot.html');
   console.log('Loading:', popupPath);
-  await page.goto(`file://${popupPath}`);
+  await page.goto(`file://${popupPath}`, { waitUntil: 'networkidle' });
 
   // Wait for any animations or content to load
   await page.waitForTimeout(1000);
