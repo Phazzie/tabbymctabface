@@ -198,6 +198,11 @@ export interface IQuipStorage {
 export type HumorLevel = 'default' | 'mild' | 'intense';
 
 /**
+ * Quip access tier (for monetization)
+ */
+export type QuipTier = 'free' | 'premium' | 'legendary';
+
+/**
  * Quip data structure (from passive-aggressive.json)
  */
 export interface QuipData {
@@ -205,6 +210,7 @@ export interface QuipData {
   text: string; // Quip text (10-200 chars)
   triggerTypes: string[]; // Which triggers this quip applies to
   level: HumorLevel; // Intensity level
+  tier?: QuipTier; // Access tier (free/premium/legendary) - optional for backward compatibility
   metadata?: {
     tags?: string[]; // e.g., ['tab-management', 'procrastination']
     rarity?: 'common' | 'uncommon' | 'rare'; // How often to show
@@ -220,6 +226,7 @@ export interface EasterEggData {
   conditions: EasterEggConditions; // Trigger conditions (AND-combined)
   quips: string[]; // Array of quip variations for this easter egg
   level: HumorLevel; // Intensity level
+  tier?: QuipTier; // Access tier (free/premium/legendary) - optional for backward compatibility
   metadata?: {
     nicheReference?: string; // e.g., "Douglas Adams - Hitchhiker's Guide"
     difficulty?: 'common' | 'uncommon' | 'rare' | 'legendary';

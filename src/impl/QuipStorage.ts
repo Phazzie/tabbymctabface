@@ -32,7 +32,9 @@ import {
 } from '../contracts/IQuipStorage';
 import { PASSIVE_AGGRESSIVE_QUIPS, EASTER_EGGS } from './quip-data';
 import { IChromeStorageAPI } from '../contracts/IChromeStorageAPI';
+import { IAccessControl } from '../contracts/IAccessControl';
 import { Result } from '../utils/Result';
+import { filterQuipsByTier, filterEasterEggsByTier } from '../utils/TierHelpers';
 
 /**
  * Real quip storage implementation using Chrome storage
@@ -59,9 +61,12 @@ export class QuipStorage implements IQuipStorage {
   };
 
   /**
-   * Constructor - inject Chrome storage dependency
+   * Constructor - inject dependencies
    */
-  constructor(private readonly storageAPI: IChromeStorageAPI) { }
+  constructor(
+    private readonly storageAPI: IChromeStorageAPI,
+    private readonly accessControl: IAccessControl
+  ) { }
 
   /**
    * Initialize storage (load and cache data from Chrome storage)
@@ -138,6 +143,13 @@ export class QuipStorage implements IQuipStorage {
         );
       }
 
+      // Filter by user tier (access control)
+      const tierResult = await this.accessControl.getUserTier();
+      if (tierResult.ok) {
+        filteredQuips = filterQuipsByTier(filteredQuips, tierResult.value);
+      }
+      // If tier check fails, return all quips (fail open)
+
       return Result.ok(filteredQuips);
     } catch (error) {
       return Result.error({
@@ -178,9 +190,16 @@ export class QuipStorage implements IQuipStorage {
     }
 
     try {
-      const filteredEggs = this.easterEggQuips.filter(egg =>
+      let filteredEggs = this.easterEggQuips.filter(egg =>
         egg.type === easterEggType && egg.level === level
       );
+
+      // Filter by user tier (access control)
+      const tierResult = await this.accessControl.getUserTier();
+      if (tierResult.ok) {
+        filteredEggs = filterEasterEggsByTier(filteredEggs, tierResult.value);
+      }
+      // If tier check fails, return all eggs (fail open)
 
       return Result.ok(filteredEggs);
     } catch (error) {
@@ -208,9 +227,16 @@ export class QuipStorage implements IQuipStorage {
     }
 
     try {
-      const filtered = level
+      let filtered = level
         ? this.easterEggQuips.filter(egg => egg.level === level)
         : this.easterEggQuips;
+
+      // Filter by user tier (access control)
+      const tierResult = await this.accessControl.getUserTier();
+      if (tierResult.ok) {
+        filtered = filterEasterEggsByTier(filtered, tierResult.value);
+      }
+      // If tier check fails, return all eggs (fail open)
 
       // Return deep copy to protect internal cache from mutation
       const cloned = JSON.parse(JSON.stringify(filtered)) as EasterEggData[];

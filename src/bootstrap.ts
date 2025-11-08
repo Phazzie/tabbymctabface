@@ -23,6 +23,7 @@
 import { ChromeTabsAPI } from './impl/ChromeTabsAPI';
 import { ChromeNotificationsAPI } from './impl/ChromeNotificationsAPI';
 import { ChromeStorageAPI } from './impl/ChromeStorageAPI';
+import { AccessControl } from './impl/AccessControl';
 import { QuipStorage } from './impl/QuipStorage';
 import { EasterEggFramework } from './impl/EasterEggFramework';
 import { HumorSystem } from './impl/HumorSystem';
@@ -42,6 +43,7 @@ export interface ExtensionContext {
   humorSystem: HumorSystem;
   easterEggFramework: EasterEggFramework;
   quipStorage: QuipStorage;
+  accessControl: AccessControl;
   chromeTabsAPI: ChromeTabsAPI;
   chromeNotificationsAPI: ChromeNotificationsAPI;
   chromeStorageAPI: ChromeStorageAPI;
@@ -98,8 +100,9 @@ export async function initializeExtension(): Promise<InitializationResult> {
     const chromeNotificationsAPI = new ChromeNotificationsAPI();
     const chromeStorageAPI = new ChromeStorageAPI();
 
-    // === LAYER 2: Data Layer ===
-    const quipStorage = new QuipStorage(chromeStorageAPI);
+    // === LAYER 2: Access Control & Data Layer ===
+    const accessControl = new AccessControl(chromeStorageAPI);
+    const quipStorage = new QuipStorage(chromeStorageAPI, accessControl);
     const initStorageResult = await quipStorage.initialize();
 
     if (initStorageResult.isError()) {
@@ -138,6 +141,7 @@ export async function initializeExtension(): Promise<InitializationResult> {
       humorSystem,
       easterEggFramework,
       quipStorage,
+      accessControl,
       chromeTabsAPI,
       chromeNotificationsAPI,
       chromeStorageAPI

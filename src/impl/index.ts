@@ -16,6 +16,9 @@ export { ChromeTabsAPI } from './ChromeTabsAPI';
 export { ChromeNotificationsAPI } from './ChromeNotificationsAPI';
 export { ChromeStorageAPI } from './ChromeStorageAPI';
 
+// Access control (monetization layer)
+export { AccessControl } from './AccessControl';
+
 // Data layer implementations
 export { QuipStorage } from './QuipStorage';
 export { EasterEggFramework } from './EasterEggFramework';
