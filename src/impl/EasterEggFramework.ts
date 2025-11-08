@@ -65,13 +65,12 @@ export class EasterEggFramework implements IEasterEggFramework {
       return Result.ok(undefined);
     }
 
-    // Loading in progress - wait for it
-    if (this.loadPromise) {
-      return this.loadPromise;
+    // Atomically create loading promise if not already in progress
+    if (!this.loadPromise) {
+      this.loadPromise = this.initialize();
     }
 
-    // Start loading
-    this.loadPromise = this.initialize();
+    // Wait for loading to complete (whether we started it or another call did)
     return this.loadPromise;
   }
 

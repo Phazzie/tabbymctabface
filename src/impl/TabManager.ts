@@ -159,6 +159,9 @@ export class TabManager implements ITabManager {
       // Track event
       this.addRecentEvent('TabGroupCreated');
 
+      // Invalidate context cache since browser state changed
+      this._invalidateContextCache();
+
       // Return success
       return Result.ok({
         groupId,
@@ -341,6 +344,9 @@ export class TabManager implements ITabManager {
         return this.handleUpdateError(updateResult.error, groupId);
       }
 
+      // Invalidate context cache since browser state changed
+      this._invalidateContextCache();
+
       return Result.ok(undefined);
 
     } catch (error) {
@@ -403,6 +409,9 @@ export class TabManager implements ITabManager {
           originalError: ungroupResult.error
         });
       }
+
+      // Invalidate context cache since browser state changed
+      this._invalidateContextCache();
 
       return Result.ok(undefined);
 
@@ -662,6 +671,9 @@ export class TabManager implements ITabManager {
 
     // Track event
     this.addRecentEvent('FeelingLuckyClicked');
+
+    // Invalidate context cache since browser state changed
+    this._invalidateContextCache();
 
     // Return success
     return Result.ok({
