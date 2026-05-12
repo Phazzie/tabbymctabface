@@ -30,7 +30,6 @@ import {
 } from '../../contracts/IChromeStorageAPI';
 import { Result } from '../../utils/Result';
 
-// Define StorageData type
 type StorageData = Record<string, any>;
 
 /**
@@ -42,11 +41,11 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   private nextTabId = 1;
   private nextGroupId = 1;
 
-  // Track calls for verification
   public createGroupCalls: Array<{ tabIds: number[] }> = [];
   public updateGroupCalls: Array<{ groupId: number; updates: GroupUpdateProperties }> = [];
   public removeTabCalls: Array<{ tabId: number }> = [];
   public queryTabsCalls: Array<{ query: TabQueryInfo }> = [];
+  public ungroupTabsCalls: Array<{ tabIds: number[] }> = [];
 
   constructor(initialTabs: ChromeTab[] = []) {
     this.tabs = initialTabs;
@@ -54,86 +53,48 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
 
   async createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>> {
     this.createGroupCalls.push({ tabIds });
-
-    const groupId = this.nextGroupId++;
-    const group: ChromeTabGroup = {
-      id: groupId,
-      title: '',
-      color: 'grey',
-      collapsed: false
-    };
-
-    this.groups.push(group);
-
-    // Update tabs to be in this group
     for (const tabId of tabIds) {
-      const tab = this.tabs.find(tab => tab.id === tabId);
-      if (tab) {
-        tab.groupId = groupId;
+      if (!this.tabs.find(t => t.id === tabId)) {
+        return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
     }
-
+    const groupId = this.nextGroupId++;
+    this.groups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
+    for (const tabId of tabIds) {
+      const tab = this.tabs.find(t => t.id === tabId);
+      if (tab) tab.groupId = groupId;
+    }
     return Result.ok(groupId);
   }
 
-  async updateGroup(
-    groupId: number,
-    updates: GroupUpdateProperties
-  ): Promise<Result<void, ChromeAPIError>> {
+  async updateGroup(groupId: number, updates: GroupUpdateProperties): Promise<Result<void, ChromeAPIError>> {
     this.updateGroupCalls.push({ groupId, updates });
-
-    const group = this.groups.find(group => group.id === groupId);
+    const group = this.groups.find(g => g.id === groupId);
     if (!group) {
-      return Result.error({
-        type: 'InvalidGroupId',
-        details: `No group with id ${groupId}`,
-        groupId
-      });
+      return Result.error({ type: 'InvalidGroupId', details: `No group with id ${groupId}`, groupId });
     }
-
     if (updates.title !== undefined) group.title = updates.title;
     if (updates.color !== undefined) group.color = updates.color;
     if (updates.collapsed !== undefined) group.collapsed = updates.collapsed;
-
     return Result.ok(undefined);
   }
 
   async queryTabs(query: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>> {
     this.queryTabsCalls.push({ query });
-
     let results = [...this.tabs];
-
-    if (query.active !== undefined) {
-      results = results.filter(tab => tab.active === query.active);
-    }
-
-    if (query.pinned !== undefined) {
-      results = results.filter(tab => tab.pinned === query.pinned);
-    }
-
-    if (query.groupId !== undefined) {
-      results = results.filter(tab => tab.groupId === query.groupId);
-    }
-
-    if (query.url !== undefined) {
-      results = results.filter(tab => tab.url === query.url);
-    }
-
+    if (query.active !== undefined) results = results.filter(tab => tab.active === query.active);
+    if (query.pinned !== undefined) results = results.filter(tab => tab.pinned === query.pinned);
+    if (query.groupId !== undefined) results = results.filter(tab => tab.groupId === query.groupId);
+    if (query.url !== undefined) results = results.filter(tab => tab.url === query.url);
     return Result.ok(results);
   }
 
   async removeTab(tabId: number): Promise<Result<void, ChromeAPIError>> {
     this.removeTabCalls.push({ tabId });
-
     const index = this.tabs.findIndex(tab => tab.id === tabId);
     if (index === -1) {
-      return Result.error({
-        type: 'InvalidTabId',
-        details: `No tab with id ${tabId}`,
-        tabId
-      });
+      return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
     }
-
     this.tabs.splice(index, 1);
     return Result.ok(undefined);
   }
@@ -142,7 +103,21 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     return Result.ok([...this.groups]);
   }
 
-  // Helper methods for test setup
+  /**
+   * Ungroup tabs - remove from any tab group (set groupId to -1)
+   */
+  async ungroupTabs(tabIds: number[]): Promise<Result<void, ChromeAPIError>> {
+    this.ungroupTabsCalls.push({ tabIds });
+    for (const tabId of tabIds) {
+      const tab = this.tabs.find(t => t.id === tabId);
+      if (!tab) {
+        return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
+      }
+      tab.groupId = -1;
+    }
+    return Result.ok(undefined);
+  }
+
   addTab(tab: Partial<ChromeTab>): ChromeTab {
     const newTab: ChromeTab = {
       id: tab.id ?? this.nextTabId++,
@@ -152,9 +127,8 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
       pinned: tab.pinned ?? false,
       groupId: tab.groupId ?? -1,
       index: tab.index ?? this.tabs.length,
-      windowId: tab.windowId ?? 1
+      windowId: 1
     };
-
     this.tabs.push(newTab);
     return newTab;
   }
@@ -168,6 +142,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     this.updateGroupCalls = [];
     this.removeTabCalls = [];
     this.queryTabsCalls = [];
+    this.ungroupTabsCalls = [];
   }
 }
 
@@ -178,7 +153,6 @@ export class MockChromeNotificationsAPI implements IChromeNotificationsAPI {
   private notifications = new Map<string, NotificationOptions>();
   private nextNotificationId = 1;
 
-  // Track calls for verification
   public createCalls: Array<{ options: NotificationOptions }> = [];
   public clearCalls: Array<{ notificationId: string }> = [];
   public updateCalls: Array<{ notificationId: string; options: Partial<NotificationOptions> }> = [];
@@ -197,26 +171,16 @@ export class MockChromeNotificationsAPI implements IChromeNotificationsAPI {
     return Result.ok(existed);
   }
 
-  async update(
-    notificationId: string,
-    options: NotificationOptions
-  ): Promise<Result<boolean, NotificationError>> {
+  async update(notificationId: string, options: NotificationOptions): Promise<Result<boolean, NotificationError>> {
     this.updateCalls.push({ notificationId, options });
-
     const existing = this.notifications.get(notificationId);
     if (!existing) {
-      return Result.error({
-        type: 'InvalidNotificationId',
-        details: `No notification with id ${notificationId}`,
-        notificationId
-      });
+      return Result.error({ type: 'InvalidNotificationId', details: `No notification with id ${notificationId}`, notificationId });
     }
-
     this.notifications.set(notificationId, { ...existing, ...options });
     return Result.ok(true);
   }
 
-  // Helper methods for test verification
   getLastCreatedNotification(): NotificationOptions | undefined {
     return this.createCalls[this.createCalls.length - 1]?.options;
   }
@@ -235,61 +199,37 @@ export class MockChromeNotificationsAPI implements IChromeNotificationsAPI {
  */
 export class MockChromeStorageAPI implements IChromeStorageAPI {
   private storage = new Map<string, any>();
-  private quotaBytes = 10_485_760; // 10MB
+  private quotaBytes = 10_485_760;
 
-  // Track calls for verification
   public getCalls: Array<{ keys: string | string[] }> = [];
   public setCalls: Array<{ items: StorageData }> = [];
   public removeCalls: Array<{ keys: string | string[] }> = [];
 
   async get(keys: string | string[]): Promise<Result<StorageData, StorageAPIError>> {
     this.getCalls.push({ keys });
-
     const keysArray = Array.isArray(keys) ? keys : [keys];
     const result: StorageData = {};
-
     for (const key of keysArray) {
-      if (this.storage.has(key)) {
-        result[key] = this.storage.get(key);
-      }
+      if (this.storage.has(key)) result[key] = this.storage.get(key);
     }
-
     return Result.ok(result);
   }
 
   async set(items: StorageData): Promise<Result<void, StorageAPIError>> {
     this.setCalls.push({ items });
-
-    // Check quota
     const currentSize = this.calculateSize();
     const newSize = currentSize + this.calculateObjectSize(items);
-
     if (newSize > this.quotaBytes) {
-      return Result.error({
-        type: 'QuotaExceeded',
-        details: 'Storage quota exceeded',
-        bytesUsed: currentSize,
-        quotaLimit: this.quotaBytes
-      });
+      return Result.error({ type: 'QuotaExceeded', details: 'Storage quota exceeded', bytesUsed: currentSize, quotaLimit: this.quotaBytes });
     }
-
-    // Store items
-    for (const [key, value] of Object.entries(items)) {
-      this.storage.set(key, value);
-    }
-
+    for (const [key, value] of Object.entries(items)) this.storage.set(key, value);
     return Result.ok(undefined);
   }
 
   async remove(keys: string | string[]): Promise<Result<void, StorageAPIError>> {
     this.removeCalls.push({ keys });
-
     const keysArray = Array.isArray(keys) ? keys : [keys];
-
-    for (const key of keysArray) {
-      this.storage.delete(key);
-    }
-
+    for (const key of keysArray) this.storage.delete(key);
     return Result.ok(undefined);
   }
 
@@ -298,36 +238,23 @@ export class MockChromeStorageAPI implements IChromeStorageAPI {
     return Result.ok(undefined);
   }
 
-  async getBytesInUse(keys: string | string[] | null = null): Promise<Result<number, StorageAPIError>> {
-    if (!keys) {
-      return Result.ok(this.calculateSize());
-    }
-
+  async getBytesinUse(keys: string | string[] | null = null): Promise<Result<number, StorageAPIError>> {
+    if (!keys) return Result.ok(this.calculateSize());
     const keysArray = Array.isArray(keys) ? keys : [keys];
     let size = 0;
-
     for (const key of keysArray) {
-      if (this.storage.has(key)) {
-        size += this.calculateObjectSize({ [key]: this.storage.get(key) });
-      }
+      if (this.storage.has(key)) size += this.calculateObjectSize({ [key]: this.storage.get(key) });
     }
-
     return Result.ok(size);
   }
 
-  // Helper methods
   private calculateSize(): number {
     let size = 0;
-    for (const [key, value] of this.storage.entries()) {
-      size += this.calculateObjectSize({ [key]: value });
-    }
+    for (const [key, value] of this.storage.entries()) size += this.calculateObjectSize({ [key]: value });
     return size;
   }
 
-  private calculateObjectSize(obj: any): number {
-    // Rough approximation - JSON string length
-    return JSON.stringify(obj).length;
-  }
+  private calculateObjectSize(obj: any): number { return JSON.stringify(obj).length; }
 
   reset(): void {
     this.storage.clear();
@@ -337,12 +264,8 @@ export class MockChromeStorageAPI implements IChromeStorageAPI {
   }
 }
 
-/**
- * Helper to create a set of mock tabs for testing
- */
 export function createMockTabs(count: number, options: Partial<ChromeTab> = {}): ChromeTab[] {
   const tabs: ChromeTab[] = [];
-
   for (let i = 0; i < count; i++) {
     tabs.push({
       id: i + 1,
@@ -355,31 +278,17 @@ export function createMockTabs(count: number, options: Partial<ChromeTab> = {}):
       windowId: 1
     });
   }
-
   return tabs;
 }
 
-/**
- * Helper to wait for async operations
- */
 export async function waitFor(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Helper to assert Result is Ok
- */
 export function assertOk<T, E>(result: Result<T, E>): asserts result is Result<T, E> & { ok: true } {
-  if (!result.ok) {
-    throw new Error(`Expected Ok result, got Error: ${JSON.stringify(result.error)}`);
-  }
+  if (!result.ok) throw new Error(`Expected Ok result, got Error: ${JSON.stringify(result.error)}`);
 }
 
-/**
- * Helper to assert Result is Error
- */
 export function assertError<T, E>(result: Result<T, E>): asserts result is Result<T, E> & { ok: false } {
-  if (result.ok) {
-    throw new Error(`Expected Error result, got Ok: ${JSON.stringify(result.value)}`);
-  }
+  if (result.ok) throw new Error(`Expected Error result, got Ok: ${JSON.stringify(result.value)}`);
 }
