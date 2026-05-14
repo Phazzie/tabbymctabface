@@ -5,7 +5,14 @@
  * CONTRACT: Popup UI Controller v1.0.0
  */
 
-import { Result } from '../utils/Result';
+type Ok<T> = { readonly ok: true; readonly value: T };
+type Err<E> = { readonly ok: false; readonly error: E };
+type Result<T, E> = Ok<T> | Err<E>;
+
+const Result = {
+  ok<T>(value: T): Result<T, never> { return { ok: true, value }; },
+  error<E>(error: E): Result<never, E> { return { ok: false, error }; }
+};
 
 interface TabStats { tabCount: number; groupCount: number; quipCount: number; }
 interface BrowserContext { tabCount: number; groupCount: number; tabs: chrome.tabs.Tab[]; groups: chrome.tabGroups.TabGroup[]; }
@@ -14,6 +21,8 @@ interface BackgroundResponse<T = unknown> { result?: { ok: boolean; value?: T; e
 interface CloseRandomTabResult { closedTabTitle: string; closedTabId: number; quipDelivered: boolean; }
 interface CreateGroupResult { groupId: number; groupName: string; tabCount: number; quipDelivered: boolean; }
 type StatusType = 'success' | 'error' | 'warning' | 'loading' | 'info';
+type PopupErrorType = 'ChromeRuntimeFailure' | 'ChromeTabsFailure' | 'BackgroundFailure' | 'InvalidUrl';
+interface PopupError { type: PopupErrorType; details: string; }
 
 let allTabs: chrome.tabs.Tab[] = [];
 let selectedTabIds: number[] = [];
@@ -39,58 +48,66 @@ async function init(): Promise<void> {
 }
 
 async function updateStats(): Promise<void> {
-  try {
-    const response = await sendMessage<BrowserContext>({ action: 'getBrowserContext' });
-    if (response.result?.ok && response.result.value) {
-      const context = response.result.value;
-      tabCountEl.textContent = String(context.tabCount);
-      groupCountEl.textContent = String(context.groupCount);
-      // Quip count is not yet tracked in BrowserContext; default to 0
-      quipCountEl.textContent = '0';
-    }
-  } catch (error) {
-    console.error('Failed to update stats:', error);
+  const responseResult = await sendMessage<BrowserContext>({ action: 'getBrowserContext' });
+  if (responseResult.ok === false) {
+    console.error('Failed to update stats:', responseResult.error);
+    return;
+  }
+
+  const response = responseResult.value;
+  if (response.result?.ok && response.result.value) {
+    const context = response.result.value;
+    tabCountEl.textContent = String(context.tabCount);
+    groupCountEl.textContent = String(context.groupCount);
+    // Quip count is not yet tracked in BrowserContext; default to 0
+    quipCountEl.textContent = '0';
   }
 }
 
 async function handleFeelingLucky(): Promise<void> {
-  try {
-    setStatus('Closing random tab...', 'loading');
-    feelingLuckyBtn.disabled = true;
-    const response = await sendMessage<CloseRandomTabResult>({ action: 'closeRandomTab' });
-    if (response.result?.ok && response.result.value) {
-      const result = response.result.value;
-      setStatus(`Closed: ${result.closedTabTitle}`, 'success');
-      await updateStats();
-    } else if (response.result?.error) {
-      setStatus(`Error: ${response.result.error.details}`, 'error');
-    } else {
-      setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
-    }
-  } catch (error) {
-    setStatus('Failed to close tab', 'error');
-    console.error(error);
-  } finally {
+  setStatus('Closing random tab...', 'loading');
+  feelingLuckyBtn.disabled = true;
+
+  const responseResult = await sendMessage<CloseRandomTabResult>({ action: 'closeRandomTab' });
+  if (responseResult.ok === false) {
+    setStatus(`Error: ${responseResult.error.details}`, 'error');
+    console.error(responseResult.error);
     feelingLuckyBtn.disabled = false;
+    return;
   }
+
+  const response = responseResult.value;
+  if (response.result?.ok && response.result.value) {
+    const result = response.result.value;
+    setStatus(`Closed: ${result.closedTabTitle}`, 'success');
+    await updateStats();
+  } else if (response.result?.error) {
+    setStatus(`Error: ${response.result.error.details}`, 'error');
+  } else {
+    setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
+  }
+
+  feelingLuckyBtn.disabled = false;
 }
 
 async function handleCreateGroup(): Promise<void> {
-  try {
-    const tabs = await chrome.tabs.query({ currentWindow: true });
-    allTabs = tabs;
-    selectedTabIds = [];
-    tabList.innerHTML = '';
-    tabs.forEach((tab) => { const tabItem = createTabItem(tab); tabList.appendChild(tabItem); });
-    groupCreator.classList.remove('hidden');
-    groupNameInput.value = '';
-    groupNameInput.focus();
-    createGroupBtn.style.display = 'none';
-    feelingLuckyBtn.style.display = 'none';
-  } catch (error) {
+  const tabsResult = await queryCurrentWindowTabs();
+  if (tabsResult.ok === false) {
     setStatus('Failed to load tabs', 'error');
-    console.error(error);
+    console.error(tabsResult.error);
+    return;
   }
+
+  const tabs = tabsResult.value;
+  allTabs = tabs;
+  selectedTabIds = [];
+  tabList.innerHTML = '';
+  tabs.forEach((tab) => { const tabItem = createTabItem(tab); tabList.appendChild(tabItem); });
+  groupCreator.classList.remove('hidden');
+  groupNameInput.value = '';
+  groupNameInput.focus();
+  createGroupBtn.style.display = 'none';
+  feelingLuckyBtn.style.display = 'none';
 }
 
 function createTabItem(tab: chrome.tabs.Tab): HTMLDivElement {
@@ -112,10 +129,8 @@ function createTabItem(tab: chrome.tabs.Tab): HTMLDivElement {
   title.textContent = tab.title || 'Untitled';
   const url = document.createElement('div');
   url.className = 'tab-url';
-  try {
-    if (tab.url) { url.textContent = new URL(tab.url).hostname; }
-    else { url.textContent = 'No URL'; }
-  } catch { url.textContent = tab.url || 'Invalid URL'; }
+  const hostnameResult = getHostname(tab.url);
+  url.textContent = hostnameResult.ok === true ? hostnameResult.value : hostnameResult.error.details;
   info.appendChild(title);
   info.appendChild(url);
   item.appendChild(checkbox);
@@ -131,26 +146,31 @@ async function handleConfirmGroup(): Promise<void> {
   if (!groupName) { setStatus('Group name cannot be empty', 'error'); return; }
   if (groupName.length > 50) { setStatus('Group name too long (max 50 chars)', 'error'); return; }
   if (selectedTabIds.length === 0) { setStatus('Please select at least one tab', 'error'); return; }
-  try {
-    setStatus('Creating group...', 'loading');
-    confirmGroupBtn.disabled = true;
-    const response = await sendMessage<CreateGroupResult>({ action: 'createGroup', groupName, tabIds: selectedTabIds });
-    if (response.result?.ok && response.result.value) {
-      const result = response.result.value;
-      setStatus(`Group "${result.groupName}" created with ${result.tabCount} tabs!`, 'success');
-      handleCancelGroup();
-      await updateStats();
-    } else if (response.result?.error) {
-      setStatus(`Error: ${response.result.error.details}`, 'error');
-    } else {
-      setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
-    }
-  } catch (error) {
-    setStatus('Failed to create group', 'error');
-    console.error(error);
-  } finally {
+
+  setStatus('Creating group...', 'loading');
+  confirmGroupBtn.disabled = true;
+
+  const responseResult = await sendMessage<CreateGroupResult>({ action: 'createGroup', groupName, tabIds: selectedTabIds });
+  if (responseResult.ok === false) {
+    setStatus(`Error: ${responseResult.error.details}`, 'error');
+    console.error(responseResult.error);
     confirmGroupBtn.disabled = false;
+    return;
   }
+
+  const response = responseResult.value;
+  if (response.result?.ok && response.result.value) {
+    const result = response.result.value;
+    setStatus(`Group "${result.groupName}" created with ${result.tabCount} tabs!`, 'success');
+    handleCancelGroup();
+    await updateStats();
+  } else if (response.result?.error) {
+    setStatus(`Error: ${response.result.error.details}`, 'error');
+  } else {
+    setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
+  }
+
+  confirmGroupBtn.disabled = false;
 }
 
 function handleCancelGroup(): void {
@@ -171,11 +191,48 @@ function setStatus(message: string, type: StatusType = 'info'): void {
   setTimeout(() => { statusMessage.style.animation = ''; }, 10);
 }
 
-function sendMessage<T = unknown>(message: BackgroundMessage): Promise<BackgroundResponse<T>> {
-  return new Promise((resolve, reject) => {
+function getHostname(url: string | undefined): Result<string, PopupError> {
+  if (!url) return Result.error({ type: 'InvalidUrl', details: 'No URL' });
+
+  const parser = document.createElement('a');
+  parser.href = url;
+
+  if (!parser.hostname) {
+    return Result.error({ type: 'InvalidUrl', details: url || 'Invalid URL' });
+  }
+
+  return Result.ok(parser.hostname);
+}
+
+function queryCurrentWindowTabs(): Promise<Result<chrome.tabs.Tab[], PopupError>> {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ currentWindow: true }, (tabs) => {
+      const lastError = chrome.runtime.lastError;
+      if (lastError) {
+        resolve(Result.error({ type: 'ChromeTabsFailure', details: lastError.message || 'Failed to query tabs' }));
+        return;
+      }
+
+      resolve(Result.ok(tabs));
+    });
+  });
+}
+
+function sendMessage<T = unknown>(message: BackgroundMessage): Promise<Result<BackgroundResponse<T>, PopupError>> {
+  return new Promise((resolve) => {
     chrome.runtime.sendMessage(message, (response: BackgroundResponse<T>) => {
-      if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-      else resolve(response);
+      const lastError = chrome.runtime.lastError;
+      if (lastError) {
+        resolve(Result.error({ type: 'ChromeRuntimeFailure', details: lastError.message || 'Background message failed' }));
+        return;
+      }
+
+      if (response?.error) {
+        resolve(Result.error({ type: 'BackgroundFailure', details: response.error }));
+        return;
+      }
+
+      resolve(Result.ok(response));
     });
   });
 }
