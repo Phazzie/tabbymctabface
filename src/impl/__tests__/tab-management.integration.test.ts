@@ -314,8 +314,10 @@ describe('Tab Management Integration Tests', () => {
 
       // Assert
       assertOk(result);
-      // Verify ungroup was called
-      expect(mockTabs.createGroupCalls.length).toBeGreaterThan(1);
+      // Verify ungroup was called (not a second createGroup call)
+      expect(mockTabs.ungroupTabsCalls).toHaveLength(1);
+      expect(mockTabs.ungroupTabsCalls[0].tabIds).toEqual([1, 2, 3]);
+      expect(mockTabs.createGroupCalls).toHaveLength(1);
     });
 
     it('returns error for non-existent group', async () => {

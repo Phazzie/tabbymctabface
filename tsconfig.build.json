@@ -48,6 +48,7 @@
     "dist",
     "**/*.test.ts",
     "**/__tests__/**",
-    "src/mocks/**"
+    "src/mocks/**",
+    "src/ui/**"
   ]
 }
