@@ -5,7 +5,6 @@
  * CONTRACT: Popup UI Controller v1.0.0
  */
 
-import { Result } from '../utils/Result';
 
 interface TabStats { tabCount: number; groupCount: number; quipCount: number; }
 interface BrowserContext { tabCount: number; groupCount: number; tabs: chrome.tabs.Tab[]; groups: chrome.tabGroups.TabGroup[]; }
