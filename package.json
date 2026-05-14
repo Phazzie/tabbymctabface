@@ -21,7 +21,8 @@
     "copy-assets": "cp manifest.json dist/ && cp popup.html dist/ && cp popup.css dist/ && mkdir -p dist/icons && cp -r icons/* dist/icons/ 2>/dev/null || true && mkdir -p dist/data/quips && cp -r src/data/quips/* dist/data/quips/ 2>/dev/null || true",
     "lint": "tsc --noEmit",
     "package": "npm run build && cd dist && zip -r ../TabbyMcTabface-v1.0.0.zip .",
-    "dev": "npm run build:watch"
+    "dev": "npm run build:watch",
+    "verify:build-artifacts": "node scripts/verify-build-artifacts.mjs"
   },
   "keywords": [
     "sdd",
