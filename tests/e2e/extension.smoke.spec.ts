@@ -38,19 +38,31 @@ test('has no serious or critical WCAG A/AA violations in its default state', asy
   expect(releaseBlockingViolations).toEqual([]);
 });
 
-test('reinitializes after the extension worker runtime is reloaded', async ({
+test('reinitializes after the MV3 service worker is terminated', async ({
   extensionContext,
   extensionId,
   popupPage,
 }) => {
   const originalWorker = extensionContext.serviceWorkers()[0];
   expect(originalWorker).toBeDefined();
-  const restartedWorker = extensionContext.waitForEvent('serviceworker', { timeout: 15_000 });
+  const restartedWorker = extensionContext.waitForEvent('serviceworker', {
+    predicate: worker => worker !== originalWorker,
+    timeout: 15_000,
+  });
+  const controlPage = await extensionContext.newPage();
+  const cdpSession = await extensionContext.newCDPSession(controlPage);
+  const { targetInfos } = await cdpSession.send('Target.getTargets') as {
+    targetInfos: Array<{ targetId: string; type: string; url: string }>;
+  };
+  const workerTarget = targetInfos.find(
+    target => target.type === 'service_worker'
+      && target.url.startsWith(`chrome-extension://${extensionId}/`),
+  );
+  expect(workerTarget).toBeDefined();
 
   await popupPage.close();
-  await originalWorker.evaluate(() => chrome.runtime.reload()).catch(error => {
-    if (!/closed|target|context/i.test(String(error))) throw error;
-  });
+  await cdpSession.send('Target.closeTarget', { targetId: workerTarget!.targetId });
+  await expect.poll(() => extensionContext.serviceWorkers().includes(originalWorker)).toBe(false);
 
   const restartedPopup = await extensionContext.newPage();
   await restartedPopup.goto(`chrome-extension://${extensionId}/popup.html`);
@@ -58,4 +70,5 @@ test('reinitializes after the extension worker runtime is reloaded', async ({
   await expect(restartedPopup.locator(popup.tabCount)).toHaveText(/^\d+$/u);
   await expect(restartedPopup.locator(popup.groupCount)).toHaveText(/^\d+$/u);
   expect(await restartedWorker).not.toBe(originalWorker);
+  await controlPage.close();
 });
