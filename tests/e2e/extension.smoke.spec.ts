@@ -9,12 +9,7 @@ const require = createRequire(import.meta.url);
 type ServiceWorkerVersion = {
   versionId: string;
   scriptURL: string;
-};
-
-type TargetInfo = {
-  targetId: string;
-  type: string;
-  url: string;
+  runningStatus: string;
 };
 
 test('loads the MV3 worker and renders a usable popup without runtime errors', async ({
@@ -58,48 +53,36 @@ test('reinitializes after the MV3 service worker is terminated', async ({
   expect(originalWorker).toBeDefined();
   const controlPage = await extensionContext.newPage();
   const cdpSession = await extensionContext.newCDPSession(controlPage);
-  const getExtensionWorkerTarget = async (): Promise<TargetInfo | undefined> => {
-    const { targetInfos } = await cdpSession.send('Target.getTargets') as {
-      targetInfos: TargetInfo[];
-    };
-    return targetInfos.find(
-      target => target.type === 'service_worker'
-        && target.url.startsWith(`chrome-extension://${extensionId}/`),
-    );
+  const workerVersions = new Map<string, ServiceWorkerVersion>();
+  const onVersionsUpdated = ({ versions }: { versions: ServiceWorkerVersion[] }): void => {
+    for (const version of versions) {
+      if (version.scriptURL.startsWith(`chrome-extension://${extensionId}/`)) {
+        workerVersions.set(version.versionId, version);
+      }
+    }
   };
-  const originalTarget = await getExtensionWorkerTarget();
-  expect(originalTarget).toBeDefined();
-
-  const extensionWorkerVersion = new Promise<ServiceWorkerVersion>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Extension worker version was not reported')), 10_000);
-    const onVersionsUpdated = ({ versions }: { versions: ServiceWorkerVersion[] }): void => {
-      const version = versions.find(
-        candidate => candidate.scriptURL.startsWith(`chrome-extension://${extensionId}/`),
-      );
-      if (!version) return;
-      clearTimeout(timeout);
-      cdpSession.off('ServiceWorker.workerVersionUpdated', onVersionsUpdated);
-      resolve(version);
-    };
-    cdpSession.on('ServiceWorker.workerVersionUpdated', onVersionsUpdated);
-  });
+  cdpSession.on('ServiceWorker.workerVersionUpdated', onVersionsUpdated);
   await cdpSession.send('ServiceWorker.enable');
-  const workerVersion = await extensionWorkerVersion;
+  await expect.poll(() => [...workerVersions.values()].find(
+    version => version.runningStatus === 'running',
+  )?.versionId).toBeTruthy();
+  const workerVersion = [...workerVersions.values()].find(
+    version => version.runningStatus === 'running',
+  )!;
 
   await popupPage.close();
   await cdpSession.send('ServiceWorker.stopWorker', { versionId: workerVersion.versionId });
-  await expect.poll(async () => (await getExtensionWorkerTarget())?.targetId)
-    .not.toBe(originalTarget!.targetId);
+  await expect.poll(() => workerVersions.get(workerVersion.versionId)?.runningStatus)
+    .toBe('stopped');
 
   const restartedPopup = await extensionContext.newPage();
   await restartedPopup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(restartedPopup.locator(popup.root)).toBeVisible();
   await expect(restartedPopup.locator(popup.tabCount)).toHaveText(/^\d+$/u);
   await expect(restartedPopup.locator(popup.groupCount)).toHaveText(/^\d+$/u);
-  await expect.poll(async () => {
-    const target = await getExtensionWorkerTarget();
-    return target?.targetId === originalTarget!.targetId ? undefined : target?.targetId;
-  }).toBeTruthy();
+  await expect.poll(() => workerVersions.get(workerVersion.versionId)?.runningStatus)
+    .toBe('running');
+  cdpSession.off('ServiceWorker.workerVersionUpdated', onVersionsUpdated);
   await cdpSession.send('ServiceWorker.disable');
   await controlPage.close();
 });
