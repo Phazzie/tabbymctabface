@@ -448,12 +448,12 @@
   },
   {
     "id": "EE-087",
-    "type": "curling-dlq",
+    "type": "cricket-dls",
     "conditions": {
       "tabCount": 1
     },
     "quips": [
-      "Rain stopped play. Applying Duckworth-Lewis method to determine winner."
+      "Rain stopped play. Applying the Duckworth–Lewis–Stern method to determine the winner."
     ],
     "level": "mild",
     "metadata": {
@@ -669,7 +669,7 @@
     ],
     "level": "intense",
     "metadata": {
-      "nicheReference": "EverQuest - Plane of Fear (Kunark expansion)",
+      "nicheReference": "EverQuest — Plane of Fear (Original EverQuest)",
       "difficulty": "legendary"
     }
   },
@@ -1376,7 +1376,7 @@
     "id": "EE-144",
     "type": "tab-inception",
     "conditions": {
-      "domainRegex": "chrome\\.google\\.com/webstore",
+      "domainRegex": "(?:chromewebstore\\.google\\.com|chrome\\.google\\.com)",
       "titleContains": "tab"
     },
     "quips": [
@@ -1618,15 +1618,1709 @@
     "id": "EE-160",
     "type": "surprised-pikachu",
     "conditions": {
-      "customCheck": "browser-crashed-from-tabs"
+      "tabCount": {
+        "min": 200
+      }
     },
     "quips": [
-      "*Surprised Pikachu* Your browser crashed from too many tabs? Who could have seen that coming?"
+      "200 tabs. *Surprised Pikachu* The browser has begun negotiating its terms."
     ],
     "level": "intense",
     "metadata": {
       "nicheReference": "Meme - Surprised Pikachu",
       "difficulty": "legendary"
+    }
+  },
+  {
+    "id": "EE-161",
+    "type": "everquest-full-group",
+    "conditions": {
+      "tabCount": 6
+    },
+    "quips": [
+      "Six tabs: a full group. One of them is still asking where the zone line is."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — six-player groups",
+      "difficulty": "uncommon",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-162",
+    "type": "everquest-camp-check",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "camp"
+    },
+    "quips": [
+      "Camp check? Every result is occupied, and somebody has a handwritten list."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — camp checks and waiting lists",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-163",
+    "type": "everquest-ding",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "level"
+    },
+    "quips": [
+      "Ding. You gained a level in researching how to gain a level."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — level-up 'ding' culture",
+      "difficulty": "uncommon",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-164",
+    "type": "everquest-spirit-of-wolf",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Spirit of Wolf"
+    },
+    "quips": [
+      "Spirit of Wolf applied. Your cursor is faster; the research still walks."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — Spirit of Wolf movement buff",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-165",
+    "type": "everquest-corpse-run",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "corpse"
+    },
+    "quips": [
+      "Corpse run detected. The tab with the answer died three zones back."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "EverQuest — classic corpse runs",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-166",
+    "type": "everquest-feign-death",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Feign Death"
+    },
+    "quips": [
+      "Feign Death succeeded. The tab is pretending not to know you opened it."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — Feign Death pulling",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-167",
+    "type": "everquest-jboots-camp",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Journeyman"
+    },
+    "quips": [
+      "The boots camp is twelve hours long. Naturally, you opened another guide."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "EverQuest — Journeyman's Boots camp",
+      "difficulty": "legendary",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-168",
+    "type": "everquest-crushbone-belts",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Crushbone"
+    },
+    "quips": [
+      "Crushbone belts: proof that even an elf economy can run on low-level recycling."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — Crushbone belt quest",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-169",
+    "type": "everquest-blackburrow",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Blackburrow"
+    },
+    "quips": [
+      "Blackburrow research. Mind the false floor and the very real train behind you."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "EverQuest — Blackburrow dungeon",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-170",
+    "type": "everquest-kelethin-railings",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Kelethin"
+    },
+    "quips": [
+      "Kelethin has no railings. Your tab strategy has adopted the same policy."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — Kelethin platforms and fatal falls",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-171",
+    "type": "everquest-ec-tunnel",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Commonlands"
+    },
+    "quips": [
+      "East Commonlands tunnel: one tab selling, five tabs shouting, no auction house in sight."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — East Commonlands tunnel trading",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-172",
+    "type": "everquest-faction-grind",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "faction"
+    },
+    "quips": [
+      "Your faction with Organized Browsing could not possibly get any worse."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — faction messages and grinding",
+      "difficulty": "uncommon",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-173",
+    "type": "everquest-lower-guk-camp",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Guk"
+    },
+    "quips": [
+      "Lower Guk camp list: the ancient art of waiting in a dungeon for office hours."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — Lower Guk named camps",
+      "difficulty": "legendary",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-174",
+    "type": "everquest-gate-spell",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Gate"
+    },
+    "quips": [
+      "Gate is memorized. You may now escape this research and land somewhere equally inconvenient."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — Gate spell",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-175",
+    "type": "everquest-resurrection",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Resurrection"
+    },
+    "quips": [
+      "A 96% resurrection for that tab you closed with confidence and regretted immediately."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — cleric resurrection spells",
+      "difficulty": "legendary",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-176",
+    "type": "everquest-tradeskill-failure",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Tradeskill"
+    },
+    "quips": [
+      "Tradeskill improved. The combine still ate the rare component."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — tradeskill combines and skill-ups",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-177",
+    "type": "everquest-fippy-darkpaw",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Fippy"
+    },
+    "quips": [
+      "Fippy has attacked Qeynos again. Persistence remains undefeated by evidence."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — Fippy Darkpaw's Qeynos attacks",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-178",
+    "type": "everquest-sleeper-awakened",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Sleeper"
+    },
+    "quips": [
+      "The Sleeper is awake. Congratulations: this server decision is now everybody's problem."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "EverQuest — Kerafyrm the Sleeper world event",
+      "difficulty": "legendary",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-179",
+    "type": "everquest-plane-of-mischief",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Plane of Mischief"
+    },
+    "quips": [
+      "Plane of Mischief: where the map is a prank and the loot table has trust issues."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "EverQuest — Plane of Mischief",
+      "difficulty": "legendary",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-180",
+    "type": "everquest-ocean-of-tears-boat",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(everquest\\.com|eqresource\\.com|allakhazam\\.com|project1999\\.com|eqtraders\\.com|everquest\\.fandom\\.com)$",
+      "titleContains": "Ocean of Tears"
+    },
+    "quips": [
+      "The boat was just here. Excellent timing, if your goal was waiting."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "EverQuest — Ocean of Tears boat travel",
+      "difficulty": "rare",
+      "category": "everquest"
+    }
+  },
+  {
+    "id": "EE-181",
+    "type": "pop-taylor-thirteen",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Taylor Swift",
+      "tabCount": 13
+    },
+    "quips": [
+      "Thirteen tabs. The easter egg has stopped pretending this was accidental."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Mainstream music — Taylor Swift's association with 13",
+      "difficulty": "rare",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-182",
+    "type": "pop-original-151",
+    "conditions": {
+      "tabCount": 151
+    },
+    "quips": [
+      "You opened the original 151. Professor Oak is concerned about storage."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Pokémon — original Pokédex count",
+      "difficulty": "legendary",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-183",
+    "type": "pop-jurassic-65",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Jurassic",
+      "tabCount": 65
+    },
+    "quips": [
+      "Sixty-five million years later, the browser found a way to keep this tab alive."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Jurassic Park — dinosaur extinction timeframe",
+      "difficulty": "legendary",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-184",
+    "type": "pop-ghostbusters-four",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Ghostbusters",
+      "tabCount": 4
+    },
+    "quips": [
+      "Four tabs crossed their streams. Your session has become structurally unsound."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Ghostbusters — the four original Ghostbusters",
+      "difficulty": "rare",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-185",
+    "type": "pop-barbenheimer-double-feature",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Barbie",
+      "tabCount": 2
+    },
+    "quips": [
+      "Two tabs scheduled for the same day: one pink, one existential."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Film culture — Barbenheimer double feature",
+      "difficulty": "rare",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-186",
+    "type": "pop-office-work-group",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "The Office",
+      "groupCount": 1
+    },
+    "quips": [
+      "One group labeled WORK. None of its tabs appear to be doing any."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Television — The Office",
+      "difficulty": "common",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-187",
+    "type": "pop-fast-family-ten",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Fast & Furious",
+      "tabCount": 10
+    },
+    "quips": [
+      "Ten installments, ten tabs, and the browser has redefined the word family."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Film — Fast & Furious franchise",
+      "difficulty": "uncommon",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-188",
+    "type": "pop-zelda-triforce-groups",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Zelda",
+      "groupCount": 3
+    },
+    "quips": [
+      "Three groups assembled: courage, wisdom, and the one full of walkthroughs."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "The Legend of Zelda — Triforce",
+      "difficulty": "uncommon",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-189",
+    "type": "pop-simpsons-prediction",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "The Simpsons"
+    },
+    "quips": [
+      "This tab predicted the next tab, but only after somebody cropped the context."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "The Simpsons prediction meme",
+      "difficulty": "uncommon",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-190",
+    "type": "pop-beyonce-headliner",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(youtube\\.com|spotify\\.com|music\\.apple\\.com|imdb\\.com|disneyplus\\.com|hulu\\.com|max\\.com|netflix\\.com|wikipedia\\.org)$",
+      "titleContains": "Beyoncé"
+    },
+    "quips": [
+      "The active tab has headliner energy. The others are credited as background research."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Mainstream music — Beyoncé",
+      "difficulty": "uncommon",
+      "category": "mainstream-pop-culture"
+    }
+  },
+  {
+    "id": "EE-191",
+    "type": "protocol-rfc-1149",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "RFC 1149"
+    },
+    "quips": [
+      "IP over carrier pigeon: latency high, packet loss feathered."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Computing folklore — RFC 1149, IP over Avian Carriers",
+      "difficulty": "legendary",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-192",
+    "type": "protocol-dns-again",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "DNS"
+    },
+    "quips": [
+      "It might be DNS. This diagnosis is lazy, statistically rude, and still worth checking."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Systems administration — 'it's always DNS' folklore",
+      "difficulty": "common",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-193",
+    "type": "protocol-http-451",
+    "conditions": {
+      "tabCount": 451
+    },
+    "quips": [
+      "451 tabs: unavailable for organizational reasons."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "HTTP 451 — Unavailable For Legal Reasons",
+      "difficulty": "legendary",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-194",
+    "type": "protocol-year-2038",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "2038"
+    },
+    "quips": [
+      "Your 32-bit clock has an appointment in 2038. It did not make a backup plan."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Computing — Year 2038 problem",
+      "difficulty": "rare",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-195",
+    "type": "protocol-midnight-cobol",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "COBOL",
+      "hourRange": {
+        "start": 22,
+        "end": 5
+      }
+    },
+    "quips": [
+      "Late-night COBOL research. Somewhere, a bank mainframe felt seen."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Legacy computing — COBOL mainframes",
+      "difficulty": "rare",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-196",
+    "type": "protocol-detached-head",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "detached HEAD"
+    },
+    "quips": [
+      "Detached HEAD detected. Even Git is avoiding commitment."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Git — detached HEAD state",
+      "difficulty": "common",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-197",
+    "type": "protocol-cache-invalidation",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "cache invalidation"
+    },
+    "quips": [
+      "You found one hard problem. Naming the next tab will create another."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Programming folklore — cache invalidation and naming",
+      "difficulty": "rare",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-198",
+    "type": "protocol-ntp-clock",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "NTP"
+    },
+    "quips": [
+      "Your clocks disagree by milliseconds and by philosophy."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Networking — Network Time Protocol",
+      "difficulty": "rare",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-199",
+    "type": "protocol-segmentation-fault",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "segmentation fault"
+    },
+    "quips": [
+      "Segmentation fault: the program reached into memory and found your other tabs."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Systems programming — segmentation faults",
+      "difficulty": "uncommon",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-200",
+    "type": "protocol-robots-rules",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(github\\.com|stackoverflow\\.com|developer\\.mozilla\\.org|rfc-editor\\.org|ietf\\.org|wikipedia\\.org)$",
+      "titleContains": "robots.txt"
+    },
+    "quips": [
+      "The robots found the rules. Humans are still opening tabs at unrestricted speed."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Web standards — robots.txt",
+      "difficulty": "uncommon",
+      "category": "computing-folklore"
+    }
+  },
+  {
+    "id": "EE-201",
+    "type": "math-birthday-paradox",
+    "conditions": {
+      "tabCount": 23,
+      "titleContains": "birthday"
+    },
+    "quips": [
+      "Twenty-three tabs: better-than-even odds two share a birthday; none share a purpose."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Probability — birthday paradox",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-202",
+    "type": "math-monty-hall",
+    "conditions": {
+      "titleContains": "Monty Hall",
+      "tabCount": 3
+    },
+    "quips": [
+      "Three tabs, one answer, and switching feels wrong even when the math is smug about it."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Probability — Monty Hall problem",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-203",
+    "type": "math-taxicab-1729",
+    "conditions": {
+      "tabCount": 1729
+    },
+    "quips": [
+      "1729 tabs: two cubes found two ways; your RAM found no way out."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Mathematics — Hardy–Ramanujan number 1729",
+      "difficulty": "legendary",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-204",
+    "type": "math-kaprekar-6174",
+    "conditions": {
+      "titleContains": "6174"
+    },
+    "quips": [
+      "6174: subtract, rearrange, repeat. Your tabs invented bureaucracy as mathematics."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Mathematics — Kaprekar's constant",
+      "difficulty": "legendary",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-205",
+    "type": "math-banach-tarski",
+    "conditions": {
+      "titleContains": "Banach-Tarski"
+    },
+    "quips": [
+      "One tab became two complete tabs. Mathematics permits it; memory usage objects."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Mathematics — Banach–Tarski paradox",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-206",
+    "type": "science-fermi-paradox",
+    "conditions": {
+      "titleContains": "Fermi paradox"
+    },
+    "quips": [
+      "If intelligent life is common, why has none of it closed these tabs?"
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Astrobiology — Fermi paradox",
+      "difficulty": "uncommon",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-207",
+    "type": "math-godel-browser",
+    "conditions": {
+      "titleContains": "Gödel"
+    },
+    "quips": [
+      "This tab cannot prove its own usefulness from within the current browser."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Mathematical logic — Gödel's incompleteness theorems",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-208",
+    "type": "science-boltzmann-brain",
+    "conditions": {
+      "titleContains": "Boltzmann brain",
+      "hourRange": {
+        "start": 2,
+        "end": 5
+      }
+    },
+    "quips": [
+      "At this hour, a random fluctuation may be more organized than your session."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Cosmology — Boltzmann brain thought experiment",
+      "difficulty": "legendary",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-209",
+    "type": "math-erdos-number",
+    "conditions": {
+      "titleContains": "Erdős number",
+      "tabCount": 2
+    },
+    "quips": [
+      "Your tab has an Erdős number of two through a PDF you have not read."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Mathematics culture — Erdős number",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-210",
+    "type": "science-double-slit",
+    "conditions": {
+      "titleContains": "double-slit"
+    },
+    "quips": [
+      "Observed: the tab chose a state. Unobserved: it behaved like twelve tabs."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Quantum physics — double-slit experiment",
+      "difficulty": "rare",
+      "category": "math-science"
+    }
+  },
+  {
+    "id": "EE-211",
+    "type": "history-antikythera-gears",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Antikythera"
+    },
+    "quips": [
+      "Ancient gears predicted the sky. Your browser predicts you will open another source."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Ancient technology — Antikythera mechanism",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-212",
+    "type": "history-molasses-flood",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Molasses Flood"
+    },
+    "quips": [
+      "The research moved slowly, which is historically on theme and still a poor excuse."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "History — Great Molasses Flood of 1919",
+      "difficulty": "uncommon",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-213",
+    "type": "history-cadaver-synod",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Cadaver Synod"
+    },
+    "quips": [
+      "A dead pope was put on trial. Your abandoned tab now requests counsel."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Medieval history — Cadaver Synod",
+      "difficulty": "legendary",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-214",
+    "type": "history-defenestration-prague",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Defenestration"
+    },
+    "quips": [
+      "Prague solved this meeting by changing the window state very aggressively."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "European history — Defenestrations of Prague",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-215",
+    "type": "history-war-of-bucket",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "War of the Bucket"
+    },
+    "quips": [
+      "A bucket helped name a war. Your tab groups have had weaker reasons."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Medieval history — War of the Bucket",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-216",
+    "type": "history-nika-riots",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Nika riots"
+    },
+    "quips": [
+      "A chariot rivalry nearly burned the capital. Your fandom tabs remain under observation."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Byzantine history — Nika riots",
+      "difficulty": "legendary",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-217",
+    "type": "history-dancing-plague",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "Dancing Plague"
+    },
+    "quips": [
+      "Hundreds kept moving; none checked whether the tab was still useful."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Early modern history — Dancing Plague of 1518",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-218",
+    "type": "history-1904-marathon",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "1904 marathon"
+    },
+    "quips": [
+      "Dust, shortcuts, and questionable assistance. Your research method feels period-accurate."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Sports history — 1904 Olympic marathon",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-219",
+    "type": "history-manicule",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "manicule"
+    },
+    "quips": [
+      "The medieval pointing hand says this tab matters. Medieval readers also doodled."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Book history — manicules in manuscript margins",
+      "difficulty": "legendary",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-220",
+    "type": "history-palimpsest",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wikipedia\\.org|britannica\\.com|smithsonianmag\\.com|history\\.com|archive\\.org)$",
+      "titleContains": "palimpsest"
+    },
+    "quips": [
+      "A scraped manuscript reused beneath new text: history's overwrite without version control."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Manuscript culture — palimpsests",
+      "difficulty": "rare",
+      "category": "history-material-culture"
+    }
+  },
+  {
+    "id": "EE-221",
+    "type": "music-cage-silence",
+    "conditions": {
+      "titleContains": "John Cage",
+      "tabCount": 4
+    },
+    "quips": [
+      "Four tabs of John Cage. The quiet one is currently performing."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Experimental music — John Cage's 4′33″",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-222",
+    "type": "music-shepard-tone",
+    "conditions": {
+      "titleContains": "Shepard tone"
+    },
+    "quips": [
+      "The sound keeps rising without arriving. Your research adopted the same architecture."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Psychoacoustics — Shepard tone",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-223",
+    "type": "music-amen-break",
+    "conditions": {
+      "titleContains": "Amen break",
+      "tabCount": 9
+    },
+    "quips": [
+      "Six seconds of drums, decades of descendants, and now nine sample-history tabs."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Sampling history — the Amen break",
+      "difficulty": "legendary",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-224",
+    "type": "music-31-tet",
+    "conditions": {
+      "titleContains": "31-TET"
+    },
+    "quips": [
+      "Thirty-one notes per octave. Twelve apparently lacked administrative complexity."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Microtonal music — 31-tone equal temperament",
+      "difficulty": "legendary",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-225",
+    "type": "music-prepared-piano",
+    "conditions": {
+      "titleContains": "prepared piano"
+    },
+    "quips": [
+      "The piano has screws between its strings. Your browser calls this an extension."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Experimental music — prepared piano",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-226",
+    "type": "music-concrete",
+    "conditions": {
+      "titleContains": "musique concrète"
+    },
+    "quips": [
+      "A train, a pan, and tape hiss became music. Your open tabs are not yet an ensemble."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Experimental music — musique concrète",
+      "difficulty": "legendary",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-227",
+    "type": "music-overtone-singing",
+    "conditions": {
+      "titleContains": "throat singing"
+    },
+    "quips": [
+      "One throat, two pitches. One task, fourteen tabs. Parallelism has limits."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Vocal traditions — overtone and throat singing",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-228",
+    "type": "music-hurdy-gurdy",
+    "conditions": {
+      "titleContains": "hurdy-gurdy"
+    },
+    "quips": [
+      "Crank-powered strings: proof that even drones once required cardio."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Traditional instruments — hurdy-gurdy",
+      "difficulty": "uncommon",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-229",
+    "type": "music-number-stations",
+    "conditions": {
+      "titleContains": "number station"
+    },
+    "quips": [
+      "A voice reads numbers into static. At least somebody's tabs have a filing system."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Radio folklore — number stations",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-230",
+    "type": "music-room-tone",
+    "conditions": {
+      "titleContains": "field recording"
+    },
+    "quips": [
+      "You opened a recording of room tone. The room now has better documentation than this project."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Audio practice — field recording and room tone",
+      "difficulty": "rare",
+      "category": "music-acoustics"
+    }
+  },
+  {
+    "id": "EE-231",
+    "type": "games-wrong-warp",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "wrong warp"
+    },
+    "quips": [
+      "The runner skipped half the game. You opened half the internet to learn how."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Speedrunning — wrong-warp glitches",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-232",
+    "type": "games-tool-assisted",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "tool-assisted"
+    },
+    "quips": [
+      "Frame-perfect, tool-assisted, and still less automated than your tab cleanup."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Speedrunning — tool-assisted speedruns",
+      "difficulty": "uncommon",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-233",
+    "type": "games-en-passant",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "en passant"
+    },
+    "quips": [
+      "A pawn moved sideways once and the internet made it everybody's business."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Chess — en passant and its online meme culture",
+      "difficulty": "uncommon",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-234",
+    "type": "games-go-ko-rule",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "ko rule"
+    },
+    "quips": [
+      "The position cannot repeat. Your browser would never accept such a rule."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Go — ko rule",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-235",
+    "type": "games-diplomacy-promise",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "Diplomacy"
+    },
+    "quips": [
+      "Seven players, no dice, and one tab containing a promise nobody intends to keep."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Board games — Diplomacy",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-236",
+    "type": "games-mtg-stack",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(wizards\\.com|scryfall\\.com|gatherer\\.wizards\\.com|reddit\\.com)$",
+      "titleContains": "the stack"
+    },
+    "quips": [
+      "The answer went on the stack. Three responses later, the question has priority confusion."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Magic: The Gathering — the stack",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-237",
+    "type": "games-tetris-kill-screen",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "kill screen"
+    },
+    "quips": [
+      "The game became too fast for its code. Your tabs chose the slower route to collapse."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Classic games — Tetris kill screens",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-238",
+    "type": "games-geoguessr-bollards",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "bollards"
+    },
+    "quips": [
+      "You identified a country from a roadside post. The useful tab remains geographically unknown."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "GeoGuessr — bollard identification meta",
+      "difficulty": "legendary",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-239",
+    "type": "games-minesweeper-fifty-fifty",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "Minesweeper"
+    },
+    "quips": [
+      "A perfect 50/50. Click confidently so probability can blame you personally."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Minesweeper — unavoidable 50/50 guesses",
+      "difficulty": "uncommon",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-240",
+    "type": "games-nethack-memory",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(speedrun\\.com|youtube\\.com|chess\\.com|lichess\\.org|boardgamegeek\\.com|wikipedia\\.org|geoguessr\\.com)$",
+      "titleContains": "NetHack"
+    },
+    "quips": [
+      "The dungeon remembers everything. Your browser history chose the same design philosophy."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Roguelikes — NetHack",
+      "difficulty": "rare",
+      "category": "deep-games-rules"
+    }
+  },
+  {
+    "id": "EE-241",
+    "type": "web-geocities-construction",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "GeoCities"
+    },
+    "quips": [
+      "Under construction since 1997. The animated worker remains optimistic."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Web history — GeoCities construction pages",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-242",
+    "type": "web-webring",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "webring"
+    },
+    "quips": [
+      "Next site, previous site, random site: navigation before algorithms learned your weaknesses."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Web history — webrings",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-243",
+    "type": "web-guestbook",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "guestbook"
+    },
+    "quips": [
+      "Sign the guestbook. The webmaster checks it every few years, emotionally."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Early web culture — guestbooks",
+      "difficulty": "uncommon",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-244",
+    "type": "web-netscape-resolution",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "Netscape"
+    },
+    "quips": [
+      "Best viewed at 800×600 with confidence unsupported by standards."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Browser history — Netscape-era design badges",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-245",
+    "type": "web-icq-sound",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "ICQ"
+    },
+    "quips": [
+      "Your message arrived with a sound that could startle an entire computer lab."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Instant messaging history — ICQ",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-246",
+    "type": "web-winamp-skin",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "Winamp"
+    },
+    "quips": [
+      "Tiny player, illegible skin, every control exactly where you remember."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Desktop media history — Winamp skins",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-247",
+    "type": "web-gopher-menu",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "Gopher protocol"
+    },
+    "quips": [
+      "A menu, a server, no infinite scroll. The past was not always primitive."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Internet history — Gopher protocol",
+      "difficulty": "legendary",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-248",
+    "type": "web-irc-netsplit",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "netsplit"
+    },
+    "quips": [
+      "Half the channel vanished, then returned with duplicate names. Distributed systems made it social."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "IRC culture — netsplits",
+      "difficulty": "legendary",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-249",
+    "type": "web-mud-tavern",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "Multi-User Dungeon"
+    },
+    "quips": [
+      "The whole world is text, and somebody is still idling in the tavern."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Online game history — MUDs and MOOs",
+      "difficulty": "rare",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-250",
+    "type": "web-flash-save",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(archive\\.org|neocities\\.org|wikipedia\\.org|winamp\\.com|floodgap\\.com)$",
+      "titleContains": "Flash game"
+    },
+    "quips": [
+      "The game survived; the plug-in did not. Your save file has entered folklore."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Web game history — Adobe Flash games",
+      "difficulty": "uncommon",
+      "category": "digital-archaeology"
+    }
+  },
+  {
+    "id": "EE-251",
+    "type": "ritual-recipe-scroll",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(allrecipes\\.com|foodnetwork\\.com|seriouseats\\.com|epicurious\\.com)$",
+      "titleContains": "recipe",
+      "tabCount": 7
+    },
+    "quips": [
+      "Seven recipe tabs and not one has reached the ingredient list yet."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Everyday web culture — recipe-page preambles",
+      "difficulty": "common",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-252",
+    "type": "ritual-excel-date",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(microsoft\\.com|stackoverflow\\.com|reddit\\.com)$",
+      "titleContains": "Excel date"
+    },
+    "quips": [
+      "Excel converted your identifier into a date. The calendar accepts your loss."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Spreadsheet folklore — automatic date conversion",
+      "difficulty": "common",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-253",
+    "type": "ritual-printer-queue",
+    "conditions": {
+      "titleContains": "printer queue"
+    },
+    "quips": [
+      "The printer has zero paper, three jobs, and one strongly held secret."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Office technology — printer queue rituals",
+      "difficulty": "common",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-254",
+    "type": "ritual-baggage-carousel",
+    "conditions": {
+      "titleContains": "baggage carousel"
+    },
+    "quips": [
+      "Everyone recognizes every black suitcase except their own. Tabs work the same way."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Travel microculture — baggage carousels",
+      "difficulty": "rare",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-255",
+    "type": "ritual-dewey-decimal",
+    "conditions": {
+      "titleContains": "Dewey Decimal"
+    },
+    "quips": [
+      "The library assigned this topic a number. Your browser assigned it twelve windows."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Library systems — Dewey Decimal Classification",
+      "difficulty": "uncommon",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-256",
+    "type": "ritual-unexpected-item",
+    "conditions": {
+      "titleContains": "unexpected item"
+    },
+    "quips": [
+      "Unexpected item in browsing area. Remove one tab or wait for an attendant."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Retail microculture — self-checkout prompts",
+      "difficulty": "uncommon",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-257",
+    "type": "ritual-midwestern-goodbye",
+    "conditions": {
+      "titleContains": "Midwestern goodbye"
+    },
+    "quips": [
+      "You started leaving six tabs ago. Somebody just offered leftovers."
+    ],
+    "level": "mild",
+    "metadata": {
+      "nicheReference": "Regional culture — the Midwestern goodbye",
+      "difficulty": "rare",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-258",
+    "type": "ritual-four-way-stop",
+    "conditions": {
+      "titleContains": "four-way stop"
+    },
+    "quips": [
+      "Four drivers arrived at once. Everyone is yielding hard enough to become traffic."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Road culture — four-way-stop politeness deadlock",
+      "difficulty": "uncommon",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-259",
+    "type": "ritual-lake-effect",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)(weather\\.com|wunderground\\.com|noaa\\.gov|weather\\.gov)$",
+      "titleContains": "lake effect"
+    },
+    "quips": [
+      "The lake made its own weather again. Your forecast tabs formed a support group."
+    ],
+    "level": "default",
+    "metadata": {
+      "nicheReference": "Great Lakes regional weather — lake-effect snow",
+      "difficulty": "rare",
+      "category": "mundane-anthropology"
+    }
+  },
+  {
+    "id": "EE-260",
+    "type": "ritual-municipal-minutes",
+    "conditions": {
+      "domainRegex": "(?:^|\\.)[^.]+\\.gov$",
+      "titleContains": "meeting minutes"
+    },
+    "quips": [
+      "The motion passed 4–3 after twenty pages. Your tab remains tabled without discussion."
+    ],
+    "level": "intense",
+    "metadata": {
+      "nicheReference": "Civic bureaucracy — municipal meeting minutes",
+      "difficulty": "rare",
+      "category": "mundane-anthropology"
     }
   }
 ]

@@ -22,12 +22,18 @@ import {
 import { Result } from '../utils/Result';
 
 export class ChromeTabsAPI implements IChromeTabsAPI {
-    async createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>> {
+    async createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>> {
         try {
             if (!tabIds || tabIds.length === 0) {
                 return Result.error({ type: 'ChromeAPIFailure', details: 'tabIds array cannot be empty', originalError: new Error('Empty tabIds array') });
             }
-            const groupId = await chrome.tabs.group({ tabIds });
+            if (existingGroupId !== undefined && (!Number.isInteger(existingGroupId) || existingGroupId < 0)) {
+                return Result.error({ type: 'InvalidGroupId', details: 'groupId must be a non-negative integer', groupId: existingGroupId });
+            }
+            const chromeTabIds = tabIds as [number, ...number[]];
+            const groupId: number = await chrome.tabs.group(
+                existingGroupId === undefined ? { tabIds: chromeTabIds } : { tabIds: chromeTabIds, groupId: existingGroupId }
+            );
             return Result.ok(groupId);
         } catch (error) {
             return this.mapChromeError(error, 'createGroup');
@@ -36,8 +42,8 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
 
     async updateGroup(groupId: number, properties: GroupUpdateProperties): Promise<Result<void, ChromeAPIError>> {
         try {
-            if (!groupId || groupId <= 0) {
-                return Result.error({ type: 'InvalidGroupId', details: 'groupId must be a positive number', groupId });
+            if (!Number.isInteger(groupId) || groupId < 0) {
+                return Result.error({ type: 'InvalidGroupId', details: 'groupId must be a non-negative integer', groupId });
             }
             await chrome.tabGroups.update(groupId, properties);
             return Result.ok(undefined);
@@ -55,7 +61,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
                 title: tab.title || '',
                 pinned: tab.pinned || false,
                 active: tab.active || false,
-                groupId: tab.groupId || -1,
+                groupId: tab.groupId ?? -1,
                 windowId: tab.windowId,
                 index: tab.index
             }));
@@ -67,7 +73,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
 
     async removeTab(tabId: number): Promise<Result<void, ChromeAPIError>> {
         try {
-            if (!tabId || tabId <= 0) {
+            if (!Number.isInteger(tabId) || tabId <= 0) {
                 return Result.error({ type: 'InvalidTabId', details: 'tabId must be a positive number', tabId });
             }
             await chrome.tabs.remove(tabId);
@@ -111,7 +117,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
             if (!tabIds || tabIds.length === 0) {
                 return Result.error({ type: 'ChromeAPIFailure', details: 'tabIds array cannot be empty', originalError: new Error('Empty tabIds array') });
             }
-            await chrome.tabs.ungroup(tabIds);
+            await chrome.tabs.ungroup(tabIds as [number, ...number[]]);
             return Result.ok(undefined);
         } catch (error) {
             return this.mapChromeError(error, 'ungroupTabs');
@@ -119,16 +125,16 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
     }
 
     private mapChromeError(error: unknown, operation: string, context?: { tabId?: number; groupId?: number }): Result<never, ChromeAPIError> {
-        const chromeError = chrome.runtime.lastError || error;
+        const chromeError = chrome.runtime?.lastError ?? error;
         if (!chromeError) {
             return Result.error({ type: 'ChromeAPIFailure', details: `Unknown error in ${operation}`, originalError: error });
         }
         const errorMessage = chromeError instanceof Error ? chromeError.message : String(chromeError);
         if (errorMessage.includes('No tab with id') || errorMessage.includes('Tab does not exist')) {
-            return Result.error({ type: 'InvalidTabId', details: `Tab does not exist`, tabId: context?.tabId || -1 });
+            return Result.error({ type: 'InvalidTabId', details: `Tab does not exist`, tabId: context?.tabId ?? -1 });
         }
         if (errorMessage.includes('No group with id') || errorMessage.includes('Group does not exist')) {
-            return Result.error({ type: 'InvalidGroupId', details: `Group does not exist`, groupId: context?.groupId || -1 });
+            return Result.error({ type: 'InvalidGroupId', details: `Group does not exist`, groupId: context?.groupId ?? -1 });
         }
         if (errorMessage.includes('permission') || errorMessage.includes('Permission denied')) {
             return Result.error({ type: 'PermissionDenied', details: `Missing tabs permission`, permission: 'tabs' });
@@ -136,15 +142,4 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
         return Result.error({ type: 'ChromeAPIFailure', details: `Chrome API error in ${operation}`, originalError: chromeError });
     }
 
-    private isTabNotFoundError(message: string): boolean {
-        return message.includes('No tab with id') || message.includes('Tab does not exist');
-    }
-
-    private isGroupNotFoundError(message: string): boolean {
-        return message.includes('No group with id') || message.includes('Group does not exist');
-    }
-
-    private isPermissionError(message: string): boolean {
-        return message.includes('permission') || message.includes('Permission denied');
-    }
 }

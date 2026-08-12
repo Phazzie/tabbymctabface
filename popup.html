@@ -10,35 +10,42 @@
   <div class="container">
     <!-- Header -->
     <header class="header">
-      <h1 class="title">TabbyMcTabface</h1>
-      <p class="subtitle">Tab Management with Attitude</p>
+      <img class="mascot" src="icons/icon128.png" width="72" height="72" alt="Skeptical Wombat mascot">
+      <div class="brand-copy">
+        <h1 class="title"><span>Tabby</span><span class="brand-mc">Mc</span><span class="brand-tabface">Tabface</span></h1>
+        <p class="subtitle">Tab management under skeptical supervision</p>
+      </div>
     </header>
 
     <!-- Main Actions -->
     <section class="actions">
       <button id="feelingLuckyBtn" class="btn btn-primary">
-        <span class="btn-icon">🍀</span>
+        <span class="btn-icon" aria-hidden="true">?</span>
         <span class="btn-text">I'm Feeling Lucky</span>
         <span class="btn-hint">Close a random tab</span>
       </button>
 
       <button id="createGroupBtn" class="btn btn-secondary">
-        <span class="btn-icon">📁</span>
+        <span class="btn-icon" aria-hidden="true">+</span>
         <span class="btn-text">Create Tab Group</span>
         <span class="btn-hint">Group selected tabs</span>
       </button>
     </section>
 
     <!-- Tab Group Creator (hidden by default) -->
-    <section id="groupCreator" class="group-creator hidden">
-      <h2>Create Tab Group</h2>
+    <section id="groupCreator" class="group-creator hidden" aria-hidden="true" aria-labelledby="groupCreatorTitle">
+      <h2 id="groupCreatorTitle">Create Tab Group</h2>
+      <label class="input-label" for="groupNameInput">Group name</label>
       <input
         type="text"
         id="groupNameInput"
         class="input"
         placeholder="Group name (1-50 chars)"
         maxlength="50"
+        autocomplete="off"
+        aria-describedby="groupNameHint"
       />
+      <p class="field-hint" id="groupNameHint">Choose a name, then select one or more tabs from this window.</p>
       <div class="tab-list" id="tabList">
         <!-- Tabs will be dynamically populated -->
       </div>
@@ -50,7 +57,7 @@
 
     <!-- Status/Recent Quip -->
     <section class="status">
-      <div id="statusMessage" class="status-message">
+      <div id="statusMessage" class="status-message" role="status" aria-live="polite" aria-atomic="true">
         <p class="status-text">Ready to manage your tab chaos</p>
       </div>
     </section>
@@ -73,7 +80,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p class="footer-text">Keyboard shortcuts: <kbd>Cmd+Shift+L</kbd> (Lucky) ✧ <kbd>Cmd+Shift+T</kbd> (Open)</p>
+      <p class="footer-text">Open: <kbd>Ctrl/⌘ + Shift + Y</kbd> · Lucky has no default shortcut.</p>
     </footer>
   </div>
 

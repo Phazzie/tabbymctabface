@@ -443,6 +443,11 @@ export class MockTabManager implements ITabManager {
         return Result.ok(context);
     }
 
+    async recordBrowserEvent(event: import('../contracts/ITabManager').BrowserEventName): Promise<void> {
+        this.recentEvents.unshift(event);
+        this.recentEvents = this.recentEvents.slice(0, 20);
+    }
+
     // ========================================
     // MOCK HELPER METHODS
     // ========================================

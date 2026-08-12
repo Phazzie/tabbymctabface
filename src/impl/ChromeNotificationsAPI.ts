@@ -72,11 +72,11 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
       const chromeOptions = {
         ...options,
         type: options.type || 'basic' as const,
-        iconUrl: options.iconUrl || chrome.runtime.getURL('icon.png') // Default to extension icon
+        iconUrl: options.iconUrl || chrome.runtime.getURL('icons/icon128.png')
       };
 
       // Generate notification ID since Chrome API doesn't return it
-      const notificationId = `tabby-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const notificationId = `tabby-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
       // Call Chrome API (create with ID)
       await chrome.notifications.create(notificationId, chromeOptions);
@@ -117,10 +117,8 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
         });
       }
 
-      // Call Chrome API (returns void, assume success if no error)
-      await chrome.notifications.clear(notificationId);
-
-      return Result.ok(true); // Success means notification was cleared
+      const wasCleared = await chrome.notifications.clear(notificationId);
+      return Result.ok(wasCleared);
     } catch (error) {
       return this.mapChromeError(error, 'clear', { notificationId });
     }
@@ -169,13 +167,11 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
       const chromeOptions = {
         ...options,
         type: options.type || 'basic' as const,
-        iconUrl: options.iconUrl || chrome.runtime.getURL('icon.png')
+        iconUrl: options.iconUrl || chrome.runtime.getURL('icons/icon128.png')
       };
 
-      // Call Chrome API (returns void, assume success if no error)
-      await chrome.notifications.update(notificationId, chromeOptions);
-
-      return Result.ok(true); // Success means notification was updated
+      const wasUpdated = await chrome.notifications.update(notificationId, chromeOptions);
+      return Result.ok(wasUpdated);
     } catch (error) {
       return this.mapChromeError(error, 'update', { notificationId });
     }
@@ -248,7 +244,7 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
     operation: string,
     context?: { notificationId?: string }
   ): Result<never, NotificationError> {
-    const chromeError = chrome.runtime.lastError || error;
+    const chromeError = chrome.runtime?.lastError ?? error;
 
     if (!chromeError) {
       return Result.error({

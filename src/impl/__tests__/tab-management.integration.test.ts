@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Result } from '../../utils/Result';
 import { TabManager } from '../TabManager';
 import { HumorSystem } from '../HumorSystem';
 import { QuipStorage } from '../QuipStorage';
@@ -315,7 +316,24 @@ describe('Tab Management Integration Tests', () => {
       // Assert
       assertOk(result);
       // Verify ungroup was called
-      expect(mockTabs.createGroupCalls.length).toBeGreaterThan(1);
+      expect(mockTabs.ungroupTabsCalls).toHaveLength(1);
+      expect(mockTabs.ungroupTabsCalls[0].tabIds).toEqual([1, 2, 3]);
+    });
+
+    it('rolls back a partially created group when the title update fails', async () => {
+      const tabs = createMockTabs(3);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+      mockTabs.updateGroup = async () => Result.error({
+        type: 'ChromeAPIFailure',
+        details: 'Could not set title',
+        originalError: new Error('Could not set title')
+      });
+
+      const result = await tabManager.createGroup('Rollback Me', [1, 2]);
+
+      assertError(result);
+      expect(result.error.details).toContain('rolled back');
+      expect(mockTabs.ungroupTabsCalls).toEqual([{ tabIds: [1, 2] }]);
     });
 
     it('returns error for non-existent group', async () => {
@@ -502,4 +520,3 @@ describe('Tab Management Integration Tests', () => {
     });
   });
 });
-

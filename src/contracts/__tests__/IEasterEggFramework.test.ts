@@ -10,20 +10,19 @@
  *   1. Tests call framework methods with browser context
  *   2. Mock easter egg registrations
  *   3. Validate condition evaluation logic (AND combinations)
- *   4. Verify priority-based matching
+ *   4. Verify specificity-first, rarity-weighted matching
  * 
  * SEAMS:
  *   IN: HumorSystem → EasterEggFramework (SEAM-16)
  *   OUT: EasterEggFramework → QuipStorage (SEAM-17 - for easter egg data)
  * 
- * CONTRACT: IEasterEggFramework v1.0.0 validation
- * GENERATED: 2025-10-12
+ * CONTRACT: IEasterEggFramework v1.1.0 validation
+ * GENERATED: 2026-08-12
  * CUSTOM SECTIONS: None
  */
 
 import { describe, it, expect } from 'vitest';
 import type {
-    IEasterEggFramework,
     EasterEggMatch,
     EasterEggDefinition,
     EasterEggConditions,
@@ -32,7 +31,7 @@ import type {
 import type { BrowserContext } from '../ITabManager';
 import { Result } from '../../utils/Result';
 
-describe('IEasterEggFramework CONTRACT v1.0.0', () => {
+describe('IEasterEggFramework CONTRACT v1.1.0', () => {
     // NOTE: These tests define the contract behavior
     // Implementation will be created to pass these tests
 
@@ -59,7 +58,7 @@ describe('IEasterEggFramework CONTRACT v1.0.0', () => {
         });
 
         it('MUST return Result<EasterEggMatch | null, EasterEggError> on success', () => {
-            // Contract specifies: Success returns highest priority match or null
+            // Contract specifies: Success returns the selected top-specificity match or null
             const match: EasterEggMatch = {
                 easterEggId: 'EE-001',
                 easterEggType: '42-tabs',
@@ -102,8 +101,8 @@ describe('IEasterEggFramework CONTRACT v1.0.0', () => {
             expect(anyConditionFalse).toBe(false);
         });
 
-        it('MUST return highest priority match when multiple matches', () => {
-            // Contract behavior: Priority-based matching (higher priority first)
+        it('MUST return the highest structural priority when multiple matches differ in specificity', () => {
+            // Difficulty affects weighted rarity, not structural priority.
             const highPriorityMatch = { priority: 100 };
             const lowPriorityMatch = { priority: 50 };
 
@@ -331,6 +330,13 @@ describe('IEasterEggFramework CONTRACT v1.0.0', () => {
             expect(typeof conditions.titleContains).toBe('string');
         });
 
+        it('MUST support urlContains case-insensitive matching', () => {
+            const conditions: EasterEggConditions = {
+                urlContains: '/pull/'
+            };
+            expect(conditions.urlContains).toBe('/pull/');
+        });
+
         it('MUST support groupCount as exact number or range', () => {
             // Contract specifies: groupCount similar to tabCount
             const exact: EasterEggConditions = { groupCount: 5 };
@@ -342,10 +348,10 @@ describe('IEasterEggFramework CONTRACT v1.0.0', () => {
             expect(typeof range.groupCount === 'object').toBe(true);
         });
 
-        it('MUST support customCheck for future extensibility', () => {
-            // Contract specifies: customCheck for complex logic (V1 not implemented)
+        it('MUST support customCheck identifiers with safe unknown handling', () => {
+            // Implementations evaluate allow-listed identifiers; unknown values are non-matches.
             const conditions: EasterEggConditions = {
-                customCheck: 'isProcrastinating'
+                customCheck: 'duplicate-tabs-detected'
             };
             expect(conditions.customCheck).toBeDefined();
         });

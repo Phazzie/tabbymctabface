@@ -26,6 +26,13 @@ import {
   IChromeStorageAPI,
   StorageAPIError
 } from '../contracts/IChromeStorageAPI';
+import {
+  EMPTY_USAGE_STATS,
+  IUsageStatsStore,
+  UsageCounter,
+  UsageStats,
+  UsageStatsError
+} from '../contracts/IUsageStats';
 import { Result } from '../utils/Result';
 
 /**
@@ -205,7 +212,7 @@ export class ChromeStorageAPI implements IChromeStorageAPI {
     error: unknown,
     operation: string
   ): Result<never, StorageAPIError> {
-    const chromeError = chrome.runtime.lastError || error;
+    const chromeError = chrome.runtime?.lastError ?? error;
 
     if (!chromeError) {
       return Result.error({
@@ -241,5 +248,95 @@ export class ChromeStorageAPI implements IChromeStorageAPI {
       details: `Chrome API error in ${operation}`,
       originalError: chromeError
     });
+  }
+}
+
+/**
+ * Serialized usage-statistics persistence built on the Chrome storage contract.
+ *
+ * A service worker can receive multiple events before an earlier storage write has
+ * completed. The queue makes each read/modify/write indivisible within this worker.
+ */
+export class ChromeUsageStatsStore implements IUsageStatsStore {
+  private static readonly STORAGE_KEY = 'usageStats.v1';
+  private mutationQueue: Promise<void> = Promise.resolve();
+
+  constructor(private readonly storage: IChromeStorageAPI) {}
+
+  async get(): Promise<Result<UsageStats, UsageStatsError>> {
+    const result = await this.storage.get(ChromeUsageStatsStore.STORAGE_KEY);
+    if (!result.ok) {
+      return Result.error({
+        type: 'StorageReadFailed',
+        details: 'Failed to read usage statistics',
+        originalError: result.error
+      });
+    }
+
+    return Result.ok(this.normalize(result.value[ChromeUsageStatsStore.STORAGE_KEY]));
+  }
+
+  increment(counter: UsageCounter): Promise<Result<UsageStats, UsageStatsError>> {
+    let resolveOperation!: (result: Result<UsageStats, UsageStatsError>) => void;
+    const operation = new Promise<Result<UsageStats, UsageStatsError>>(resolve => {
+      resolveOperation = resolve;
+    });
+
+    this.mutationQueue = this.mutationQueue
+      .then(async () => {
+        const current = await this.get();
+        if (!current.ok) {
+          resolveOperation(current);
+          return;
+        }
+
+        const updated: UsageStats = {
+          ...current.value,
+          [counter]: current.value[counter] + 1,
+          lastUpdated: Date.now()
+        };
+        const saved = await this.storage.set({ [ChromeUsageStatsStore.STORAGE_KEY]: updated });
+        if (!saved.ok) {
+          resolveOperation(Result.error({
+            type: 'StorageWriteFailed',
+            details: 'Failed to persist usage statistics',
+            originalError: saved.error
+          }));
+          return;
+        }
+        resolveOperation(Result.ok(updated));
+      })
+      .catch(error => {
+        resolveOperation(Result.error({
+          type: 'StorageWriteFailed',
+          details: 'Unexpected usage-statistics persistence failure',
+          originalError: error
+        }));
+      });
+
+    return operation;
+  }
+
+  private normalize(candidate: unknown): UsageStats {
+    if (!candidate || typeof candidate !== 'object') {
+      return { ...EMPTY_USAGE_STATS };
+    }
+    const value = candidate as Partial<Record<keyof UsageStats, unknown>>;
+    const count = (field: keyof UsageStats): number => {
+      const candidateValue = value[field];
+      return typeof candidateValue === 'number' && Number.isSafeInteger(candidateValue) && candidateValue >= 0
+        ? candidateValue
+        : 0;
+    };
+    return {
+      schemaVersion: 1,
+      quipsDelivered: count('quipsDelivered'),
+      groupsCreated: count('groupsCreated'),
+      tabsClosed: count('tabsClosed'),
+      luckyClicks: count('luckyClicks'),
+      lastUpdated: typeof value.lastUpdated === 'number' && Number.isFinite(value.lastUpdated)
+        ? value.lastUpdated
+        : null
+    };
   }
 }

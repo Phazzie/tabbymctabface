@@ -10,15 +10,16 @@
  *   1. HumorSystem calls checkTriggers with current BrowserContext (SEAM-16)
  *   2. Framework evaluates all registered easter egg conditions
  *   3. Framework performs AND-combination matching for each easter egg
- *   4. Framework returns highest-priority match or null
- *   5. HumorSystem uses match to fetch easter egg quip
+ *   4. Framework ranks matches by condition specificity
+ *   5. Framework uses rarity only as a weighted tie-breaker
+ *   6. HumorSystem uses match to fetch easter egg quip
  * 
  * SEAMS:
  *   IN:  HumorSystem → EasterEggFramework (SEAM-16)
  *   OUT: EasterEggFramework → QuipStorage (SEAM-17 - for easter egg data)
  * 
- * CONTRACT: IEasterEggFramework v1.0.0
- * GENERATED: 2025-10-10
+ * CONTRACT: IEasterEggFramework v1.1.0
+ * GENERATED: 2026-08-12
  * CUSTOM SECTIONS: None
  */
 
@@ -26,12 +27,38 @@ import { Result } from '../utils/Result';
 import { BrowserContext } from './ITabManager';
 
 /**
+ * Exact allow-list for complex contextual predicates implemented by the framework.
+ * Packaged data is rejected if it references anything outside this contract.
+ */
+export const SUPPORTED_EASTER_EGG_CUSTOM_CHECKS = [
+  'ctrl-shift-t-pressed-3x',
+  'timestamp-is-unix-milestone',
+  'konami-code-entered',
+  'date-is-march-14',
+  'date-is-may-4',
+  'rapid-tab-opening',
+  'time-after-midnight',
+  'time-exactly-midnight',
+  'day-is-friday-after-3pm',
+  'season-is-winter',
+  'duplicate-tabs-detected',
+  'tab-just-closed',
+  'new-tab-opened-while-tabs-exist',
+  'tab-closed-then-reopened',
+  'browser-crashed-from-tabs'
+] as const;
+
+export type SupportedEasterEggCustomCheck =
+  typeof SUPPORTED_EASTER_EGG_CUSTOM_CHECKS[number];
+
+/**
  * CONTRACT: IEasterEggFramework
- * VERSION: 1.0.0
+ * VERSION: 1.1.0
  * 
  * Easter egg detection framework providing:
  * - Contextual trigger evaluation (AND-combined conditions)
- * - Priority-based matching (higher priority eggs checked first)
+ * - Specificity-based matching so broad rules cannot shadow precise rules
+ * - Rarity-weighted selection only among equally specific matches
  * - Extensible registration of new easter eggs
  * - Data-driven configuration (from JSON)
  * 
@@ -52,7 +79,7 @@ export interface IEasterEggFramework {
    *   - context: BrowserContext (current browser state from TabManager)
    * 
    * OUTPUT:
-   *   - Success: EasterEggMatch | null (highest priority match or null)
+   *   - Success: EasterEggMatch | null (most-specific weighted match or null)
    *   - Error: EasterEggError
    * 
    * ERRORS:
@@ -62,10 +89,10 @@ export interface IEasterEggFramework {
    * PERFORMANCE: <50ms (95th percentile)
    * 
    * LOGIC:
-   *   1. Iterate through registered easter eggs (priority order)
-   *   2. For each easter egg, evaluate ALL conditions (AND logic)
-   *   3. Return first match (highest priority)
-   *   4. Return null if no matches
+   *   1. Evaluate ALL conditions for every registered easter egg (AND logic)
+   *   2. Rank matches by structural specificity
+   *   3. Select by rarity weight among top-equivalent matches
+   *   4. Return null if no definitions match
    * 
    * SIDE EFFECTS: None (pure evaluation)
    * 
@@ -73,7 +100,8 @@ export interface IEasterEggFramework {
    * @returns Promise resolving to match or null
    */
   checkTriggers(
-    context: BrowserContext
+    context: BrowserContext,
+    options?: EasterEggCheckOptions
   ): Promise<Result<EasterEggMatch | null, EasterEggError>>;
 
   /**
@@ -130,6 +158,11 @@ export interface IEasterEggFramework {
   clearAll(): void;
 }
 
+/** Optional match scope used when a concrete browser event must take precedence. */
+export interface EasterEggCheckOptions {
+  customChecks?: SupportedEasterEggCustomCheck[];
+}
+
 /**
  * Easter egg match result
  */
@@ -137,10 +170,11 @@ export interface EasterEggMatch {
   easterEggId: string; // e.g., "EE-001"
   easterEggType: string; // e.g., "42-tabs"
   matchedConditions: string[]; // List of condition names that matched
-  priority: number; // Priority of matched easter egg
+  priority: number; // Structural specificity score used for selection
   metadata?: {
     nicheReference?: string;
     difficulty?: 'common' | 'uncommon' | 'rare' | 'legendary';
+    category?: string;
   };
 }
 
@@ -150,12 +184,13 @@ export interface EasterEggMatch {
 export interface EasterEggDefinition {
   id: string; // Unique ID (e.g., "EE-001")
   type: string; // Type identifier (e.g., "42-tabs")
-  priority: number; // Higher = checked first (1-100)
+  priority: number; // Explicit specificity score for programmatic registrations
   conditions: EasterEggConditions; // AND-combined trigger conditions
   metadata?: {
     nicheReference?: string; // e.g., "Douglas Adams - Hitchhiker's Guide"
     difficulty?: 'common' | 'uncommon' | 'rare' | 'legendary';
     description?: string; // Internal description
+    category?: string; // Content-family label
   };
 }
 
@@ -167,6 +202,7 @@ export interface EasterEggDefinition {
  * - domainRegex: Active tab domain pattern
  * - hourRange: Current hour range (0-23)
  * - titleContains: Active tab title contains text
+ * - urlContains: Active tab URL contains text
  * - groupCount: Group count or range
  * 
  * Future: customCheck for complex logic
@@ -198,6 +234,12 @@ export interface EasterEggConditions {
   titleContains?: string;
 
   /**
+   * Active tab URL contains text (case-insensitive)
+   * Example: "pull/" matches a pull-request URL
+   */
+  urlContains?: string;
+
+  /**
    * Group count condition
    * - number: Exact match
    * - range: Min/max range
@@ -205,11 +247,10 @@ export interface EasterEggConditions {
   groupCount?: number | { min?: number; max?: number };
 
   /**
-   * Custom check identifier (for complex conditions)
-   * V1: Not implemented
-   * Future: Hook for custom evaluation logic
+   * Custom check identifier for an allow-listed contextual predicate.
+   * Unknown identifiers are safe non-matches, never implicit matches.
    */
-  customCheck?: string;
+  customCheck?: SupportedEasterEggCustomCheck;
 }
 
 /**

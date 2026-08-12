@@ -1,381 +1,130 @@
-# 🐱 TabbyMcTabface
+# TabbyMcTabface
 
-> **Passive-aggressive tab management with humor.**  
-> A Chrome extension built using Seam-Driven Development (SDD) that organizes your browser chaos while delivering snarky quips and clever easter eggs.
+![TabbyMcTabface — tab management with attitude](./store-assets/marquee-1400x560.png)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-40%2B-green)](./src/impl/__tests__)
+TabbyMcTabface is a privacy-first Chrome extension for organizing tab chaos, closing a deliberately confirmed random tab, and receiving commentary from the Skeptical Wombat.
 
----
+[![CI](https://github.com/Phazzie/tabbymctabface/actions/workflows/ci.yml/badge.svg)](https://github.com/Phazzie/tabbymctabface/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
 
-## ✨ Features
+## What it does
 
-- 🎲 **I'm Feeling Lucky**: Close random tabs with passive-aggressive commentary
-- 📁 **Smart Tab Grouping**: Organize tabs with custom names and colors
-- 🥚 **105 Hidden Easter Eggs**: Context-aware surprises that unlock based on your browsing patterns (good luck finding them all!)
-- 💬 ### Content
+- Groups selected tabs in the current Chrome window under a name you choose.
+- Offers an “I'm Feeling Lucky” cleanup action with a confirmation step.
+- Protects the active tab and pinned tabs from random cleanup by default.
+- Shows live current-window tab and group totals plus locally persisted usage stats.
+- Delivers 75 base quips and 204 context-aware easter eggs.
+- Keeps all processing on-device: no accounts, analytics, ads, remote code, host permissions, or content scripts.
 
-**75 Passive-Aggressive Quips**: Passive-aggressive humor for every action
-- ⌨️ **Keyboard Shortcuts**: Quick access to all features
-- 📊 **Stats Dashboard**: Track tabs, groups, and quips delivered
-- 🎨 **Beautiful UI**: Dark theme with smooth animations
-- 🏆 **Discovery System**: No achievement tracker - just mysteries to uncover
+The easter-egg collection spans familiar references and genuinely odd corners of culture. The 100-entry expansion includes 20 EverQuest eggs, plus pop culture, protocol folklore, math and science, material history, acoustic oddities, deep games, lost-web archaeology, and regional rituals.
 
----
+## Install a release build
 
-## 🚀 Quick Start
+Chrome Web Store publication is the final owner-operated step. To test the verified package locally:
 
-### For Users
+1. Download or build `TabbyMcTabface-v1.0.0.zip`.
+2. Extract it to a permanent folder.
+3. Open `chrome://extensions` and enable **Developer mode**.
+4. Choose **Load unpacked** and select the extracted folder.
+5. Pin TabbyMcTabface from Chrome's extension menu.
 
-1. **Install from Chrome Web Store** (coming soon)
-2. Click the TabbyMcTabface icon in your toolbar
-3. Try "I'm Feeling Lucky" or create your first tab group
-4. Enjoy the passive-aggressive humor!
+The unpacked folder must contain `manifest.json` at its root. Do not select the repository root or an outer ZIP directory.
 
-[📖 Full User Guide](./docs/USER_GUIDE.md)
+## Develop and verify
 
-### For Developers
+Requirements: Node.js 20 or 22 and npm 10 or newer.
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/tabbymctabface.git
+git clone https://github.com/Phazzie/tabbymctabface.git
 cd tabbymctabface
-
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Build the extension
-npm run build
-
-# Load into Chrome
-# 1. Go to chrome://extensions
-# 2. Enable Developer Mode
-# 3. Click "Load unpacked"
-# 4. Select the `dist` folder
+npm ci
+npm run verify
 ```
 
----
-
-## 🏗️ Architecture
-
-TabbyMcTabface is built using **Seam-Driven Development (SDD)**, a methodology that prioritizes:
-
-1. **Seams First** - Identify all data boundaries before coding
-2. **Contracts from Seams** - Every seam gets an explicit TypeScript interface
-3. **Tests from Contracts** - Write contract tests BEFORE implementation
-4. **Implementation from Tests** - Generate code to pass the contract tests
-5. **Mock First** - Build mock implementations, prove flows work, then swap to real
-
-### Component Architecture
-
-```
-User Interface (Popup)
-      ↓
-Background Service Worker
-      ↓
-Bootstrap (Dependency Injection)
-      ↓
-┌─────────────────────────────────┐
-│        TabManager               │ ← Main Entry Point
-│  (Tab operations + Humor)       │
-└─────────────────────────────────┘
-      ↓                    ↓
-Chrome Tabs API      HumorSystem
-                           ↓
-                   EasterEggFramework
-                           ↓
-                      QuipStorage
-                           ↓
-                   Chrome Storage API
-```
-
-### Key Components
-
-| Component | Purpose | Lines | Tests |
-|-----------|---------|-------|-------|
-| **TabManager** | Core tab operations | 686 | ✅ 25 |
-| **HumorSystem** | Humor orchestration | 413 | ✅ 15 |
-| **EasterEggFramework** | Context-based detection | 465 | ✅ 12 |
-| **QuipStorage** | Persistent storage | 365 | ✅ 8 |
-| **Chrome APIs** | Browser integration | 730 | ✅ 18 |
-
----
-
-## 📊 Project Stats
-
-**Total Lines of Code**: ~6,800  
-**Real Implementations**: 2,659 lines (7 files)  
-**Integration Tests**: 728 lines (40+ test cases)  
-**Test Coverage**: All contracts validated  
-**Contracts Defined**: 9 TypeScript interfaces  
-**Seams Identified**: 32 documented boundaries  
-
----
-
-## 🎯 SDD Validation
-
-This project serves as a **real-world validation of Seam-Driven Development**:
-
-✅ **Seam Discovery**: All 32 seams identified before coding  
-✅ **Contract-First**: 9 comprehensive TypeScript interfaces  
-✅ **Mock-First**: Mock implementations enabled rapid prototyping  
-✅ **Test-First**: 40+ tests written for contracts  
-✅ **Result<T, E>**: No exceptions, all errors explicit  
-✅ **Documentation**: Every file has WHAT/WHY/HOW headers  
-
-**Key Learning**: Identifying seams upfront prevented architectural rework and enabled parallel development.
-
----
-
-## 🧪 Testing
-
-### Run Tests
+Useful gates:
 
 ```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-
-# UI mode
-npm run test:ui
+npm run typecheck          # strict TypeScript contracts
+npm run lint               # source and test linting
+npm run test:unit          # focused module tests
+npm run test:integration   # multi-component tests with Chrome fakes
+npm run test:coverage      # coverage thresholds
+npm run build              # bundled MV3 extension in dist/
+npm run test:smoke         # static package/installability checks
+npm run test:e2e           # persistent-Chromium extension flows
+npm run package            # validated Chrome Web Store ZIP
 ```
 
-### Test Structure
-
-- **Contract Tests**: Validate all interface guarantees
-- **Integration Tests**: Test full component flows
-- **Mock Implementations**: Simulate Chrome APIs
-
-```typescript
-// Example: Contract test
-describe('ITabManager.createGroup CONTRACT', () => {
-  it('accepts valid group names 1-50 chars', ...);
-  it('rejects empty group name with error', ...);
-  it('returns GroupCreationSuccess on success', ...);
-});
-```
-
----
-
-## 🛠️ Development
-
-### Project Structure
-
-```
-tabby/
-├── manifest.json              # Chrome extension manifest
-├── popup.html/css/js          # UI layer
-├── src/
-│   ├── bootstrap.ts           # Dependency injection
-│   ├── background.ts          # Service worker
-│   ├── contracts/             # TypeScript interfaces
-│   │   ├── ITabManager.ts
-│   │   ├── IHumorSystem.ts
-│   │   └── ...
-│   ├── impl/                  # Real implementations
-│   │   ├── TabManager.ts
-│   │   ├── HumorSystem.ts
-│   │   ├── quip-data.ts       # 50 quips + 105 easter eggs
-│   │   └── __tests__/         # Integration tests
-│   └── utils/
-│       └── Result.ts          # Result<T, E> type
-├── docs/                      # Documentation
-└── sdd-agents/                # SDD tooling
-```
-
-### Key Scripts
+The first local browser run may need:
 
 ```bash
-npm run build          # Build for production
-npm run build:watch    # Watch mode
-npm run lint           # Type checking
-npm run package        # Create .zip for Chrome Web Store
-npm run dev            # Development mode
+npx playwright install chromium
 ```
 
-### Adding New Features
+Never commit `dist/`, Playwright profiles, coverage output, or release ZIPs.
 
-1. **Identify Seams**: What data boundaries are crossed?
-2. **Define Contract**: Create TypeScript interface
-3. **Write Tests**: Contract tests BEFORE implementation
-4. **Implement**: Generate code to pass tests
-5. **Document**: Add WHAT/WHY/HOW headers
+## Architecture
 
-Example:
-```typescript
-// 1. Seam: UI → TabSearch
-// 2. Contract
-interface ITabSearch {
-  search(query: string): Promise<Result<ChromeTab[], SearchError>>;
-}
+TabbyMcTabface follows Seam-Driven Development: identify boundaries, define typed contracts, write boundary tests, and only then implement. Expected failures use `Result<T, E>` rather than control-flow exceptions.
 
-// 3. Tests
-describe('ITabSearch CONTRACT', () => {
-  it('returns matching tabs', ...);
-});
-
-// 4. Implementation
-export class TabSearch implements ITabSearch { ... }
+```mermaid
+flowchart TD
+    UI[Popup] --> BG[MV3 service worker]
+    BG --> TM[TabManager]
+    TM --> CH[Chrome API wrappers]
+    TM --> HS[HumorSystem]
+    HS --> EE[EasterEggFramework]
+    EE --> QS[Canonical JSON content]
+    HS --> ST[Local usage stats]
 ```
 
----
+Important runtime properties:
 
-## 🎨 UI Design
+- The service worker uses idempotent cold-start initialization before every event handler.
+- Background and popup entry points are bundled, so Chrome never receives unresolved TypeScript-style imports.
+- Runtime humor content comes from one schema-validated JSON source.
+- Easter-egg rules use AND semantics, fail closed for unsupported conditions, and rank precise matches above broad ones.
+- Tab operations are scoped to the current window.
 
-### Color Palette
+## Project map
 
-```css
---color-primary: #4a90e2;    /* Blue */
---color-secondary: #7b68ee;  /* Purple */
---color-success: #2ecc71;    /* Green */
---color-danger: #e74c3c;     /* Red */
---color-bg: #1e1e2e;         /* Dark background */
-```
+| Path | Purpose |
+| --- | --- |
+| `src/contracts/` | Typed seams and error contracts |
+| `src/impl/` | Chrome adapters and domain implementations |
+| `src/data/quips/` | Canonical quip and easter-egg data |
+| `src/ui/` | Popup controller, markup, and styles |
+| `tests/smoke/` | Built-artifact and ZIP validation |
+| `tests/e2e/` | Real Chromium extension flows |
+| `scripts/` | Cross-platform build, package, and validation tools |
+| `store-assets/` | Chrome Web Store artwork and verified screenshot |
 
-### Animations
+See [BUILD.md](./BUILD.md) for artifact details, [docs/USER_GUIDE.md](./docs/USER_GUIDE.md) for usage, and [CONTRIBUTING.md](./CONTRIBUTING.md) before changing a seam.
 
-- **Fade In**: Popup entrance
-- **Slide In**: Section reveals
-- **Pulse**: Button icons
-- **Shimmer**: Button hover effect
-- **Smooth Transitions**: All interactions <200ms
+## Privacy and permissions
 
----
+| Permission | Local use |
+| --- | --- |
+| `tabs` | List and operate on tabs in the current window and derive temporary quip context. |
+| `tabGroups` | Create, name, inspect, and count tab groups. |
+| `notifications` | Show action results and quips. |
+| `storage` | Persist non-identifying counters and preferences locally. |
 
-## 📝 Content
+Tab URLs and titles are not persisted or transmitted. Read the full [privacy policy](./PRIVACY.md), [security policy](./SECURITY.md), and [support guide](./SUPPORT.md).
 
-### Quips (50 total)
+## Easter-egg content policy
 
-**Categories**:
-- Tab closure comments (15)
-- Group creation remarks (12)
-- General tab management (23)
+Every entry must have a unique ID and type, valid conditions, a supported humor level and difficulty, compilable regular expressions, and non-empty copy. The content test enforces those rules and the exact collection size.
 
-**Tone**: Passive-aggressive, technically clever, subtly sarcastic
+The sole public hint remains: try exactly 42 tabs.
 
-**Examples**:
-- _"One down, forty-seven to go. We're making progress. Sort of."_
-- _"Tab closed. Your RAM breathes a tiny sigh of relief."_
-- _"Grouped 8 tabs. Now you can ignore them more efficiently."_
+## Release
 
-### Easter Eggs (105 total)
+`npm run package` builds from a clean directory, validates every manifest and HTML reference, rejects unresolved local imports, checks icon dimensions and content schemas, then produces a ZIP whose root matches `dist/`. Tag workflows rebuild and checksum the same artifact; publishing it in the Chrome Web Store still requires the repository owner's store account and final disclosure review.
 
-**The Mystery**: We have 160 hidden easter eggs. We're only telling you about one:
+Store copy and permission justifications live in [STORE_LISTING.md](./STORE_LISTING.md).
 
-**What We'll Say**:
-- 105 hidden easter eggs waiting to be discovered
-- Context-aware (time, tabs, domains, patterns)
-- Some are easy to find accidentally, others require... creativity
-- One hint: Try exactly 42 tabs (Douglas Adams fans will understand)
-- The rest? Experiment and enjoy the surprises
+## License
 
-**Discovery Philosophy**: No achievement tracker. No spoilers. Just natural browsing and unexpected delight.
-
-**All graded 8/10+** for cleverness and relevance
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-1. **Follow SDD methodology**:
-   - Identify seams first
-   - Define contracts
-   - Write tests before implementation
-   - Use Result<T, E> for error handling
-
-2. **Code Style**:
-   - TypeScript strict mode
-   - WHAT/WHY/HOW file headers
-   - Method-level documentation
-   - No exceptions (use Result types)
-
-3. **Testing**:
-   - Write contract tests
-   - Maintain test coverage
-   - All tests must pass
-
-4. **Pull Requests**:
-   - One feature per PR
-   - Include tests
-   - Update documentation
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](./LICENSE) file for details
-
----
-
-## 🙏 Acknowledgments
-
-- **Seam-Driven Development**: Methodology that made this possible
-- **Chrome Extension APIs**: For browser integration
-- **TypeScript**: For type safety and contracts
-- **Vitest**: For fast, modern testing
-
----
-
-## 🗺️ Roadmap
-
-**v1.1** (Q1 2026)
-- [ ] Custom quip collections
-- [ ] Configurable easter egg frequency
-- [ ] Tab search functionality
-- [ ] Export/import tab groups
-
-**v1.2** (Q2 2026)
-- [ ] Cloud sync for settings
-- [ ] Tab history viewer
-- [ ] More easter eggs (50+ new)
-- [ ] Theme customization
-
-**v2.0** (Q3 2026)
-- [ ] AI-powered tab suggestions
-- [ ] Smart auto-grouping
-- [ ] Cross-browser support (Firefox, Edge)
-
----
-
-## 📞 Support
-
-- **Bug Reports**: [GitHub Issues](https://github.com/yourusername/tabbymctabface/issues)
-- **Feature Requests**: [Discussions](https://github.com/yourusername/tabbymctabface/discussions)
-- **Documentation**: [User Guide](./docs/USER_GUIDE.md) | [Build Guide](./BUILD.md)
-
----
-
-## 📈 Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/tabbymctabface)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/tabbymctabface)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/tabbymctabface)
-
----
-
-**Made with ❤️ and passive-aggression**
-
-_"May your tabs be organized and your quips be savage."_
-
----
-
-## 🔗 Links
-
-- [Chrome Web Store](#) (coming soon)
-- [User Guide](./docs/USER_GUIDE.md)
-- [Build Instructions](./BUILD.md)
-- [SDD Methodology](./agents.md)
-- [Contract Documentation](./docs/contract-summary.md)
-- [Seam Catalog](./docs/seam-catalog.md)
+[MIT](./LICENSE) © 2025–2026 Phazzie.

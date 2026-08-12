@@ -8,8 +8,8 @@
  * 
  * HOW DATA FLOWS:
  *   1. Personality calls storage methods to fetch quips (SEAM-13, 17)
- *   2. Storage reads from JSON files (SEAM-14 - internal)
- *   3. Storage validates and caches data in memory
+ *   2. Storage imports the packaged canonical JSON files (SEAM-14 - internal)
+ *   3. Storage validates the complete collection before caching it
  *   4. Storage returns typed quip/easter egg arrays
  *   5. Personality selects appropriate content (individual type or aggregated)
  * 
@@ -17,16 +17,17 @@
  *   IN:  Personality → QuipStorage (SEAM-13, SEAM-17)
  *   OUT: QuipStorage → JSON Files (SEAM-14 - internal file I/O)
  * 
- * CONTRACT: IQuipStorage v1.0.0
- * GENERATED: 2025-10-10
+ * CONTRACT: IQuipStorage v1.1.0
+ * GENERATED: 2026-08-12
  * CUSTOM SECTIONS: None
  */
 
 import { Result } from '../utils/Result';
+import type { SupportedEasterEggCustomCheck } from './IEasterEggFramework';
 
 /**
  * CONTRACT: IQuipStorage
- * VERSION: 1.0.0
+ * VERSION: 1.1.0
  * 
  * Quip storage interface providing:
  * - Passive-aggressive quip retrieval
@@ -40,9 +41,9 @@ import { Result } from '../utils/Result';
  * - getEasterEggQuips: <10ms (95th percentile - cached)
  * - initialize: <50ms (one-time load on extension startup)
  * 
- * DATA SOURCE: JSON files in extension package
- * - quips/passive-aggressive.json
- * - easter-eggs/definitions.json
+ * DATA SOURCE: canonical JSON files in the extension package
+ * - data/quips/passive-aggressive.json
+ * - data/quips/easter-eggs.json
  */
 export interface IQuipStorage {
   /**
@@ -64,7 +65,7 @@ export interface IQuipStorage {
    * PERFORMANCE: <50ms (one-time initialization)
    * 
    * SIDE EFFECTS:
-   *   - Reads JSON files from disk (SEAM-14)
+   *   - Imports packaged JSON through the build seam (SEAM-14)
    *   - Populates in-memory cache
    *   - Validates data against schema
    * 
@@ -105,13 +106,13 @@ export interface IQuipStorage {
   ): Promise<Result<QuipData[], StorageError>>;
 
   /**
-   * Get easter egg quips for given type and level
+   * Get easter egg quips for a unique type, preferring the requested level
    * 
    * SEAM: SEAM-17 (EasterEggFramework/Personality → QuipStorage)
    * 
    * INPUT:
    *   - easterEggType: string (e.g., '42-tabs', 'late-night-coding')
-   *   - level: HumorLevel (intensity level)
+   *   - level: HumorLevel (preferred intensity; never hides a matched egg)
    * 
    * OUTPUT:
    *   - Success: EasterEggData[] (array of matching easter eggs)
@@ -124,7 +125,8 @@ export interface IQuipStorage {
    * PERFORMANCE: <10ms (95th percentile - in-memory cached)
    * 
    * GRACEFUL DEGRADATION:
-   *   - Returns empty array if no easter eggs match
+   *   - Returns the unique type match when its authored level differs
+   *   - Returns empty array only when the type does not exist
    *   - Returns empty array if data corrupted (logs error, doesn't throw)
    * 
    * @param easterEggType - Easter egg type identifier
@@ -223,6 +225,7 @@ export interface EasterEggData {
   metadata?: {
     nicheReference?: string; // e.g., "Douglas Adams - Hitchhiker's Guide"
     difficulty?: 'common' | 'uncommon' | 'rare' | 'legendary';
+    category?: string; // Content-family label used for release validation
   };
 }
 
@@ -236,7 +239,7 @@ export interface EasterEggConditions {
   titleContains?: string; // Active tab title contains text
   urlContains?: string; // Active tab URL contains text
   groupCount?: number | { min?: number; max?: number }; // Group count
-  customCheck?: string; // Custom condition ID (for complex logic)
+  customCheck?: SupportedEasterEggCustomCheck; // Allow-listed complex condition ID
 }
 
 /**

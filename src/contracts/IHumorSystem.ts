@@ -28,6 +28,8 @@
  */
 
 import { Result } from '../utils/Result';
+import type { BrowserContext, BrowserEventName } from './ITabManager';
+export type { BrowserContext } from './ITabManager';
 
 /**
  * CONTRACT: IHumorSystem
@@ -156,7 +158,7 @@ export type HumorTriggerData =
   | { type: 'TabClosed'; tabTitle: string; tabUrl: string; trigger: 'FeelingLucky' | 'Manual' }
   | { type: 'TabOpened'; tabUrl: string; tabTitle: string }
   | { type: 'TooManyTabs'; tabCount: number }
-  | { type: 'ManualTrigger' };
+  | { type: 'ManualTrigger'; event?: BrowserEventName };
 
 /**
  * Result of quip delivery attempt
@@ -208,22 +210,6 @@ export interface TabEvent {
   groupId?: number;
   timestamp: number;
   data: Record<string, any>;
-}
-
-/**
- * Browser context for easter egg evaluation
- * (Re-exported from ITabManager for convenience)
- */
-export interface BrowserContext {
-  tabCount: number;
-  activeTab: {
-    url: string;
-    title: string;
-    domain: string;
-  } | null;
-  currentHour: number;
-  recentEvents: string[];
-  groupCount: number;
 }
 
 /**

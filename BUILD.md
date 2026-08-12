@@ -1,208 +1,95 @@
-# TabbyMcTabface - Build Instructions
+# Build and Release Guide
 
-## 📦 Building the Extension
+TabbyMcTabface is a bundled Chrome Manifest V3 extension. Chrome must load the generated `dist/` directory; TypeScript source files cannot be loaded directly.
 
-Since Node.js is not installed, here are instructions for when you set it up:
+## Requirements
 
-### Prerequisites
+- Node.js 20 or 22
+- npm 10 or newer
+- Chromium or Google Chrome for browser E2E
+
+Install the locked dependency graph:
+
 ```bash
-# Install Node.js (v18 or later recommended)
-# macOS: brew install node
-# Or download from https://nodejs.org
+npm ci
 ```
 
-### Install Dependencies
+## Quality gates
+
+Run the complete local release gate:
+
 ```bash
-npm install
+npm run verify
 ```
 
-### Build for Production
+Individual gates are available when diagnosing a failure:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test:unit
+npm run test:integration
+npm run test:coverage
+npm run build
+npm run test:smoke
+npm run test:e2e
+```
+
+Install Playwright's pinned browser if the E2E gate reports that it is missing:
+
+```bash
+npx playwright install chromium
+```
+
+## Build output
+
 ```bash
 npm run build
 ```
 
-This will:
-1. Compile TypeScript files to JavaScript
-2. Bundle the extension using your build tool
-3. Output to `dist/` directory
+The build uses esbuild for two browser entry points:
 
-### Development Build
+- `src/background.ts` → `dist/background.js`, a bundled ESM service worker;
+- `src/ui/popup.ts` → `dist/popup.js`, a bundled popup controller.
+
+It then copies only runtime assets: `manifest.json`, popup HTML/CSS, icons, and canonical quip JSON. `dist/manifest.json` references `background.js` at the ZIP root, and `dist/popup.html` references `popup.js` at the same root.
+
+`npm run build` finishes by validating that:
+
+- every manifest, script, stylesheet, icon, and popup reference exists;
+- no bundled entry contains unresolved relative imports;
+- the manifest has valid release metadata and safe command defaults;
+- icon dimensions and transparency are correct; and
+- both content files pass schema, uniqueness, enum, regex, and count checks.
+
+## Package
+
 ```bash
-npm run dev
+npm run package
 ```
 
-This will watch for changes and rebuild automatically.
+The package command rebuilds, validates, and writes `TabbyMcTabface-v1.0.0.zip`. The ZIP contains the contents of `dist/` at its root—never an extra `dist/` directory. The package smoke test compares ZIP entries with the built tree and revalidates all runtime references.
 
-### Run Tests
+Inspect a package without extracting it:
+
 ```bash
-npm test
+unzip -l TabbyMcTabface-v1.0.0.zip
 ```
 
-Runs all integration tests with Vitest.
+## Load unpacked
 
----
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Choose **Load unpacked**.
+4. Select this repository's generated `dist/` directory.
+5. Open the service-worker inspector and popup inspector and confirm there are no errors.
 
-## 🔧 Loading into Chrome (Development)
+Do not load the source repository root.
 
-### Option 1: Load Unpacked Extension
+## Release automation
 
-1. **Build the extension** (or use source files directly if no build needed)
-2. **Open Chrome** and navigate to `chrome://extensions`
-3. **Enable Developer Mode** (toggle in top-right)
-4. **Click "Load unpacked"**
-5. **Select the extension directory** (the folder containing `manifest.json`)
+Pull requests and pushes run the CI workflow on Node 20 and 22. It typechecks, lints, runs unit/integration/coverage tests, builds, validates and packages the artifact, then runs Chromium extension tests. The ZIP and reports are retained as workflow artifacts.
 
-### Option 2: Quick Test Without Build
+A `v*` tag reruns the release gates, generates a SHA-256 checksum, and creates a GitHub Release with the validated ZIP. Chrome Web Store submission remains manual until the owner configures a store item ID and publishing credentials.
 
-If your source TypeScript can run directly:
-1. Update `manifest.json` to point to source files instead of `dist/`
-2. Load unpacked as above
-
----
-
-## 📁 Project Structure
-
-```
-tabby/
-├── manifest.json              # Chrome extension manifest
-├── popup.html                 # Popup UI
-├── popup.css                  # Popup styles
-├── popup.js                   # Popup logic
-├── src/
-│   ├── bootstrap.ts           # Dependency injection setup
-│   ├── background.ts          # Background service worker
-│   ├── contracts/             # TypeScript interfaces
-│   ├── impl/                  # Real implementations
-│   │   ├── ChromeTabsAPI.ts
-│   │   ├── ChromeNotificationsAPI.ts
-│   │   ├── ChromeStorageAPI.ts
-│   │   ├── QuipStorage.ts
-│   │   ├── EasterEggFramework.ts
-│   │   ├── HumorSystem.ts
-│   │   ├── TabManager.ts
-│   │   └── __tests__/         # Integration tests
-│   └── utils/
-│       └── Result.ts          # Result type utility
-└── icons/                     # Extension icons (you'll need to create these)
-```
-
----
-
-## 🎨 Creating Icons
-
-You'll need to create icon files at these sizes:
-- `icons/icon16.png` (16x16)
-- `icons/icon32.png` (32x32)
-- `icons/icon48.png` (48x48)
-- `icons/icon128.png` (128x128)
-
-**Icon Theme**: Tabby cat with a sarcastic/sassy expression
-
-**Tools**:
-- Design in Figma/Sketch/Photoshop
-- Or use AI image generation (DALL-E, Midjourney)
-- Export at required sizes
-
----
-
-## 🚀 Usage
-
-### Keyboard Shortcuts
-- **Cmd+Shift+L** (Mac) / **Ctrl+Shift+L** (Windows): I'm Feeling Lucky (close random tab)
-- **Cmd+Shift+T** (Mac) / **Ctrl+Shift+T** (Windows): Open TabbyMcTabface popup
-
-### Features
-1. **Create Tab Group**: Select tabs and group them with a custom name
-2. **I'm Feeling Lucky**: Close a random tab (with passive-aggressive humor)
-3. **Easter Eggs**: Discover context-aware humor (42 tabs, late night coding, etc.)
-4. **Stats**: View tab count, group count, and quips delivered
-
----
-
-## 🧪 Testing
-
-### Run Integration Tests
-```bash
-npm test
-```
-
-### Test Coverage
-- ✅ Humor delivery flow (15+ tests)
-- ✅ Tab management flow (20+ tests)
-- ✅ Easter egg detection
-- ✅ Chrome API wrappers
-- ✅ Error handling
-
----
-
-## 📝 Development Notes
-
-### SDD Compliance
-This project follows **Seam-Driven Development** methodology:
-1. Seams identified first
-2. Contracts defined (TypeScript interfaces)
-3. Tests written before implementation
-4. Code generated from contracts
-5. Result<T, E> for all error handling
-
-### Key Components
-- **TabManager**: Core tab operations
-- **HumorSystem**: Orchestrates quip delivery
-- **EasterEggFramework**: Context-based easter egg detection
-- **QuipStorage**: Persistent quip and easter egg storage
-
-### Performance SLAs
-- Tab operations: <50ms
-- Humor delivery: <100ms
-- Storage operations: <30ms
-
----
-
-## 🐛 Troubleshooting
-
-### Extension won't load
-- Check that all file paths in `manifest.json` are correct
-- Ensure `dist/` folder exists if using build output
-- Check Chrome DevTools > Extensions page for errors
-
-### Permissions errors
-- Ensure all permissions in `manifest.json` are listed
-- Required: `tabs`, `tabGroups`, `notifications`, `storage`
-
-### TypeScript errors
-- Run `npm install` to ensure dependencies are installed
-- Check TypeScript version compatibility
-
----
-
-## 📦 Distribution
-
-### Package for Chrome Web Store
-```bash
-npm run build
-zip -r TabbyMcTabface.zip dist/ manifest.json popup.html popup.css popup.js icons/
-```
-
-### Publish
-1. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-2. Upload `TabbyMcTabface.zip`
-3. Fill in store listing details
-4. Submit for review
-
----
-
-## 🎯 Next Steps
-
-1. **Install Node.js** if not already installed
-2. **Run `npm install`** to install dependencies
-3. **Run `npm test`** to verify everything works
-4. **Create icons** for the extension
-5. **Build and load** into Chrome for testing
-6. **Test all features** (create group, feeling lucky, easter eggs)
-7. **Polish and publish** to Chrome Web Store
-
----
-
-## 📄 License
-
-MIT License - see LICENSE file for details
+Before tagging, complete [PRE_DEPLOYMENT_CHECKLIST.md](./PRE_DEPLOYMENT_CHECKLIST.md) and verify the listing copy, privacy disclosure, and real screenshots in [STORE_LISTING.md](./STORE_LISTING.md).

@@ -1,160 +1,223 @@
 /**
  * FILE: background.ts
  *
- * WHAT: Chrome extension background service worker
+ * WHAT: MV3 service-worker listener registration and validated popup message routing.
  *
- * WHY: Handles extension lifecycle, command shortcuts, and keeps extension alive
+ * WHY: Every wake path must initialize the object graph, await work, and cross the runtime seam with clone-safe data.
  *
  * HOW DATA FLOWS:
- *   1. Extension installed → initialize()
- *   2. Extension starts → initialize()
- *   3. User presses Cmd+Shift+L → closeRandomTab()
- *   4. Commands forward to TabManager
+ *   1. Chrome lifecycle, command, tab, and runtime events enter registered listeners (SEAM-30, 32).
+ *   2. Listeners await the shared ensureInitialized promise.
+ *   3. Runtime messages are validated before invoking contracts and converted to WireResult (SEAM-31).
  *
  * SEAMS:
- *   IN: Chrome extension events
- *   OUT: TabManager (via bootstrap)
+ *   IN: chrome.runtime/commands/tabs -> Background (SEAM-30, 32)
+ *   OUT: Background -> Bootstrap/TabManager/Popup response (SEAM-31)
  *
- * GENERATED: 2025-10-13
+ * CONTRACT: Background runtime controller v1.1.0
+ * GENERATED: 2026-08-12
  */
 
-import { initializeExtension, getExtensionContext } from './bootstrap';
+import {
+  ensureInitialized,
+  type ExtensionContext,
+  type InitializationResult
+} from './bootstrap';
+import type {
+  RuntimeMessageError,
+  RuntimeRequest,
+  RuntimeResponse,
+  WireResult
+} from './contracts/IRuntimeMessaging';
+import type { BrowserEventName, RandomTabOptions } from './contracts/ITabManager';
 
-/**
- * Initialize extension when service worker starts
- */
-chrome.runtime.onStartup.addListener(async () => {
-  console.log('[TabbyMcTabface] Extension starting up...');
-  const result = await initializeExtension();
+type EnsureInitialized = () => Promise<InitializationResult>;
 
-  if (result.ok) {
-    console.log('[TabbyMcTabface] Ready!');
-  } else {
-    console.error('[TabbyMcTabface] Initialization failed:', result.error);
-  }
-});
-
-/**
- * Initialize extension when installed
- */
-chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('[TabbyMcTabface] Installed:', details.reason);
-
-  const result = await initializeExtension();
-
-  if (result.ok) {
-    console.log('[TabbyMcTabface] Ready!');
-
-    // Show welcome notification on first install
-    if (details.reason === 'install') {
-      const context = getExtensionContext();
-      if (context) {
-        await context.chromeNotificationsAPI.create({
-          type: 'basic',
-          title: 'TabbyMcTabface Installed',
-          message: 'Your tabs are now under passive-aggressive management. Try Cmd+Shift+L to close a random tab!',
-          iconUrl: 'icons/icon128.png'
-        });
-      }
+function wire<T>(result: { ok: true; value: T } | { ok: false; error: unknown }): WireResult<T> {
+  if (result.ok) return { ok: true, value: result.value };
+  const candidate = isPlainObject(result.error) ? result.error : {};
+  return {
+    ok: false,
+    error: {
+      type: typeof candidate.type === 'string' ? candidate.type : 'OperationFailed',
+      details: typeof candidate.details === 'string' ? candidate.details : 'The operation failed'
     }
-  } else {
-    console.error('[TabbyMcTabface] Initialization failed:', result.error);
-  }
-});
+  };
+}
 
-/**
- * Handle keyboard shortcuts
- */
-chrome.commands.onCommand.addListener(async (command) => {
-  console.log('[TabbyMcTabface] Command received:', command);
+function invalid(details: string): RuntimeResponse<never, RuntimeMessageError> {
+  return { result: { ok: false, error: { type: 'InvalidMessage', details } } };
+}
 
-  const context = getExtensionContext();
-  if (!context) {
-    console.error('[TabbyMcTabface] Extension not initialized');
-    return;
-  }
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
-  switch (command) {
-    case 'feeling_lucky': {
-      // Close random tab (Cmd+Shift+L)
-      const result = await context.tabManager.closeRandomTab();
+function isOptions(value: unknown): value is RandomTabOptions {
+  if (!isPlainObject(value)) return false;
+  const keys = Object.keys(value);
+  return keys.every(key => key === 'excludePinned' || key === 'excludeActive')
+    && (value.excludePinned === undefined || typeof value.excludePinned === 'boolean')
+    && (value.excludeActive === undefined || typeof value.excludeActive === 'boolean');
+}
 
-      if (result.ok) {
-        console.log('[TabbyMcTabface] Closed tab:', result.value.closedTabTitle);
-        // Humor notification already sent by TabManager
-      } else {
-        console.error('[TabbyMcTabface] Failed to close random tab:', result.error);
+const browserEventNames = new Set<BrowserEventName>([
+  'PopupOpened',
+  'KonamiCodeEntered',
+  'TabOpened',
+  'TabClosed',
+  'TabActivated',
+  'TabReopened',
+  'BrowserCrashed'
+]);
 
-        // Show error notification
-        await context.chromeNotificationsAPI.create({
-          type: 'basic',
-          title: 'TabbyMcTabface',
-          message: result.error.details,
-          iconUrl: 'icons/icon128.png'
-        });
+export function validateRuntimeRequest(message: unknown): RuntimeRequest | null {
+  if (!isPlainObject(message) || typeof message.action !== 'string') return null;
+  switch (message.action) {
+    case 'createGroup':
+      if (
+        typeof message.groupName === 'string'
+        && Array.isArray(message.tabIds)
+        && message.tabIds.every(tabId => Number.isInteger(tabId) && (tabId as number) > 0)
+      ) {
+        return { action: 'createGroup', groupName: message.groupName, tabIds: message.tabIds as number[] };
       }
-      break;
-    }
-
+      return null;
+    case 'closeRandomTab':
+      if (message.options === undefined) return { action: 'closeRandomTab' };
+      return isOptions(message.options) ? { action: 'closeRandomTab', options: message.options } : null;
+    case 'getAllGroups':
+    case 'getCurrentTabs':
+    case 'getBrowserContext':
+    case 'getUsageStats':
+    case 'getStats':
+      return { action: message.action };
+    case 'recordBrowserEvent':
+      return typeof message.event === 'string' && browserEventNames.has(message.event as BrowserEventName)
+        ? { action: 'recordBrowserEvent', event: message.event as BrowserEventName }
+        : null;
     default:
-      console.warn('[TabbyMcTabface] Unknown command:', command);
+      return null;
   }
-});
+}
 
-/**
- * Handle messages from popup
- */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('[TabbyMcTabface] Message received:', message);
+export async function handleRuntimeRequest(
+  message: unknown,
+  context: ExtensionContext
+): Promise<RuntimeResponse> {
+  const request = validateRuntimeRequest(message);
+  if (!request) return invalid('Message does not match a supported action contract');
 
-  const context = getExtensionContext();
-  if (!context) {
-    sendResponse({ error: 'Extension not initialized' });
-    return;
-  }
-
-  // Handle async operations
-  (async () => {
-    try {
-      switch (message.action) {
-        case 'createGroup': {
-          const result = await context.tabManager.createGroup(
-            message.groupName,
-            message.tabIds
-          );
-          sendResponse({ result: result });
-          break;
-        }
-
-        case 'closeRandomTab': {
-          const result = await context.tabManager.closeRandomTab(message.options);
-          sendResponse({ result: result });
-          break;
-        }
-
-        case 'getAllGroups': {
-          const result = await context.tabManager.getAllGroups();
-          sendResponse({ result: result });
-          break;
-        }
-
-        case 'getBrowserContext': {
-          const result = await context.tabManager.getBrowserContext();
-          sendResponse({ result: result });
-          break;
-        }
-
-        default:
-          sendResponse({ error: 'Unknown action' });
-      }
-    } catch (error) {
-      console.error('[TabbyMcTabface] Message handler error:', error);
-      sendResponse({ error: String(error) });
+  switch (request.action) {
+    case 'createGroup':
+      return { result: wire(await context.tabManager.createGroup(request.groupName, request.tabIds)) };
+    case 'closeRandomTab':
+      return { result: wire(await context.tabManager.closeRandomTab(request.options)) };
+    case 'getAllGroups':
+      return { result: wire(await context.tabManager.getAllGroups()) };
+    case 'getCurrentTabs':
+      return { result: wire(await context.chromeTabsAPI.queryTabs({ currentWindow: true })) };
+    case 'getBrowserContext':
+      return { result: wire(await context.tabManager.getBrowserContext()) };
+    case 'getUsageStats':
+      return { result: wire(await context.usageStats.get()) };
+    case 'getStats': {
+      const browser = await context.tabManager.getBrowserContext();
+      if (!browser.ok) return { result: wire(browser) };
+      const usage = await context.usageStats.get();
+      if (!usage.ok) return { result: wire(usage) };
+      return { result: { ok: true, value: { browser: browser.value, usage: usage.value } } };
     }
-  })();
+    case 'recordBrowserEvent':
+      await context.tabManager.recordBrowserEvent(request.event);
+      return { result: { ok: true, value: null } };
+  }
+}
 
-  // Return true to indicate async response
-  return true;
-});
+async function getInitializedContext(ensure: EnsureInitialized): Promise<ExtensionContext | null> {
+  const result = await ensure();
+  if (!result.ok) {
+    console.error('[TabbyMcTabface] Initialization failed', result.error);
+    return null;
+  }
+  return result.value;
+}
 
-console.log('[TabbyMcTabface] Background service worker loaded');
+export function registerBackgroundListeners(
+  chromeApi: typeof chrome,
+  ensure: EnsureInitialized = ensureInitialized
+): void {
+  chromeApi.runtime.onStartup.addListener(async () => {
+    await getInitializedContext(ensure);
+  });
+
+  chromeApi.runtime.onInstalled.addListener(async details => {
+    const context = await getInitializedContext(ensure);
+    if (!context || details.reason !== 'install') return;
+    await context.chromeNotificationsAPI.create({
+      type: 'basic',
+      title: 'TabbyMcTabface Installed',
+      message: 'Your tab chaos is now under skeptical wombat supervision. Use the popup or the Lucky shortcut.',
+      iconUrl: 'icons/icon128.png'
+    });
+  });
+
+  chromeApi.commands.onCommand.addListener(async command => {
+    const context = await getInitializedContext(ensure);
+    if (!context || command !== 'feeling_lucky') return;
+    const result = await context.tabManager.closeRandomTab();
+    if (!result.ok) {
+      await context.chromeNotificationsAPI.create({
+        type: 'basic',
+        title: 'TabbyMcTabface',
+        message: result.error.details,
+        iconUrl: 'icons/icon128.png'
+      });
+    }
+  });
+
+  chromeApi.tabs.onCreated.addListener(async () => {
+    const context = await getInitializedContext(ensure);
+    if (context) await context.tabManager.recordBrowserEvent('TabOpened');
+  });
+  chromeApi.tabs.onRemoved.addListener(async () => {
+    const context = await getInitializedContext(ensure);
+    if (context) await context.tabManager.recordBrowserEvent('TabClosed');
+  });
+  chromeApi.tabs.onActivated.addListener(async () => {
+    const context = await getInitializedContext(ensure);
+    if (context) await context.tabManager.recordBrowserEvent('TabActivated');
+  });
+
+  chromeApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    void (async () => {
+      const context = await getInitializedContext(ensure);
+      if (!context) {
+        sendResponse({
+          result: {
+            ok: false,
+            error: { type: 'InitializationFailed', details: 'Extension could not initialize' }
+          }
+        });
+        return;
+      }
+      try {
+        sendResponse(await handleRuntimeRequest(message, context));
+      } catch (error) {
+        console.error('[TabbyMcTabface] Runtime message failed', error);
+        sendResponse({
+          result: {
+            ok: false,
+            error: { type: 'UnexpectedFailure', details: 'The requested action failed unexpectedly' }
+          }
+        });
+      }
+    })();
+    return true;
+  });
+}
+
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  registerBackgroundListeners(chrome);
+  void ensureInitialized();
+}

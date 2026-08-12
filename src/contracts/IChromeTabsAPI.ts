@@ -25,7 +25,7 @@
 import { Result } from '../utils/Result';
 
 export interface IChromeTabsAPI {
-  createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>>;
+  createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>>;
   updateGroup(groupId: number, properties: GroupUpdateProperties): Promise<Result<void, ChromeAPIError>>;
   queryTabs(queryInfo: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>>;
   removeTab(tabId: number): Promise<Result<void, ChromeAPIError>>;

@@ -190,6 +190,9 @@ export interface ITabManager {
    * @returns Browser state including tab count, active tab, current time
    */
   getBrowserContext(): Promise<Result<BrowserContext, TabManagerError>>;
+
+  /** Record a browser lifecycle event, invalidate derived context, and await humor evaluation. */
+  recordBrowserEvent(event: BrowserEventName): Promise<void>;
 }
 
 /**
@@ -256,7 +259,23 @@ export interface BrowserContext {
   currentHour: number; // 0-23
   recentEvents: string[]; // last 10 tab events
   groupCount: number;
+  currentMinute?: number; // 0-59
+  currentDay?: number; // 0=Sunday, 6=Saturday
+  currentMonth?: number; // 1-12
+  currentDate?: string; // local YYYY-MM-DD
+  currentTimestamp?: number; // Unix time in milliseconds
+  tabUrls?: string[];
+  duplicateTabCount?: number;
 }
+
+export type BrowserEventName =
+  | 'PopupOpened'
+  | 'KonamiCodeEntered'
+  | 'TabOpened'
+  | 'TabClosed'
+  | 'TabActivated'
+  | 'TabReopened'
+  | 'BrowserCrashed';
 
 /**
  * Tab Manager error types

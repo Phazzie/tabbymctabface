@@ -18,7 +18,6 @@ import type {
   GroupUpdateProperties,
   TabQueryInfo,
   ChromeAPIError,
-  TabGroupColor,
 } from '../contracts/IChromeTabsAPI';
 
 export class MockChromeTabsAPI implements IChromeTabsAPI {
@@ -32,15 +31,17 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     this.seedDefaultTabs();
   }
 
-  async createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>> {
-    this.callHistory.push({ method: 'createGroup', args: [tabIds], timestamp: Date.now() });
+  async createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>> {
+    this.callHistory.push({ method: 'createGroup', args: [tabIds, existingGroupId], timestamp: Date.now() });
     for (const tabId of tabIds) {
       if (!this.mockTabs.find(t => t.id === tabId)) {
         return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
     }
-    const groupId = this.nextGroupId++;
-    this.mockGroups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
+    const groupId = existingGroupId ?? this.nextGroupId++;
+    if (!this.mockGroups.some(group => group.id === groupId)) {
+      this.mockGroups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
+    }
     tabIds.forEach(tabId => {
       const tab = this.mockTabs.find(t => t.id === tabId);
       if (tab) tab.groupId = groupId;
@@ -63,6 +64,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   async queryTabs(queryInfo: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>> {
     this.callHistory.push({ method: 'queryTabs', args: [queryInfo], timestamp: Date.now() });
     let filtered = [...this.mockTabs];
+    if (queryInfo.currentWindow) filtered = filtered.filter(tab => tab.windowId === 1);
     if (queryInfo.active !== undefined) filtered = filtered.filter(t => t.active === queryInfo.active);
     if (queryInfo.pinned !== undefined) filtered = filtered.filter(t => t.pinned === queryInfo.pinned);
     if (queryInfo.groupId !== undefined) filtered = filtered.filter(t => t.groupId === queryInfo.groupId);

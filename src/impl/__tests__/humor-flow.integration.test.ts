@@ -174,14 +174,6 @@ describe('Humor Flow Integration Tests', () => {
     });
 
     it('delivers easter egg quip with special title', async () => {
-      // Arrange - Create trigger with context that should match an easter egg
-      // We'll use a manual trigger since we can't easily mock the context building
-      const trigger: HumorTrigger = {
-        type: 'ManualTrigger',
-        data: { type: 'ManualTrigger' },
-        timestamp: Date.now()
-      };
-
       // Manually check for easter eggs with 42 tab context (framework already initialized)
       const context = {
         tabCount: 42,
@@ -273,7 +265,7 @@ describe('Humor Flow Integration Tests', () => {
       expect(priorities).toEqual(sortedPriorities);
     });
 
-    it.skip('HumorSystem coordinates all components for delivery (SKIPPED: mock tracking issue)', async () => {
+    it('HumorSystem coordinates all components for delivery', async () => {
       // Arrange
       const trigger: HumorTrigger = {
         type: 'TabGroupCreated',
@@ -288,8 +280,8 @@ describe('Humor Flow Integration Tests', () => {
       assertOk(result);
       expect(result.value.delivered).toBe(true);
 
-      // Verify storage was accessed (NOT WORKING - QuipStorage now uses in-memory data, not ChromeStorageAPI)
-      expect(mockStorage.getCalls.length).toBeGreaterThan(0);
+      // QuipStorage deliberately serves validated package data from memory after initialization.
+      expect(quipStorage.isInitialized()).toBe(true);
 
       // Verify notification was created
       expect(mockNotifications.createCalls.length).toBeGreaterThan(0);

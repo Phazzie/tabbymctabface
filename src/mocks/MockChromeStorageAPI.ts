@@ -110,7 +110,7 @@ export class MockChromeStorageAPI implements IChromeStorageAPI {
     // Validate data is serializable
     try {
       JSON.stringify(items);
-    } catch (err) {
+    } catch {
       const firstKey = Object.keys(items)[0];
       return Result.error({
         type: 'InvalidData',
