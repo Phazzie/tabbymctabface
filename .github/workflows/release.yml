@@ -24,12 +24,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Use repository npm version
-        run: npm install --global npm@11.9.0
       - name: Install dependencies from lockfile
-        run: npm ci
+        run: npm ci --ignore-scripts
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
       - name: Run complete release verification
         run: npm run verify
       - name: Build deterministic package
