@@ -18,6 +18,9 @@
  * GENERATED: 2026-08-12
  */
 
+// === SEAM-30: Popup/Chrome runtime → Background ===
+// === SEAM-31: Background → Popup/Chrome runtime ===
+
 import type { BrowserContext, BrowserEventName, RandomTabOptions } from './ITabManager';
 import type { UsageStats } from './IUsageStats';
 
@@ -36,15 +39,33 @@ export interface PopupStats {
   usage: UsageStats;
 }
 
-export type WireResult<T, E = { type: string; details: string }> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
-
-export interface RuntimeResponse<T = unknown, E = { type: string; details: string }> {
-  result: WireResult<T, E>;
-}
-
 export type RuntimeMessageError =
   | { type: 'InvalidMessage'; details: string }
   | { type: 'InitializationFailed'; details: string }
   | { type: 'UnexpectedFailure'; details: string };
+
+/** Clone-safe projections of domain errors that can cross the popup message seam. */
+export type RuntimeDomainError = {
+  type:
+    | 'OperationFailed'
+    | 'InvalidGroupName'
+    | 'NoTabsSelected'
+    | 'NoTabsToClose'
+    | 'InvalidGroupId'
+    | 'InvalidTabId'
+    | 'PermissionDenied'
+    | 'ChromeAPIFailure'
+    | 'StorageReadFailed'
+    | 'StorageWriteFailed';
+  details: string;
+};
+
+export type RuntimeError = RuntimeMessageError | RuntimeDomainError;
+
+export type WireResult<T, E = RuntimeError> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+export interface RuntimeResponse<T = unknown, E = RuntimeError> {
+  result: WireResult<T, E>;
+}

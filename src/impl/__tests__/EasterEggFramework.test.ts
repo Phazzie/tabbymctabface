@@ -147,6 +147,31 @@ describe('EasterEggFramework condition contract', () => {
     }
   });
 
+  it('does not let an exact Chrome Web Store hostname rule match an attacker suffix', async () => {
+    const conditions = {
+      domainRegex: '(?:^|\\.)(chromewebstore\\.google\\.com|chrome\\.google\\.com)$'
+    };
+    const attacker = await match([egg('EE-901', conditions)], {
+      ...baseContext,
+      activeTab: {
+        url: 'https://chromewebstore.google.com.attacker.example',
+        title: 'Tabs',
+        domain: 'chromewebstore.google.com.attacker.example'
+      }
+    });
+    const legitimate = await match([egg('EE-901', conditions)], {
+      ...baseContext,
+      activeTab: {
+        url: 'https://chromewebstore.google.com/detail/example',
+        title: 'Tabs',
+        domain: 'chromewebstore.google.com'
+      }
+    });
+
+    expect(attacker.ok && attacker.value).toBeNull();
+    expect(legitimate.ok && legitimate.value?.easterEggId).toBe('EE-901');
+  });
+
   it('treats an unknown custom predicate as a safe non-match', async () => {
     const result = await match([egg(
       'EE-901',
@@ -219,11 +244,50 @@ describe('EasterEggFramework selection contract', () => {
     const duplicate = framework.registerEasterEgg({
       id: 'EE-901',
       type: 'duplicate',
-      priority: 1,
       conditions: { tabCount: 8 }
     });
 
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) expect(duplicate.error.type).toBe('DuplicateEasterEggId');
+  });
+
+  it('derives registration priority so a caller cannot make a broad rule shadow a precise rule', async () => {
+    const framework = new EasterEggFramework(new FixtureStorage([]));
+    expect(framework.registerEasterEgg({
+      id: 'EE-901',
+      type: 'broad',
+      conditions: { tabCount: { min: 1 } }
+    }).ok).toBe(true);
+    expect(framework.registerEasterEgg({
+      id: 'EE-902',
+      type: 'precise',
+      conditions: { tabCount: 8, domainRegex: '^github\\.com$' }
+    }).ok).toBe(true);
+
+    const result = await framework.checkTriggers(baseContext);
+
+    expect(result.ok && result.value?.easterEggId).toBe('EE-902');
+    const definitions = framework.getAllEasterEggs();
+    expect(definitions.ok && definitions.value.find(item => item.id === 'EE-902')?.priority)
+      .toBeGreaterThan(definitions.ok
+        ? definitions.value.find(item => item.id === 'EE-901')?.priority ?? 0
+        : 0);
+  });
+
+  it.each([
+    ['tabCount', { tabCount: { min: 9, max: 4 } }],
+    ['groupCount', { groupCount: { min: Number.NaN, max: 4 } }]
+  ] as const)('rejects invalid %s registration ranges', (_name, conditions) => {
+    const framework = new EasterEggFramework(new FixtureStorage([]));
+    const result = framework.registerEasterEgg({
+      id: 'EE-999',
+      type: 'invalid-range',
+      conditions
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && result.error.type === 'InvalidConditions') {
+      expect(result.error.violations.some(violation => violation.includes(_name))).toBe(true);
+    }
   });
 });

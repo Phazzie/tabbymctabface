@@ -38,6 +38,57 @@ describe('background MV3 runtime', () => {
     expect('isError' in response.result).toBe(false);
   });
 
+  it('normalizes unknown domain errors instead of exposing uncontracted details', async () => {
+    const context = {
+      tabManager: {
+        closeRandomTab: vi.fn(async () => Result.error({
+          type: 'PrivateFailure', details: 'sensitive implementation details'
+        }))
+      }
+    } as unknown as ExtensionContext;
+
+    const response = await handleRuntimeRequest({ action: 'closeRandomTab' }, context);
+
+    expect(response.result).toEqual({
+      ok: false,
+      error: { type: 'OperationFailed', details: 'The operation failed' }
+    });
+  });
+
+  it('starts both getStats reads before awaiting either and preserves browser-error precedence', async () => {
+    let releaseBrowser!: () => void;
+    let releaseUsage!: () => void;
+    const getBrowserContext = vi.fn(() => new Promise(resolve => {
+      releaseBrowser = () => resolve(Result.error({
+        type: 'ChromeAPIFailure',
+        details: 'browser failed',
+        originalError: null
+      }));
+    }));
+    const getUsage = vi.fn(() => new Promise(resolve => {
+      releaseUsage = () => resolve(Result.error({
+        type: 'StorageReadFailed',
+        details: 'usage failed',
+        originalError: null
+      }));
+    }));
+    const context = {
+      tabManager: { getBrowserContext },
+      usageStats: { get: getUsage }
+    } as unknown as ExtensionContext;
+
+    const pending = handleRuntimeRequest({ action: 'getStats' }, context);
+    expect(getBrowserContext).toHaveBeenCalledOnce();
+    expect(getUsage).toHaveBeenCalledOnce();
+    releaseUsage();
+    releaseBrowser();
+
+    expect((await pending).result).toEqual({
+      ok: false,
+      error: { type: 'ChromeAPIFailure', details: 'browser failed' }
+    });
+  });
+
   it('awaits cold initialization before a command and a message', async () => {
     const startup = eventHook<() => void>();
     const installed = eventHook<(details: chrome.runtime.InstalledDetails) => void>();
@@ -116,7 +167,7 @@ describe('background MV3 runtime', () => {
     const created = eventHook<(tab: chrome.tabs.Tab) => void>();
     const removed = eventHook<(tabId: number, info: unknown) => void>();
     const activated = eventHook<(info: unknown) => void>();
-    const recordBrowserEvent = vi.fn(async () => undefined);
+    const recordBrowserEvent = vi.fn(async (_event: string) => undefined);
     const context = {
       tabManager: { recordBrowserEvent },
       chromeNotificationsAPI: { create: vi.fn() }
@@ -136,5 +187,42 @@ describe('background MV3 runtime', () => {
 
     expect(ensure).toHaveBeenCalledTimes(5);
     expect(recordBrowserEvent.mock.calls.map(([event]) => event)).toEqual(['TabOpened', 'TabClosed', 'TabActivated']);
+  });
+
+  it('logs when the Lucky shortcut error notification also fails', async () => {
+    const startup = eventHook<() => void>();
+    const installed = eventHook<(details: chrome.runtime.InstalledDetails) => void>();
+    const command = eventHook<(name: string) => void>();
+    const message = eventHook<(message: unknown, sender: chrome.runtime.MessageSender, sendResponse: (value: unknown) => void) => boolean | undefined>();
+    const created = eventHook<(tab: chrome.tabs.Tab) => void>();
+    const removed = eventHook<(tabId: number, info: chrome.tabs.OnRemovedInfo) => void>();
+    const activated = eventHook<(info: chrome.tabs.OnActivatedInfo) => void>();
+    const context = {
+      tabManager: {
+        closeRandomTab: vi.fn(async () => Result.error({
+          type: 'NoTabsToClose', details: 'none', reason: 'none'
+        }))
+      },
+      chromeNotificationsAPI: {
+        create: vi.fn(async () => Result.error({
+          type: 'ChromeAPIFailure', details: 'notification failed', originalError: null
+        }))
+      }
+    } as unknown as ExtensionContext;
+    const ensure = vi.fn(async (): Promise<InitializationResult> => Result.ok(context));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    registerBackgroundListeners({
+      runtime: { onStartup: startup, onInstalled: installed, onMessage: message },
+      commands: { onCommand: command },
+      tabs: { onCreated: created, onRemoved: removed, onActivated: activated }
+    } as unknown as typeof chrome, ensure);
+
+    await command.listeners[0]('feeling_lucky');
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '[TabbyMcTabface] Failed to report Lucky shortcut error',
+      expect.objectContaining({ type: 'ChromeAPIFailure' })
+    );
+    consoleError.mockRestore();
   });
 });

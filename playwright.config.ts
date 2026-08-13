@@ -1,5 +1,22 @@
+/**
+ * FILE: playwright.config.ts
+ *
+ * WHAT: Configures the persistent-Chromium Manifest V3 end-to-end suite.
+ * WHY: Browser verification must load the exact packaged extension through a repeatable runner seam.
+ * HOW DATA FLOWS:
+ *   1. Playwright discovers tests/e2e through SEAM-E2E-01.
+ *   2. The runner supplies retry, artifact, and timeout policy to each extension fixture.
+ * SEAMS:
+ *   IN: npm test:e2e -> Playwright configuration (SEAM-E2E-01)
+ *   OUT: Playwright configuration -> extension E2E fixtures (SEAM-E2E-01)
+ * CONTRACT: LoadedMV3Extension v1.0.0
+ * GENERATED: 2026-08-12
+ * CUSTOM SECTIONS: None
+ */
+
 import { defineConfig } from '@playwright/test';
 
+// === SEAM-E2E-01: Playwright configuration -> extension E2E runner ===
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.spec.ts',

@@ -19,6 +19,10 @@
  * CUSTOM SECTIONS: None
  */
 
+// === SEAM-14: Packaged JSON → QuipStorage fixture ===
+// === SEAM-16: BrowserContext → EasterEggFramework ===
+// === SEAM-17: EasterEggFramework → QuipStorage fixture ===
+
 import { describe, expect, it } from 'vitest';
 import type { BrowserContext } from '../../../contracts/ITabManager';
 import type {

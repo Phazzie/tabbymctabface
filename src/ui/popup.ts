@@ -14,16 +14,22 @@
  *   IN: Popup DOM -> PopupController (SEAM-01, 06)
  *   OUT: PopupController -> chrome.runtime/chrome.tabs (SEAM-30)
  *
- * CONTRACT: PopupController v1.1.0
+ * CONTRACT: PopupController v1.2.0
  * GENERATED: 2026-08-12
  */
 
-import type { PopupStats, RuntimeRequest, RuntimeResponse } from '../contracts/IRuntimeMessaging';
-import type { GroupCreationSuccess, TabClosureResult } from '../contracts/ITabManager';
+import type {
+  PopupStats,
+  RuntimeError,
+  RuntimeRequest,
+  RuntimeResponse
+} from '../contracts/IRuntimeMessaging';
+import type { BrowserEventName, GroupCreationSuccess, TabClosureResult } from '../contracts/ITabManager';
+import { Result } from '../utils/Result';
 
 export interface PopupDependencies {
-  sendMessage: <T = unknown>(message: RuntimeRequest) => Promise<RuntimeResponse<T>>;
-  queryTabs: () => Promise<PopupTab[]>;
+  sendMessage: <T = unknown>(message: RuntimeRequest) => Promise<PopupRuntimeResponse<T>>;
+  queryTabs: () => Promise<PopupRuntimeResponse<PopupTab[]>>;
   setTimer: (handler: () => void, timeout: number) => ReturnType<typeof setTimeout>;
   clearTimer: (timer: ReturnType<typeof setTimeout>) => void;
 }
@@ -37,9 +43,46 @@ export interface PopupTab {
 
 type StatusType = 'success' | 'error' | 'warning' | 'loading' | 'info';
 
+export type PopupError =
+  | { type: 'MissingElement'; details: string; selector: string }
+  | { type: 'InitializationFailed'; details: string; originalError?: unknown };
+
+export type PopupTransportError = {
+  type: 'TransportTimeout' | 'TransportFailure' | 'MissingResponse';
+  details: string;
+};
+
+export type PopupRuntimeResponse<T> = RuntimeResponse<T, RuntimeError | PopupTransportError>;
+
+interface PopupElements {
+  feelingLuckyBtn: HTMLButtonElement;
+  createGroupBtn: HTMLButtonElement;
+  groupCreator: HTMLElement;
+  groupNameInput: HTMLInputElement;
+  tabList: HTMLElement;
+  confirmGroupBtn: HTMLButtonElement;
+  cancelGroupBtn: HTMLButtonElement;
+  statusMessage: HTMLElement;
+  tabCountEl: HTMLElement;
+  groupCountEl: HTMLElement;
+  quipCountEl: HTMLElement;
+}
+
+const MESSAGE_TIMEOUT_MS = 5000;
+const popupTransportErrorTypes = new Set<PopupTransportError['type']>([
+  'TransportTimeout',
+  'TransportFailure',
+  'MissingResponse'
+]);
+
+function isPopupTransportError(error: RuntimeError | PopupTransportError): error is PopupTransportError {
+  return popupTransportErrorTypes.has(error.type as PopupTransportError['type']);
+}
+
 export class PopupController {
   private selectedTabIds = new Set<number>();
   private luckyArmed = false;
+  private mutationOutcomeUnknown = false;
   private luckyTimer: ReturnType<typeof setTimeout> | null = null;
   private konamiBuffer: string[] = [];
   private readonly konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -56,21 +99,68 @@ export class PopupController {
   private readonly groupCountEl: HTMLElement;
   private readonly quipCountEl: HTMLElement;
 
-  constructor(private readonly document: Document, private readonly dependencies: PopupDependencies) {
-    this.feelingLuckyBtn = this.requireElement('#feelingLuckyBtn');
-    this.createGroupBtn = this.requireElement('#createGroupBtn');
-    this.groupCreator = this.requireElement('#groupCreator');
-    this.groupNameInput = this.requireElement('#groupNameInput');
-    this.tabList = this.requireElement('#tabList');
-    this.confirmGroupBtn = this.requireElement('#confirmGroupBtn');
-    this.cancelGroupBtn = this.requireElement('#cancelGroupBtn');
-    this.statusMessage = this.requireElement('#statusMessage');
-    this.tabCountEl = this.requireElement('#tabCount');
-    this.groupCountEl = this.requireElement('#groupCount');
-    this.quipCountEl = this.requireElement('#quipCount');
+  private constructor(
+    private readonly document: Document,
+    private readonly dependencies: PopupDependencies,
+    elements: PopupElements
+  ) {
+    this.feelingLuckyBtn = elements.feelingLuckyBtn;
+    this.createGroupBtn = elements.createGroupBtn;
+    this.groupCreator = elements.groupCreator;
+    this.groupNameInput = elements.groupNameInput;
+    this.tabList = elements.tabList;
+    this.confirmGroupBtn = elements.confirmGroupBtn;
+    this.cancelGroupBtn = elements.cancelGroupBtn;
+    this.statusMessage = elements.statusMessage;
+    this.tabCountEl = elements.tabCountEl;
+    this.groupCountEl = elements.groupCountEl;
+    this.quipCountEl = elements.quipCountEl;
   }
 
-  async init(): Promise<void> {
+  /** Resolve the popup DOM contract before constructing an interactive controller. */
+  static create(
+    documentRef: Document,
+    dependencies: PopupDependencies
+  ): Result<PopupController, PopupError> {
+    const feelingLuckyBtn = documentRef.querySelector<HTMLButtonElement>('#feelingLuckyBtn');
+    if (!feelingLuckyBtn) return PopupController.missingElement('#feelingLuckyBtn');
+    const createGroupBtn = documentRef.querySelector<HTMLButtonElement>('#createGroupBtn');
+    if (!createGroupBtn) return PopupController.missingElement('#createGroupBtn');
+    const groupCreator = documentRef.querySelector<HTMLElement>('#groupCreator');
+    if (!groupCreator) return PopupController.missingElement('#groupCreator');
+    const groupNameInput = documentRef.querySelector<HTMLInputElement>('#groupNameInput');
+    if (!groupNameInput) return PopupController.missingElement('#groupNameInput');
+    const tabList = documentRef.querySelector<HTMLElement>('#tabList');
+    if (!tabList) return PopupController.missingElement('#tabList');
+    const confirmGroupBtn = documentRef.querySelector<HTMLButtonElement>('#confirmGroupBtn');
+    if (!confirmGroupBtn) return PopupController.missingElement('#confirmGroupBtn');
+    const cancelGroupBtn = documentRef.querySelector<HTMLButtonElement>('#cancelGroupBtn');
+    if (!cancelGroupBtn) return PopupController.missingElement('#cancelGroupBtn');
+    const statusMessage = documentRef.querySelector<HTMLElement>('#statusMessage');
+    if (!statusMessage) return PopupController.missingElement('#statusMessage');
+    const tabCountEl = documentRef.querySelector<HTMLElement>('#tabCount');
+    if (!tabCountEl) return PopupController.missingElement('#tabCount');
+    const groupCountEl = documentRef.querySelector<HTMLElement>('#groupCount');
+    if (!groupCountEl) return PopupController.missingElement('#groupCount');
+    const quipCountEl = documentRef.querySelector<HTMLElement>('#quipCount');
+    if (!quipCountEl) return PopupController.missingElement('#quipCount');
+
+    return Result.ok(new PopupController(documentRef, dependencies, {
+      feelingLuckyBtn,
+      createGroupBtn,
+      groupCreator,
+      groupNameInput,
+      tabList,
+      confirmGroupBtn,
+      cancelGroupBtn,
+      statusMessage,
+      tabCountEl,
+      groupCountEl,
+      quipCountEl
+    }));
+  }
+
+  async init(): Promise<Result<void, PopupError>> {
     this.statusMessage.setAttribute('role', 'status');
     this.statusMessage.setAttribute('aria-live', 'polite');
     this.statusMessage.setAttribute('aria-atomic', 'true');
@@ -86,27 +176,25 @@ export class PopupController {
     });
     this.document.addEventListener('keydown', event => this.handleKeyboard(event));
 
-    void this.dependencies.sendMessage({ action: 'recordBrowserEvent', event: 'PopupOpened' }).catch(() => undefined);
+    void this.recordBrowserEvent('PopupOpened');
     await this.updateStats();
+    return Result.ok(undefined);
   }
 
   private async updateStats(): Promise<void> {
-    try {
-      const response = await this.dependencies.sendMessage<PopupStats>({ action: 'getStats' });
-      if (!response.result.ok) throw new Error(response.result.error.details);
-      this.tabCountEl.textContent = String(response.result.value.browser.tabCount);
-      this.groupCountEl.textContent = String(response.result.value.browser.groupCount);
-      this.quipCountEl.textContent = String(response.result.value.usage.quipsDelivered);
-    } catch (error) {
-      this.tabCountEl.textContent = '—';
-      this.groupCountEl.textContent = '—';
-      this.quipCountEl.textContent = '—';
-      this.setStatus('Stats are temporarily unavailable. The wombat is taking notes.', 'warning');
-      console.error('[TabbyMcTabface] Failed to update popup stats', error);
+    const response = await this.dependencies.sendMessage<PopupStats>({ action: 'getStats' });
+    if (!response.result.ok) {
+      this.renderUnavailableStats();
+      console.error('[TabbyMcTabface] Failed to update popup stats', response.result.error);
+      return;
     }
+    this.tabCountEl.textContent = String(response.result.value.browser.tabCount);
+    this.groupCountEl.textContent = String(response.result.value.browser.groupCount);
+    this.quipCountEl.textContent = String(response.result.value.usage.quipsDelivered);
   }
 
   private async handleFeelingLucky(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.feelingLuckyBtn.disabled) return;
     if (!this.luckyArmed) {
       this.luckyArmed = true;
       this.feelingLuckyBtn.classList.add('armed');
@@ -119,52 +207,53 @@ export class PopupController {
     this.disarmLucky();
     this.feelingLuckyBtn.disabled = true;
     this.setStatus('Choosing a random tab…', 'loading');
-    try {
-      const response = await this.dependencies.sendMessage<TabClosureResult>({ action: 'closeRandomTab' });
-      if (!response.result.ok) {
-        this.setStatus(`Could not close a tab: ${response.result.error.details}`, 'error');
+    const response = await this.dependencies.sendMessage<TabClosureResult>({ action: 'closeRandomTab' });
+    if (!response.result.ok) {
+      if (isPopupTransportError(response.result.error)) {
+        this.renderIndeterminateMutation('the random tab close');
         return;
       }
-      const result = response.result.value;
-      this.setStatus(`Closed “${result.closedTabTitle}”. ${result.remainingCount} tabs remain in this window.`, 'success');
+      this.setStatus(`Could not close a tab: ${response.result.error.details}`, 'error');
       this.feelingLuckyBtn.disabled = false;
-      await this.updateStats();
-    } catch (error) {
-      this.setStatus('Could not reach the extension worker. Please try again.', 'error');
-      console.error('[TabbyMcTabface] Lucky action failed', error);
-    } finally {
-      this.feelingLuckyBtn.disabled = false;
+      return;
     }
+    const result = response.result.value;
+    this.feelingLuckyBtn.disabled = false;
+    await this.updateStats();
+    this.setStatus(`Closed “${result.closedTabTitle}”. ${result.remainingCount} tabs remain in this window.`, 'success');
   }
 
   private async handleCreateGroup(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.createGroupBtn.disabled) return;
     this.disarmLucky();
     this.createGroupBtn.disabled = true;
-    try {
-      const tabs = await this.dependencies.queryTabs();
-      this.selectedTabIds.clear();
-      this.tabList.replaceChildren(...tabs.map(tab => this.createTabItem(tab)));
-      this.groupCreator.classList.remove('hidden');
-      this.groupCreator.setAttribute('aria-hidden', 'false');
-      this.groupNameInput.value = '';
-      this.groupNameInput.focus();
-      this.createGroupBtn.classList.add('hidden');
-      this.feelingLuckyBtn.classList.add('hidden');
-    } catch (error) {
+    const response = await this.dependencies.queryTabs();
+    if (!response.result.ok) {
       this.setStatus('Failed to load tabs from this window.', 'error');
-      console.error('[TabbyMcTabface] Failed to query popup tabs', error);
-    } finally {
+      console.error('[TabbyMcTabface] Failed to query popup tabs', response.result.error);
       this.createGroupBtn.disabled = false;
+      return;
     }
+    const tabs = response.result.value;
+    this.selectedTabIds.clear();
+    this.tabList.replaceChildren(...tabs.map((tab, index) => this.createTabItem(tab, index)));
+    this.groupCreator.classList.remove('hidden');
+    this.groupCreator.setAttribute('aria-hidden', 'false');
+    this.groupNameInput.value = '';
+    this.groupNameInput.focus();
+    this.createGroupBtn.classList.add('hidden');
+    this.feelingLuckyBtn.classList.add('hidden');
+    this.createGroupBtn.disabled = false;
   }
 
-  private createTabItem(tab: PopupTab): HTMLElement {
+  private createTabItem(tab: PopupTab, renderIndex: number): HTMLElement {
     const item = this.document.createElement('div');
     item.className = 'tab-item';
     const checkbox = this.document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.className = 'tab-checkbox';
-    checkbox.id = `tab-${tab.id ?? `unknown-${tab.index ?? 0}`}`;
+    const checkboxSuffix = tab.id ?? `unknown-${renderIndex}`;
+    checkbox.id = `tab-${checkboxSuffix}`;
     checkbox.disabled = tab.id === undefined;
 
     const label = this.document.createElement('label');
@@ -189,6 +278,7 @@ export class PopupController {
   }
 
   private async handleConfirmGroup(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.confirmGroupBtn.disabled) return;
     const groupName = this.groupNameInput.value.trim();
     if (!groupName) {
       this.setStatus('Group name cannot be empty.', 'error');
@@ -207,27 +297,25 @@ export class PopupController {
 
     this.confirmGroupBtn.disabled = true;
     this.setStatus('Creating group…', 'loading');
-    try {
-      const response = await this.dependencies.sendMessage<GroupCreationSuccess>({
-        action: 'createGroup',
-        groupName,
-        tabIds: [...this.selectedTabIds]
-      });
-      if (!response.result.ok) {
-        this.setStatus(`Could not create group: ${response.result.error.details}`, 'error');
+    const response = await this.dependencies.sendMessage<GroupCreationSuccess>({
+      action: 'createGroup',
+      groupName,
+      tabIds: [...this.selectedTabIds]
+    });
+    if (!response.result.ok) {
+      if (isPopupTransportError(response.result.error)) {
+        this.renderIndeterminateMutation('group creation');
         return;
       }
-      const result = response.result.value;
-      this.handleCancelGroup();
-      this.setStatus(`Group “${result.groupName}” created with ${result.tabCount} ${result.tabCount === 1 ? 'tab' : 'tabs'}.`, 'success');
+      this.setStatus(`Could not create group: ${response.result.error.details}`, 'error');
       this.confirmGroupBtn.disabled = false;
-      await this.updateStats();
-    } catch (error) {
-      this.setStatus('Could not reach the extension worker. Please try again.', 'error');
-      console.error('[TabbyMcTabface] Group creation failed', error);
-    } finally {
-      this.confirmGroupBtn.disabled = false;
+      return;
     }
+    const result = response.result.value;
+    this.handleCancelGroup();
+    this.confirmGroupBtn.disabled = false;
+    await this.updateStats();
+    this.setStatus(`Group “${result.groupName}” created with ${result.tabCount} ${result.tabCount === 1 ? 'tab' : 'tabs'}.`, 'success');
   }
 
   private handleCancelGroup(): void {
@@ -251,7 +339,7 @@ export class PopupController {
     this.konamiBuffer = this.konamiBuffer.slice(-this.konamiSequence.length);
     if (this.konamiBuffer.join('|') === this.konamiSequence.join('|')) {
       this.konamiBuffer = [];
-      void this.dependencies.sendMessage({ action: 'recordBrowserEvent', event: 'KonamiCodeEntered' });
+      void this.recordBrowserEvent('KonamiCodeEntered');
       this.setStatus('↑ ↑ ↓ ↓ ← → ← → B A. The wombat noticed.', 'success');
     }
   }
@@ -282,50 +370,134 @@ export class PopupController {
 
   private displayDomain(url: string | undefined): string {
     if (!url) return 'Internal or unavailable URL';
-    try {
-      return new URL(url).hostname || url;
-    } catch {
-      return url;
+    const link = this.document.createElement('a');
+    link.href = url;
+    return link.hostname || url;
+  }
+
+  private renderUnavailableStats(): void {
+    this.tabCountEl.textContent = '—';
+    this.groupCountEl.textContent = '—';
+    this.quipCountEl.textContent = '—';
+    this.setStatus('Stats are temporarily unavailable. The wombat is taking notes.', 'warning');
+  }
+
+  private renderIndeterminateMutation(action: string): void {
+    this.mutationOutcomeUnknown = true;
+    this.feelingLuckyBtn.disabled = true;
+    this.createGroupBtn.disabled = true;
+    this.confirmGroupBtn.disabled = true;
+    this.groupNameInput.disabled = true;
+    this.setStatus(
+      `Chrome did not confirm whether ${action} finished. Close and reopen this popup to verify before trying again.`,
+      'warning'
+    );
+  }
+
+  private async recordBrowserEvent(event: BrowserEventName): Promise<void> {
+    const response = await this.dependencies.sendMessage({ action: 'recordBrowserEvent', event });
+    if (!response.result.ok) {
+      console.error(`[TabbyMcTabface] Failed to record ${event}`, response.result.error);
     }
   }
 
-  private requireElement<T extends Element>(selector: string): T {
-    const element = this.document.querySelector<T>(selector);
-    if (!element) throw new Error(`Popup is missing required element ${selector}`);
-    return element;
+  private static missingElement(selector: string): Result<never, PopupError> {
+    return Result.error({
+      type: 'MissingElement',
+      details: `Popup is missing required element ${selector}`,
+      selector
+    });
   }
 }
 
+function popupFailureResponse<T>(
+  type: PopupTransportError['type'],
+  details: string
+): PopupRuntimeResponse<T> {
+  return { result: { ok: false, error: { type, details } } };
+}
+
 export function createChromeDependencies(chromeApi: typeof chrome): PopupDependencies {
-  const sendMessage: PopupDependencies['sendMessage'] = message => new Promise((resolve, reject) => {
-    chromeApi.runtime.sendMessage(message, response => {
-      if (chromeApi.runtime.lastError) {
-        reject(new Error(chromeApi.runtime.lastError.message));
-        return;
-      }
-      if (!response) {
-        reject(new Error('Background did not return a response'));
-        return;
-      }
-      resolve(response);
-    });
-  });
+  const sendMessage = <T = unknown>(message: RuntimeRequest): Promise<PopupRuntimeResponse<T>> => (
+    new Promise(resolve => {
+      let settled = false;
+      const finish = (response: PopupRuntimeResponse<T>): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(response);
+      };
+      const timeoutId = setTimeout(() => {
+        finish(popupFailureResponse<T>(
+          'TransportTimeout',
+          `The extension worker did not respond within ${MESSAGE_TIMEOUT_MS / 1000} seconds`
+        ));
+      }, MESSAGE_TIMEOUT_MS);
+
+      chromeApi.runtime.sendMessage(message, response => {
+        const runtimeError = chromeApi.runtime.lastError;
+        if (runtimeError) {
+          finish(popupFailureResponse<T>(
+            'TransportFailure',
+            runtimeError.message ?? 'Chrome runtime messaging failed'
+          ));
+          return;
+        }
+        if (!response) {
+          finish(popupFailureResponse<T>('MissingResponse', 'Background did not return a response'));
+          return;
+        }
+        finish(response as PopupRuntimeResponse<T>);
+      });
+    })
+  );
   return {
     sendMessage,
-    queryTabs: async () => {
-      const response = await sendMessage<PopupTab[]>({ action: 'getCurrentTabs' });
-      if (!response.result.ok) throw new Error(response.result.error.details);
-      return response.result.value;
-    },
+    queryTabs: () => sendMessage<PopupTab[]>({ action: 'getCurrentTabs' }),
     setTimer: (handler, timeout) => setTimeout(handler, timeout),
     clearTimer: timer => clearTimeout(timer)
   };
 }
 
-export function mountPopup(documentRef: Document, chromeApi: typeof chrome): PopupController {
-  const controller = new PopupController(documentRef, createChromeDependencies(chromeApi));
-  void controller.init();
-  return controller;
+function renderPopupFailure(documentRef: Document, error: PopupError): void {
+  console.error('[TabbyMcTabface] Popup initialization failed', error);
+  const status = documentRef.querySelector<HTMLElement>('#statusMessage');
+  if (status) {
+    const statusText = status.querySelector<HTMLElement>('.status-text') ?? status;
+    statusText.textContent = 'The popup failed to load. Please close and reopen it.';
+    status.classList.remove('success', 'warning', 'loading', 'info');
+    status.classList.add('error');
+    status.setAttribute('role', 'alert');
+    return;
+  }
+
+  const fallback = documentRef.createElement('p');
+  fallback.setAttribute('role', 'alert');
+  fallback.textContent = 'TabbyMcTabface failed to load. Please close and reopen the popup.';
+  documentRef.body.prepend(fallback);
+}
+
+export function mountPopup(
+  documentRef: Document,
+  chromeApi: typeof chrome
+): Result<PopupController, PopupError> {
+  const created = PopupController.create(documentRef, createChromeDependencies(chromeApi));
+  if (!created.ok) {
+    renderPopupFailure(documentRef, created.error);
+    return created;
+  }
+
+  void created.value.init().then(
+    initialized => {
+      if (!initialized.ok) renderPopupFailure(documentRef, initialized.error);
+    },
+    originalError => renderPopupFailure(documentRef, {
+      type: 'InitializationFailed',
+      details: 'Unexpected popup initialization failure',
+      originalError
+    })
+  );
+  return created;
 }
 
 if (typeof document !== 'undefined' && typeof chrome !== 'undefined') {

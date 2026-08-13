@@ -263,7 +263,17 @@ export class ChromeUsageStatsStore implements IUsageStatsStore {
 
   constructor(private readonly storage: IChromeStorageAPI) {}
 
+  /**
+   * Read and normalize the persisted usage snapshot.
+   * DATA IN: None.
+   * DATA OUT: Result<UsageStats, UsageStatsError>; invalid fields become safe defaults.
+   * SEAM: SEAM-35 (Background/Popup → UsageStatsStore), SEAM-34 (store → storage).
+   * FLOW: Read the versioned key, map read failure, normalize, return a fresh snapshot.
+   * ERRORS: StorageReadFailed.
+   * PERFORMANCE: Browser-I/O-bound; normalization overhead <5ms.
+   */
   async get(): Promise<Result<UsageStats, UsageStatsError>> {
+    // === SEAM-34: UsageStatsStore → IChromeStorageAPI ===
     const result = await this.storage.get(ChromeUsageStatsStore.STORAGE_KEY);
     if (!result.ok) {
       return Result.error({
@@ -276,7 +286,17 @@ export class ChromeUsageStatsStore implements IUsageStatsStore {
     return Result.ok(this.normalize(result.value[ChromeUsageStatsStore.STORAGE_KEY]));
   }
 
+  /**
+   * Serialize and persist a single usage-counter increment.
+   * DATA IN: one allow-listed UsageCounter.
+   * DATA OUT: Result<UsageStats, UsageStatsError> containing the saved state.
+   * SEAM: SEAM-33 (TabManager/HumorSystem → UsageStatsStore), SEAM-34 (store → storage).
+   * FLOW: Queue, read, increment, timestamp, persist, and settle the caller's operation.
+   * ERRORS: StorageReadFailed, StorageWriteFailed.
+   * PERFORMANCE: Browser-I/O-bound; queue bookkeeping overhead <5ms.
+   */
   increment(counter: UsageCounter): Promise<Result<UsageStats, UsageStatsError>> {
+    // === SEAM-33: TabManager/HumorSystem → UsageStatsStore ===
     let resolveOperation!: (result: Result<UsageStats, UsageStatsError>) => void;
     const operation = new Promise<Result<UsageStats, UsageStatsError>>(resolve => {
       resolveOperation = resolve;
@@ -317,6 +337,15 @@ export class ChromeUsageStatsStore implements IUsageStatsStore {
     return operation;
   }
 
+  /**
+   * Normalize untrusted persisted data into the current schema.
+   * DATA IN: unknown structured-clone value.
+   * DATA OUT: complete UsageStats with safe non-negative counters.
+   * SEAM: Internal validation at SEAM-34's storage boundary.
+   * FLOW: Reject non-objects, validate each field, return a new versioned value.
+   * ERRORS: None; malformed fields are repaired with defaults.
+   * PERFORMANCE: <1ms for one fixed-size record.
+   */
   private normalize(candidate: unknown): UsageStats {
     if (!candidate || typeof candidate !== 'object') {
       return { ...EMPTY_USAGE_STATS };

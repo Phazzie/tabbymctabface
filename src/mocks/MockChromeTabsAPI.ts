@@ -26,8 +26,10 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   private nextGroupId = 1;
   private nextTabId = 100;
   private callHistory: MockCallRecord[] = [];
+  private currentWindowId: number;
 
-  constructor() {
+  constructor(currentWindowId = 1) {
+    this.currentWindowId = currentWindowId;
     this.seedDefaultTabs();
   }
 
@@ -38,14 +40,34 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
         return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
     }
-    const groupId = existingGroupId ?? this.nextGroupId++;
-    if (!this.mockGroups.some(group => group.id === groupId)) {
+    if (existingGroupId !== undefined) {
+      if (!Number.isInteger(existingGroupId) || existingGroupId < 0) {
+        return Result.error({
+          type: 'InvalidGroupId',
+          details: `Group ID ${existingGroupId} is invalid`,
+          groupId: existingGroupId,
+        });
+      }
+      if (!this.mockGroups.some(group => group.id === existingGroupId)) {
+        return Result.error({
+          type: 'InvalidGroupId',
+          details: `Group ID ${existingGroupId} does not exist`,
+          groupId: existingGroupId,
+        });
+      }
+    }
+    const previousGroupIds = new Set(
+      tabIds.map(tabId => this.mockTabs.find(tab => tab.id === tabId)?.groupId ?? -1).filter(groupId => groupId >= 0)
+    );
+    const groupId = existingGroupId ?? this.nextAvailableGroupId();
+    if (existingGroupId === undefined) {
       this.mockGroups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
     }
     tabIds.forEach(tabId => {
       const tab = this.mockTabs.find(t => t.id === tabId);
       if (tab) tab.groupId = groupId;
     });
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(groupId);
   }
 
@@ -64,7 +86,9 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   async queryTabs(queryInfo: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>> {
     this.callHistory.push({ method: 'queryTabs', args: [queryInfo], timestamp: Date.now() });
     let filtered = [...this.mockTabs];
-    if (queryInfo.currentWindow) filtered = filtered.filter(tab => tab.windowId === 1);
+    if (queryInfo.currentWindow) {
+      filtered = filtered.filter(tab => tab.windowId === this.currentWindowId);
+    }
     if (queryInfo.active !== undefined) filtered = filtered.filter(t => t.active === queryInfo.active);
     if (queryInfo.pinned !== undefined) filtered = filtered.filter(t => t.pinned === queryInfo.pinned);
     if (queryInfo.groupId !== undefined) filtered = filtered.filter(t => t.groupId === queryInfo.groupId);
@@ -82,7 +106,9 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     if (tabIndex === -1) {
       return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
     }
+    const previousGroupId = this.mockTabs[tabIndex].groupId;
     this.mockTabs.splice(tabIndex, 1);
+    this.deleteEmptyGroups(new Set([previousGroupId]));
     return Result.ok(undefined);
   }
 
@@ -96,18 +122,22 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
    */
   async ungroupTabs(tabIds: number[]): Promise<Result<void, ChromeAPIError>> {
     this.callHistory.push({ method: 'ungroupTabs', args: [tabIds], timestamp: Date.now() });
+    const previousGroupIds = new Set<number>();
     for (const tabId of tabIds) {
       const tab = this.mockTabs.find(t => t.id === tabId);
       if (!tab) {
         return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
+      if (tab.groupId >= 0) previousGroupIds.add(tab.groupId);
       tab.groupId = -1;
     }
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(undefined);
   }
 
   seedMockTabs(tabs: ChromeTab[]): void { this.mockTabs = [...tabs]; }
   seedMockGroups(groups: ChromeTabGroup[]): void { this.mockGroups = [...groups]; }
+  setCurrentWindowId(windowId: number): void { this.currentWindowId = windowId; }
 
   reset(): void {
     this.mockTabs = [];
@@ -119,6 +149,17 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   }
 
   getCallHistory(): MockCallRecord[] { return [...this.callHistory]; }
+
+  private nextAvailableGroupId(): number {
+    while (this.mockGroups.some(group => group.id === this.nextGroupId)) this.nextGroupId += 1;
+    return this.nextGroupId++;
+  }
+
+  private deleteEmptyGroups(groupIds: Set<number>): void {
+    this.mockGroups = this.mockGroups.filter(
+      group => !groupIds.has(group.id) || this.mockTabs.some(tab => tab.groupId === group.id)
+    );
+  }
 
   private seedDefaultTabs(): void {
     this.mockTabs = [

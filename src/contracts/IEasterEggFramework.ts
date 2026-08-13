@@ -75,10 +75,13 @@ export interface IEasterEggFramework {
    * 
    * SEAM: SEAM-16 (HumorSystem → EasterEggFramework)
    * 
-   * INPUT:
+   * DATA IN:
    *   - context: BrowserContext (current browser state from TabManager)
+   *   - options.customChecks: optional event scope. When present, only definitions
+   *     declaring one of those allow-listed custom checks are evaluated; ordinary
+   *     contextual definitions are intentionally skipped.
    * 
-   * OUTPUT:
+   * DATA OUT:
    *   - Success: EasterEggMatch | null (most-specific weighted match or null)
    *   - Error: EasterEggError
    * 
@@ -88,11 +91,12 @@ export interface IEasterEggFramework {
    * 
    * PERFORMANCE: <50ms (95th percentile)
    * 
-   * LOGIC:
-   *   1. Evaluate ALL conditions for every registered easter egg (AND logic)
-   *   2. Rank matches by structural specificity
-   *   3. Select by rarity weight among top-equivalent matches
-   *   4. Return null if no definitions match
+   * FLOW:
+   *   1. If customChecks is present, select only definitions in that event scope
+   *   2. Evaluate ALL conditions for each selected easter egg (AND logic)
+   *   3. Rank matches by structural specificity
+   *   4. Select by rarity weight among top-equivalent matches
+   *   5. Return null if no definitions match
    * 
    * SIDE EFFECTS: None (pure evaluation)
    * 
@@ -108,7 +112,7 @@ export interface IEasterEggFramework {
    * Register a new easter egg trigger
    * 
    * INPUT:
-   *   - definition: EasterEggDefinition
+   *   - definition: EasterEggRegistration; priority is derived from conditions
    * 
    * OUTPUT:
    *   - Success: void (easter egg registered)
@@ -127,7 +131,7 @@ export interface IEasterEggFramework {
    * @returns Result indicating success or error
    */
   registerEasterEgg(
-    definition: EasterEggDefinition
+    definition: EasterEggRegistration
   ): Result<void, EasterEggError>;
 
   /**
@@ -184,7 +188,7 @@ export interface EasterEggMatch {
 export interface EasterEggDefinition {
   id: string; // Unique ID (e.g., "EE-001")
   type: string; // Type identifier (e.g., "42-tabs")
-  priority: number; // Explicit specificity score for programmatic registrations
+  priority: number; // Framework-derived structural specificity score
   conditions: EasterEggConditions; // AND-combined trigger conditions
   metadata?: {
     nicheReference?: string; // e.g., "Douglas Adams - Hitchhiker's Guide"
@@ -193,6 +197,9 @@ export interface EasterEggDefinition {
     category?: string; // Content-family label
   };
 }
+
+/** Caller-authored registration input; selection priority cannot be overridden. */
+export type EasterEggRegistration = Omit<EasterEggDefinition, 'priority'>;
 
 /**
  * Easter egg trigger conditions (ALL must be true - AND logic)

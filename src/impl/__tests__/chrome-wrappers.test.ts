@@ -159,6 +159,20 @@ describe('Chrome wrappers', () => {
     expect((await api.update('id', { title: 'title', message: 'message' })).ok).toBe(false);
   });
 
+  it('classifies promise rejections before an unrelated runtime.lastError', async () => {
+    (chrome.runtime as typeof chrome.runtime & { lastError?: { message: string } }).lastError = {
+      message: 'Permission denied from an unrelated callback'
+    };
+    removeTab.mockRejectedValueOnce(new Error('No tab with id: 8'));
+    clearNotification.mockRejectedValueOnce(new Error('notification not found'));
+
+    const tabResult = await new ChromeTabsAPI().removeTab(8);
+    const notificationResult = await new ChromeNotificationsAPI().clear('missing');
+
+    expect(!tabResult.ok && tabResult.error.type).toBe('InvalidTabId');
+    expect(!notificationResult.ok && notificationResult.error.type).toBe('InvalidNotificationId');
+  });
+
   it('covers storage operations, serialization validation, and error mapping', async () => {
     const api = new ChromeStorageAPI();
     storageGet.mockResolvedValueOnce({ value: 1 });

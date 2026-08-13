@@ -49,6 +49,7 @@ export interface HumorSystemOptions {
 }
 
 export type BrowserContextProvider = () => Promise<Result<BrowserContext, TabManagerError>>;
+type SelectedQuip = { quipText: string; isEasterEgg: boolean; easterEggId: string | null };
 
 export class HumorSystem implements IHumorSystem {
   private humorLevel: HumorLevel = 'default';
@@ -191,31 +192,10 @@ export class HumorSystem implements IHumorSystem {
     trigger: HumorTrigger,
     context: BrowserContext | null,
     preferredEasterEgg?: EasterEggMatch
-  ): Promise<Result<{ quipText: string; isEasterEgg: boolean; easterEggId: string | null }, HumorError>> {
-    if (context) {
-      let easterEggMatch: EasterEggMatch | null | undefined = preferredEasterEgg;
-      if (easterEggMatch === undefined) {
-        const easterEggResult = await this.easterEggFramework.checkTriggers(context);
-        if (!easterEggResult.ok) {
-          return Result.error({ type: 'EasterEggCheckFailed', details: easterEggResult.error.details });
-        }
-        easterEggMatch = easterEggResult.value;
-      }
-      if (easterEggMatch) {
-        const easterEggQuip = await this.fetchExactEasterEggQuip(easterEggMatch);
-        if (!easterEggQuip.ok) return easterEggQuip;
-        if (easterEggQuip.value.length > 0) {
-          const selected = this.selectRandomQuip(easterEggQuip.value);
-          if (selected) {
-            return Result.ok({
-              quipText: selected,
-              isEasterEgg: true,
-              easterEggId: easterEggMatch.easterEggId
-            });
-          }
-        }
-      }
-    }
+  ): Promise<Result<SelectedQuip, HumorError>> {
+    const easterEggQuip = await this.resolveEasterEggQuip(context, preferredEasterEgg);
+    if (!easterEggQuip.ok) return easterEggQuip;
+    if (easterEggQuip.value) return Result.ok(easterEggQuip.value);
 
     const passiveAggressiveQuips = await this.quipStorage.getPassiveAggressiveQuips(this.humorLevel, trigger.type);
     if (!passiveAggressiveQuips.ok) {
@@ -230,6 +210,30 @@ export class HumorSystem implements IHumorSystem {
       return Result.error({ type: 'NoQuipsAvailable', details: 'No quips found for trigger', triggerType: trigger.type });
     }
     return Result.ok({ quipText: selected, isEasterEgg: false, easterEggId: null });
+  }
+
+  private async resolveEasterEggQuip(
+    context: BrowserContext | null,
+    preferredEasterEgg?: EasterEggMatch
+  ): Promise<Result<SelectedQuip | null, HumorError>> {
+    if (!context) return Result.ok(null);
+
+    let match: EasterEggMatch | null | undefined = preferredEasterEgg;
+    if (match === undefined) {
+      const result = await this.easterEggFramework.checkTriggers(context);
+      if (!result.ok) {
+        return Result.error({ type: 'EasterEggCheckFailed', details: result.error.details });
+      }
+      match = result.value;
+    }
+    if (!match) return Result.ok(null);
+
+    const quips = await this.fetchExactEasterEggQuip(match);
+    if (!quips.ok) return quips;
+    const selected = this.selectRandomQuip(quips.value);
+    return Result.ok(selected
+      ? { quipText: selected, isEasterEgg: true, easterEggId: match.easterEggId }
+      : null);
   }
 
   private async fetchExactEasterEggQuip(match: EasterEggMatch): Promise<Result<string[], HumorError>> {
@@ -352,6 +356,9 @@ function customChecksForTrigger(trigger: HumorTrigger): SupportedEasterEggCustom
     return ['rapid-tab-opening', 'new-tab-opened-while-tabs-exist'];
   }
   if (trigger.type === 'TabClosed') {
+    return ['tab-just-closed'];
+  }
+  if (trigger.type === 'FeelingLuckyClicked' && trigger.data.type === 'TabClosed') {
     return ['tab-just-closed'];
   }
   if (trigger.data.type !== 'ManualTrigger') return [];

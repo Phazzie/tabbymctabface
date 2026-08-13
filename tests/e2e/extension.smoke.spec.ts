@@ -1,3 +1,19 @@
+/**
+ * FILE: extension.smoke.spec.ts
+ *
+ * WHAT: Verifies MV3 worker startup, popup rendering, accessibility, and worker recovery in Chromium.
+ * WHY: A packaged extension is shippable only when its real browser lifecycle succeeds without runtime errors.
+ * HOW DATA FLOWS:
+ *   1. The persistent extension fixture supplies a worker, extension ID, and popup through SEAM-E2E-01.
+ *   2. Browser and accessibility observations cross back into Playwright assertions.
+ * SEAMS:
+ *   IN: Loaded extension fixture -> smoke scenarios (SEAM-E2E-01)
+ *   OUT: Smoke scenarios -> browser verification evidence (SEAM-E2E-01)
+ * CONTRACT: LoadedMV3Extension v1.0.0
+ * GENERATED: 2026-08-12
+ * CUSTOM SECTIONS: None
+ */
+
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import type { AxeResults } from 'axe-core';

@@ -126,10 +126,9 @@ describe('ITabManager CONTRACT v1.0.0', () => {
       expect(eventType).toBe('TabGroupCreated');
     });
 
-    it('MUST meet <50ms performance SLA', () => {
-      // Contract specifies: <50ms (95th percentile)
-      const SLA_MS = 50;
-      expect(SLA_MS).toBe(50);
+    it('MUST keep orchestration overhead under 20ms excluding dependency I/O', () => {
+      const ORCHESTRATION_SLA_MS = 20;
+      expect(ORCHESTRATION_SLA_MS).toBe(20);
       // Actual performance test in implementation suite
     });
   });
@@ -199,10 +198,9 @@ describe('ITabManager CONTRACT v1.0.0', () => {
       expect(eventTrigger).toBe('FeelingLucky');
     });
 
-    it('MUST meet <30ms performance SLA', () => {
-      // Contract specifies: <30ms (95th percentile)
-      const SLA_MS = 30;
-      expect(SLA_MS).toBe(30);
+    it('MUST keep orchestration overhead under 20ms excluding dependency I/O', () => {
+      const ORCHESTRATION_SLA_MS = 20;
+      expect(ORCHESTRATION_SLA_MS).toBe(20);
     });
   });
 
@@ -291,7 +289,7 @@ describe('ITabManager CONTRACT v1.0.0', () => {
 
     it('MUST return Result<void, TabManagerError> on success', () => {
       // Contract specifies: Success returns void
-      const successResult = Result.ok<void, TabManagerError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
     });

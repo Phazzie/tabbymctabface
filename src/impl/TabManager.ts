@@ -30,10 +30,32 @@ import {
   TabClosureResult,
   TabManagerError
 } from '../contracts/ITabManager';
-import { ChromeTab, IChromeTabsAPI } from '../contracts/IChromeTabsAPI';
+import {
+  ChromeTab,
+  ChromeTabGroup,
+  GroupUpdateProperties,
+  IChromeTabsAPI
+} from '../contracts/IChromeTabsAPI';
 import { HumorTrigger, IHumorSystem } from '../contracts/IHumorSystem';
 import type { IUsageStatsStore, UsageCounter } from '../contracts/IUsageStats';
 import { Result } from '../utils/Result';
+
+interface GroupMembershipChange {
+  addedTabs: Array<{ id: number; originalGroupId: number }>;
+  removedTabIds: number[];
+  originalGroups: Map<number, ChromeTabGroup>;
+}
+
+function describeNoEligibleTabs(
+  totalTabs: number,
+  excludePinned: boolean,
+  excludeActive: boolean
+): string {
+  if (totalTabs === 0 || (!excludePinned && !excludeActive)) return 'There are no tabs to close';
+  if (excludePinned && excludeActive) return 'All tabs are pinned or active';
+  if (excludePinned) return 'All tabs are pinned';
+  return 'All tabs are active';
+}
 
 export class TabManager implements ITabManager {
   private recentEvents: string[] = [];
@@ -185,45 +207,28 @@ export class TabManager implements ITabManager {
         return Result.error({ type: 'InvalidGroupId', details: 'Group does not exist in the current window', groupId });
       }
 
+      let membershipChange: GroupMembershipChange | null = null;
+      if (updates.tabIds !== undefined) {
+        const membershipResult = await this.applyMembershipChanges(groupId, updates.tabIds, groupTabs.value);
+        if (!membershipResult.ok) return membershipResult;
+        membershipChange = membershipResult.value;
+      }
+
       const chromeUpdates = this.buildChromeUpdates(updates);
       if (Object.keys(chromeUpdates).length > 0) {
         const updateResult = await this.chromeTabsAPI.updateGroup(groupId, chromeUpdates);
-        if (!updateResult.ok) return this.handleUpdateError(updateResult.error, groupId);
-      }
-
-      if (updates.tabIds !== undefined) {
-        if (updates.tabIds.length === 0) {
-          return Result.error({ type: 'NoTabsSelected', details: 'At least one tab must remain in the group' });
-        }
-        const scopeValidation = await this.validateCurrentWindowTabs(updates.tabIds);
-        if (!scopeValidation.ok) return scopeValidation;
-
-        const desiredIds = new Set(updates.tabIds);
-        const existingIds = new Set(groupTabs.value.map(tab => tab.id));
-        const tabIdsToAdd = updates.tabIds.filter(tabId => !existingIds.has(tabId));
-        const tabIdsToRemove = groupTabs.value.map(tab => tab.id).filter(tabId => !desiredIds.has(tabId));
-        if (tabIdsToAdd.length > 0) {
-          const moveResult = await this.chromeTabsAPI.createGroup(tabIdsToAdd, groupId);
-          if (!moveResult.ok) {
-            return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to add tabs to group', originalError: moveResult.error });
-          }
-        }
-        if (tabIdsToRemove.length > 0) {
-          const removeResult = await this.chromeTabsAPI.ungroupTabs(tabIdsToRemove);
-          if (!removeResult.ok) {
-            const rollbackResult = tabIdsToAdd.length > 0
-              ? await this.chromeTabsAPI.ungroupTabs(tabIdsToAdd)
-              : Result.ok(undefined);
-            return Result.error({
-              type: 'ChromeAPIFailure',
-              details: rollbackResult.ok
-                ? 'Failed to remove old tabs from group; newly added tabs were rolled back'
-                : 'Failed to update group membership and failed to roll back newly added tabs',
-              originalError: rollbackResult.ok
-                ? removeResult.error
-                : { membershipError: removeResult.error, rollbackError: rollbackResult.error }
-            });
-          }
+        if (!updateResult.ok) {
+          if (!membershipChange) return this.handleUpdateError(updateResult.error, groupId);
+          const rollback = await this.rollbackMembershipChanges(groupId, membershipChange);
+          return Result.error({
+            type: 'ChromeAPIFailure',
+            details: rollback.ok
+              ? 'Failed to update group properties; membership changes were rolled back'
+              : 'Failed to update group properties and failed to roll back membership changes',
+            originalError: rollback.ok
+              ? updateResult.error
+              : { updateError: updateResult.error, rollbackError: rollback.error }
+          });
         }
       }
       this.invalidateContextCache();
@@ -313,7 +318,7 @@ export class TabManager implements ITabManager {
     this.invalidateContextCache();
   }
 
-  private async validateCurrentWindowTabs(tabIds: number[]): Promise<Result<void, TabManagerError>> {
+  private async validateCurrentWindowTabs(tabIds: number[]): Promise<Result<ChromeTab[], TabManagerError>> {
     if (tabIds.some(tabId => !Number.isInteger(tabId) || tabId <= 0) || new Set(tabIds).size !== tabIds.length) {
       return Result.error({ type: 'ChromeAPIFailure', details: 'Tab ids must be unique positive integers', originalError: tabIds });
     }
@@ -330,7 +335,146 @@ export class TabManager implements ITabManager {
         originalError: outsideCurrentWindow
       });
     }
-    return Result.ok(undefined);
+    return Result.ok(currentTabs.value);
+  }
+
+  private async applyMembershipChanges(
+    groupId: number,
+    desiredTabIds: number[],
+    existingTabs: ChromeTab[]
+  ): Promise<Result<GroupMembershipChange, TabManagerError>> {
+    if (desiredTabIds.length === 0) {
+      return Result.error({ type: 'NoTabsSelected', details: 'At least one tab must remain in the group' });
+    }
+    const currentTabs = await this.validateCurrentWindowTabs(desiredTabIds);
+    if (!currentTabs.ok) return currentTabs;
+
+    const desiredIds = new Set(desiredTabIds);
+    const existingIds = new Set(existingTabs.map(tab => tab.id));
+    const addedTabs = currentTabs.value
+      .filter(tab => desiredIds.has(tab.id) && !existingIds.has(tab.id))
+      .map(tab => ({ id: tab.id, originalGroupId: tab.groupId }));
+    const removedTabIds = existingTabs.map(tab => tab.id).filter(tabId => !desiredIds.has(tabId));
+    const originalGroups = await this.snapshotOriginalGroups(addedTabs);
+    if (!originalGroups.ok) return originalGroups;
+
+    if (addedTabs.length > 0) {
+      const moveResult = await this.chromeTabsAPI.createGroup(addedTabs.map(tab => tab.id), groupId);
+      if (!moveResult.ok) {
+        return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to add tabs to group', originalError: moveResult.error });
+      }
+    }
+    if (removedTabIds.length === 0) {
+      return Result.ok({ addedTabs, removedTabIds, originalGroups: originalGroups.value });
+    }
+
+    const removeResult = await this.chromeTabsAPI.ungroupTabs(removedTabIds);
+    if (removeResult.ok) {
+      return Result.ok({ addedTabs, removedTabIds, originalGroups: originalGroups.value });
+    }
+
+    const rollback = await this.restoreAddedTabs(addedTabs, originalGroups.value);
+    return Result.error({
+      type: 'ChromeAPIFailure',
+      details: rollback.ok
+        ? 'Failed to remove old tabs from group; newly added tabs were rolled back'
+        : 'Failed to update group membership and failed to roll back newly added tabs',
+      originalError: rollback.ok
+        ? removeResult.error
+        : { membershipError: removeResult.error, rollbackError: rollback.error }
+    });
+  }
+
+  private async rollbackMembershipChanges(
+    groupId: number,
+    change: GroupMembershipChange
+  ): Promise<Result<void, unknown>> {
+    // Put the original destination members back first. Moving every replacement
+    // tab away from an otherwise-empty Chrome group deletes that group and makes
+    // its numeric ID impossible to target during the rest of the rollback.
+    const restoreRemoved = change.removedTabIds.length > 0
+      ? await this.chromeTabsAPI.createGroup(change.removedTabIds, groupId)
+      : Result.ok(groupId);
+    const restoreAdded = await this.restoreAddedTabs(change.addedTabs, change.originalGroups);
+    if (restoreAdded.ok && restoreRemoved.ok) return Result.ok(undefined);
+    return Result.error({
+      restoreAddedError: restoreAdded.ok ? null : restoreAdded.error,
+      restoreRemovedError: restoreRemoved.ok ? null : restoreRemoved.error
+    });
+  }
+
+  private async restoreAddedTabs(
+    addedTabs: Array<{ id: number; originalGroupId: number }>,
+    originalGroups: Map<number, ChromeTabGroup>
+  ): Promise<Result<void, unknown>> {
+    const ungrouped = addedTabs.filter(tab => tab.originalGroupId < 0).map(tab => tab.id);
+    const grouped = new Map<number, number[]>();
+    for (const tab of addedTabs) {
+      if (tab.originalGroupId < 0) continue;
+      const ids = grouped.get(tab.originalGroupId) ?? [];
+      ids.push(tab.id);
+      grouped.set(tab.originalGroupId, ids);
+    }
+
+    const errors: unknown[] = [];
+    if (ungrouped.length > 0) {
+      const result = await this.chromeTabsAPI.ungroupTabs(ungrouped);
+      if (!result.ok) errors.push(result.error);
+    }
+    for (const [originalGroupId, ids] of grouped) {
+      const result = await this.restoreOriginalGroup(ids, originalGroupId, originalGroups.get(originalGroupId));
+      if (!result.ok) errors.push(result.error);
+    }
+    return errors.length > 0 ? Result.error(errors) : Result.ok(undefined);
+  }
+
+  private async snapshotOriginalGroups(
+    addedTabs: Array<{ id: number; originalGroupId: number }>
+  ): Promise<Result<Map<number, ChromeTabGroup>, TabManagerError>> {
+    const groupIds = new Set(addedTabs.map(tab => tab.originalGroupId).filter(groupId => groupId >= 0));
+    if (groupIds.size === 0) return Result.ok(new Map());
+
+    const groups = await this.chromeTabsAPI.getAllGroups();
+    if (!groups.ok) {
+      return Result.error({
+        type: 'ChromeAPIFailure',
+        details: 'Failed to snapshot source groups before changing membership',
+        originalError: groups.error
+      });
+    }
+    const snapshots = new Map(groups.value.filter(group => groupIds.has(group.id)).map(group => [group.id, group]));
+    const missing = [...groupIds].filter(groupId => !snapshots.has(groupId));
+    if (missing.length > 0) {
+      return Result.error({
+        type: 'ChromeAPIFailure',
+        details: 'One or more source groups disappeared before membership could be changed',
+        originalError: missing
+      });
+    }
+    return Result.ok(snapshots);
+  }
+
+  private async restoreOriginalGroup(
+    tabIds: number[],
+    originalGroupId: number,
+    snapshot: ChromeTabGroup | undefined
+  ): Promise<Result<void, unknown>> {
+    const existing = await this.chromeTabsAPI.createGroup(tabIds, originalGroupId);
+    if (existing.ok) return Result.ok(undefined);
+    if (existing.error.type !== 'InvalidGroupId' || !snapshot) return Result.error(existing.error);
+
+    // Chrome deletes an empty group. If moving all of a source group's tabs
+    // deleted it, recreate an equivalent group (with a new browser-assigned ID)
+    // and restore its user-visible properties.
+    const recreated = await this.chromeTabsAPI.createGroup(tabIds);
+    if (!recreated.ok) return Result.error({ existingGroupError: existing.error, recreateError: recreated.error });
+    const properties: GroupUpdateProperties = {
+      ...(snapshot.title !== undefined ? { title: snapshot.title } : {}),
+      color: snapshot.color,
+      collapsed: snapshot.collapsed
+    };
+    const updated = await this.chromeTabsAPI.updateGroup(recreated.value, properties);
+    return updated.ok ? Result.ok(undefined) : Result.error(updated.error);
   }
 
   private validateGroupName(name: string): Result<void, TabManagerError> {
@@ -364,11 +508,7 @@ export class TabManager implements ITabManager {
     const excludeActive = options?.excludeActive ?? true;
     const eligibleTabs = allTabs.filter(tab => !(excludePinned && tab.pinned) && !(excludeActive && tab.active));
     if (eligibleTabs.length === 0) {
-      const reason = excludePinned && excludeActive
-        ? 'All tabs are pinned or active'
-        : excludePinned
-          ? 'All tabs are pinned'
-          : 'All tabs are active';
+      const reason = describeNoEligibleTabs(allTabs.length, excludePinned, excludeActive);
       return Result.error({ type: 'NoTabsToClose', details: reason, reason });
     }
     const randomIndex = Math.min(eligibleTabs.length - 1, Math.floor(this.random() * eligibleTabs.length));
@@ -385,7 +525,6 @@ export class TabManager implements ITabManager {
     }
     const timestamp = Date.now();
     this.addRecentEvent('TabClosed');
-    this.addRecentEvent('FeelingLuckyClicked');
     this.invalidateContextCache();
     await this.incrementStat('tabsClosed');
     await this.incrementStat('luckyClicks');
@@ -399,6 +538,8 @@ export class TabManager implements ITabManager {
       },
       timestamp
     });
+    this.addRecentEvent('FeelingLuckyClicked');
+    this.invalidateContextCache();
     return Result.ok({
       closedTabId: tabToClose.id,
       closedTabTitle: tabToClose.title || 'Untitled',

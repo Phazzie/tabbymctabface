@@ -167,6 +167,28 @@ export class MockQuipStorage implements IQuipStorage {
         return Result.ok(filtered);
     }
 
+    async getAllEasterEggQuips(
+        level?: HumorLevel
+    ): Promise<Result<EasterEggData[], StorageError>> {
+        this.callHistory.push({
+            method: 'getAllEasterEggQuips',
+            args: [level],
+            timestamp: Date.now()
+        });
+
+        if (!this.initialized) {
+            return Result.error({
+                type: 'NotInitialized',
+                details: 'Call initialize() before accessing easter eggs',
+            });
+        }
+
+        const filtered = level
+            ? this.mockEasterEggs.filter(egg => egg.level === level)
+            : this.mockEasterEggs;
+        return Result.ok([...filtered]);
+    }
+
     /**
      * Get all available trigger types
      * 

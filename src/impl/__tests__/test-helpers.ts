@@ -58,14 +58,21 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
         return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
     }
-    const groupId = existingGroupId ?? this.nextGroupId++;
-    if (!this.groups.some(group => group.id === groupId)) {
+    if (existingGroupId !== undefined && !this.groups.some(group => group.id === existingGroupId)) {
+      return Result.error({ type: 'InvalidGroupId', details: `No group with id ${existingGroupId}`, groupId: existingGroupId });
+    }
+    const previousGroupIds = new Set(
+      tabIds.map(tabId => this.tabs.find(tab => tab.id === tabId)?.groupId ?? -1).filter(groupId => groupId >= 0)
+    );
+    const groupId = existingGroupId ?? this.nextAvailableGroupId();
+    if (existingGroupId === undefined) {
       this.groups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
     }
     for (const tabId of tabIds) {
       const tab = this.tabs.find(t => t.id === tabId);
       if (tab) tab.groupId = groupId;
     }
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(groupId);
   }
 
@@ -98,7 +105,9 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     if (index === -1) {
       return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
     }
+    const previousGroupId = this.tabs[index].groupId;
     this.tabs.splice(index, 1);
+    this.deleteEmptyGroups(new Set([previousGroupId]));
     return Result.ok(undefined);
   }
 
@@ -111,14 +120,26 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
    */
   async ungroupTabs(tabIds: number[]): Promise<Result<void, ChromeAPIError>> {
     this.ungroupTabsCalls.push({ tabIds });
+    const previousGroupIds = new Set<number>();
     for (const tabId of tabIds) {
       const tab = this.tabs.find(t => t.id === tabId);
       if (!tab) {
         return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
       }
+      if (tab.groupId >= 0) previousGroupIds.add(tab.groupId);
       tab.groupId = -1;
     }
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(undefined);
+  }
+
+  private nextAvailableGroupId(): number {
+    while (this.groups.some(group => group.id === this.nextGroupId)) this.nextGroupId += 1;
+    return this.nextGroupId++;
+  }
+
+  private deleteEmptyGroups(groupIds: Set<number>): void {
+    this.groups = this.groups.filter(group => !groupIds.has(group.id) || this.tabs.some(tab => tab.groupId === group.id));
   }
 
   addTab(tab: Partial<ChromeTab>): ChromeTab {

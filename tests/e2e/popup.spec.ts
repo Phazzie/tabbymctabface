@@ -1,3 +1,19 @@
+/**
+ * FILE: popup.spec.ts
+ *
+ * WHAT: Exercises destructive confirmation, group creation, and hidden-event flows in real Chromium.
+ * WHY: Popup behavior must cross the UI/background/Chrome seams using production bundles and APIs.
+ * HOW DATA FLOWS:
+ *   1. Playwright drives popup DOM controls through SEAM-E2E-01.
+ *   2. Runtime responses and Chrome tab state return to visible assertions.
+ * SEAMS:
+ *   IN: Loaded extension fixture -> popup interactions (SEAM-E2E-01)
+ *   OUT: Popup interactions -> Chrome/runtime verification (SEAM-E2E-01)
+ * CONTRACT: PopupController v1.2.0
+ * GENERATED: 2026-08-12
+ * CUSTOM SECTIONS: None
+ */
+
 import { test, expect } from './extension.fixture';
 import { popupSelectors as popup } from './selectors';
 

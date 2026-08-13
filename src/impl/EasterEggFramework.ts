@@ -30,6 +30,7 @@ import {
   type EasterEggDefinition,
   type EasterEggError,
   type EasterEggMatch,
+  type EasterEggRegistration,
   type IEasterEggFramework,
   type SupportedEasterEggCustomCheck
 } from '../contracts/IEasterEggFramework';
@@ -79,7 +80,15 @@ export class EasterEggFramework implements IEasterEggFramework {
     private readonly random: RandomSource = Math.random
   ) {}
 
-  /** Load and register all packaged definitions from QuipStorage. */
+  /**
+   * Load and register all packaged definitions.
+   * DATA IN: Initialized IQuipStorage injected at construction.
+   * DATA OUT: Result<void, EasterEggError> after atomic definition publication.
+   * SEAM: SEAM-17 (EasterEggFramework → QuipStorage).
+   * FLOW: Read records, reject duplicates, derive specificity, sort, publish.
+   * ERRORS: NoEasterEggsRegistered, DuplicateEasterEggId.
+   * PERFORMANCE: Storage-I/O-bound; indexing is linear in definition count.
+   */
   async initialize(): Promise<Result<void, EasterEggError>> {
     if (!this.quipStorage.isInitialized()) {
       return Result.error({
@@ -88,6 +97,7 @@ export class EasterEggFramework implements IEasterEggFramework {
       });
     }
 
+    // === SEAM-17: EasterEggFramework → QuipStorage ===
     const eggsResult = await this.quipStorage.getAllEasterEggQuips();
     if (!eggsResult.ok) {
       return Result.error({
@@ -134,11 +144,20 @@ export class EasterEggFramework implements IEasterEggFramework {
     return Result.ok(undefined);
   }
 
-  /** Evaluate all definitions, then select fairly among the most specific matches. */
+  /**
+   * Evaluate definitions and select fairly among the most specific matches.
+   * DATA IN: BrowserContext plus optional allow-listed event custom-check scope.
+   * DATA OUT: Result<EasterEggMatch | null, EasterEggError>.
+   * SEAM: SEAM-16 (HumorSystem → EasterEggFramework).
+   * FLOW: Ensure data, scope definitions, evaluate AND conditions, rank, weight-select.
+   * ERRORS: NoEasterEggsRegistered, ConditionEvaluationFailed.
+   * PERFORMANCE: <50ms at the packaged catalog size.
+   */
   async checkTriggers(
     context: BrowserContext,
     options?: EasterEggCheckOptions
   ): Promise<Result<EasterEggMatch | null, EasterEggError>> {
+    // === SEAM-16: HumorSystem → EasterEggFramework ===
     const loadResult = await this.ensureLoaded();
     if (!loadResult.ok) return loadResult;
 
@@ -168,9 +187,17 @@ export class EasterEggFramework implements IEasterEggFramework {
     return Result.ok(this.selectWeighted(topMatches).match);
   }
 
-  /** Validate and register a programmatic definition. */
+  /**
+   * Validate and register a programmatic definition with derived priority.
+   * DATA IN: EasterEggRegistration without caller-controlled priority.
+   * DATA OUT: Result<void, EasterEggError>.
+   * SEAM: In-memory contract boundary; no external call.
+   * FLOW: Reject duplicates, validate conditions, derive specificity, insert, sort.
+   * ERRORS: DuplicateEasterEggId, InvalidConditions.
+   * PERFORMANCE: <5ms at the packaged catalog size.
+   */
   registerEasterEgg(
-    definition: EasterEggDefinition
+    definition: EasterEggRegistration
   ): Result<void, EasterEggError> {
     if (this.easterEggMap.has(definition.id)) {
       return Result.error({
@@ -189,8 +216,12 @@ export class EasterEggFramework implements IEasterEggFramework {
       });
     }
 
-    this.easterEggMap.set(definition.id, definition);
-    this.easterEggs.push(definition);
+    const storedDefinition: EasterEggDefinition = {
+      ...definition,
+      priority: calculateConditionSpecificity(definition.conditions)
+    };
+    this.easterEggMap.set(storedDefinition.id, storedDefinition);
+    this.easterEggs.push(storedDefinition);
     this.easterEggs.sort(compareDefinitions);
     this.initialized = true;
     return Result.ok(undefined);
@@ -491,12 +522,9 @@ function countConditionSpecificity(
   return Math.max(1, exactScore - 30);
 }
 
-function validateDefinition(definition: EasterEggDefinition): string[] {
+function validateDefinition(definition: EasterEggRegistration): string[] {
   const violations: string[] = [];
   if (!definition.id || !definition.type) violations.push('id and type are required');
-  if (!Number.isFinite(definition.priority) || definition.priority < 0) {
-    violations.push('priority must be a non-negative finite number');
-  }
   if (!definition.conditions || Object.keys(definition.conditions).length === 0) {
     violations.push('at least one condition is required');
     return violations;
@@ -527,6 +555,34 @@ function validateDefinition(definition: EasterEggDefinition): string[] {
     if (!Number.isInteger(end) || end < 0 || end > 23) {
       violations.push('hourRange.end must be an integer from 0 to 23');
     }
+  }
+  violations.push(...validateCountCondition(definition.conditions.tabCount, 'tabCount'));
+  violations.push(...validateCountCondition(definition.conditions.groupCount, 'groupCount'));
+  return violations;
+}
+
+function validateCountCondition(
+  condition: number | { min?: number; max?: number } | undefined,
+  name: 'tabCount' | 'groupCount'
+): string[] {
+  if (condition === undefined) return [];
+  if (typeof condition === 'number') {
+    return Number.isFinite(condition) && Number.isInteger(condition) && condition >= 0
+      ? []
+      : [`${name} must be a non-negative finite integer`];
+  }
+
+  const violations: string[] = [];
+  if (condition.min === undefined && condition.max === undefined) {
+    violations.push(`${name} range must define min or max`);
+  }
+  for (const [endpoint, value] of [['min', condition.min], ['max', condition.max]] as const) {
+    if (value !== undefined && (!Number.isFinite(value) || !Number.isInteger(value) || value < 0)) {
+      violations.push(`${name}.${endpoint} must be a non-negative finite integer`);
+    }
+  }
+  if (condition.min !== undefined && condition.max !== undefined && condition.min > condition.max) {
+    violations.push(`${name}.min must be less than or equal to max`);
   }
   return violations;
 }

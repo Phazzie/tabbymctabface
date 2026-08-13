@@ -244,7 +244,7 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
     operation: string,
     context?: { notificationId?: string }
   ): Result<never, NotificationError> {
-    const chromeError = chrome.runtime?.lastError ?? error;
+    const chromeError = error ?? chrome.runtime?.lastError;
 
     if (!chromeError) {
       return Result.error({

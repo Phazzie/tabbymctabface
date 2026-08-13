@@ -6,7 +6,18 @@
  * WHY: SEAM-E2E-01 must exercise the real service worker, chrome APIs, and popup
  * together; a regular web page or mocked browser cannot prove that runtime seam.
  *
+ * HOW DATA FLOWS:
+ *   1. The validated dist directory enters a persistent Chromium profile.
+ *   2. Worker identity, popup pages, and browser errors cross SEAM-E2E-01 into tests.
+ *   3. Fixture teardown closes Chromium and removes the isolated profile.
+ *
+ * SEAMS:
+ *   IN: Validated dist -> persistent Chromium fixture (SEAM-E2E-01)
+ *   OUT: Chromium worker/pages/errors -> Playwright scenarios (SEAM-E2E-01)
+ *
  * CONTRACT: LoadedMV3Extension v1.0.0
+ * GENERATED: 2026-08-12
+ * CUSTOM SECTIONS: None
  */
 
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -30,6 +41,7 @@ type ExtensionFixtures = {
 
 const extensionPath = path.resolve(import.meta.dirname, '../../dist');
 
+// === SEAM-E2E-01: Validated dist -> persistent Chromium context ===
 export const test = base.extend<ExtensionFixtures>({
   extensionContext: async ({ browserName }, use) => {
     expect(browserName).toBe('chromium');

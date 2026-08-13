@@ -26,9 +26,12 @@ import type {
   IChromeTabsAPI, 
   ChromeTab, 
   ChromeTabGroup,
-  TabsAPIError 
+  ChromeAPIError
 } from '../../contracts/IChromeTabsAPI';
 import { Result } from '../../utils/Result';
+
+// Preserve the legacy contract-test name while checking it against the runtime type.
+type TabsAPIError = ChromeAPIError;
 
 describe('IChromeTabsAPI CONTRACT', () => {
   // NOTE: These tests define the contract behavior
@@ -72,7 +75,8 @@ describe('IChromeTabsAPI CONTRACT', () => {
       // Contract specifies: PermissionDenied when extension lacks tabs permission
       const error: TabsAPIError = {
         type: 'PermissionDenied',
-        details: 'Extension lacks tabs permission'
+        details: 'Extension lacks tabs permission',
+        permission: 'tabs'
       };
       
       expect(error.type).toBe('PermissionDenied');
@@ -156,8 +160,8 @@ describe('IChromeTabsAPI CONTRACT', () => {
     it('MUST return Result<ChromeTab[], TabsAPIError> on success', () => {
       // Contract specifies: Success returns ChromeTab array
       const tabs: ChromeTab[] = [
-        { id: 1, title: 'Tab 1', url: 'https://example.com', active: true, groupId: -1 },
-        { id: 2, title: 'Tab 2', url: 'https://test.com', active: false, groupId: 123 }
+        { id: 1, title: 'Tab 1', url: 'https://example.com', active: true, pinned: false, groupId: -1, windowId: 1, index: 0 },
+        { id: 2, title: 'Tab 2', url: 'https://test.com', active: false, pinned: false, groupId: 123, windowId: 1, index: 1 }
       ];
       const successResult = Result.ok(tabs);
       
@@ -172,7 +176,7 @@ describe('IChromeTabsAPI CONTRACT', () => {
 
     it('MUST return empty array when no tabs match query', () => {
       // Contract behavior: Empty array is valid success result
-      const emptyResult = Result.ok<ChromeTab[], TabsAPIError>([]);
+      const emptyResult = Result.ok<ChromeTab[]>([]);
       
       expect(Result.isOk(emptyResult)).toBe(true);
       if (Result.isOk(emptyResult)) {
@@ -187,14 +191,20 @@ describe('IChromeTabsAPI CONTRACT', () => {
         title: 'Ungrouped',
         url: 'https://example.com',
         active: false,
-        groupId: -1
+        pinned: false,
+        groupId: -1,
+        windowId: 1,
+        index: 0
       };
       const groupedTab: ChromeTab = {
         id: 2,
         title: 'Grouped',
         url: 'https://test.com',
         active: false,
-        groupId: 123
+        pinned: false,
+        groupId: 123,
+        windowId: 1,
+        index: 1
       };
       
       expect(ungroupedTab.groupId).toBe(-1);
@@ -211,14 +221,14 @@ describe('IChromeTabsAPI CONTRACT', () => {
 
     it('MUST return Result<void, TabsAPIError> on success', () => {
       // Contract specifies: Success returns void
-      const successResult = Result.ok<void, TabsAPIError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
     });
 
     it('MUST return InvalidTabId error for non-existent tab', () => {
       // Contract specifies: InvalidTabId when tab doesn't exist
-      const error: TabsAPIError = {
+      const error: ChromeAPIError = {
         type: 'InvalidTabId',
         details: 'Cannot remove tab 999: not found',
         tabId: 999
@@ -262,7 +272,7 @@ describe('IChromeTabsAPI CONTRACT', () => {
 
     it('MUST return empty array when no groups exist', () => {
       // Contract behavior: Empty array is valid when no groups
-      const emptyResult = Result.ok<ChromeTabGroup[], TabsAPIError>([]);
+      const emptyResult = Result.ok<ChromeTabGroup[]>([]);
       
       expect(Result.isOk(emptyResult)).toBe(true);
       if (Result.isOk(emptyResult)) {
@@ -300,7 +310,8 @@ describe('IChromeTabsAPI CONTRACT', () => {
       };
       const error3: TabsAPIError = { 
         type: 'PermissionDenied', 
-        details: 'fail' 
+        details: 'fail',
+        permission: 'tabs'
       };
       const error4: TabsAPIError = { 
         type: 'ChromeAPIFailure', 

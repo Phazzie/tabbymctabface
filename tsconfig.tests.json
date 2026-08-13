@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "playwright.config.ts",
+    "vitest*.config.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**/*.ts",
+    "src/mocks/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "coverage",
+    "dist",
+    "node_modules",
+    "playwright-report",
+    "test-results"
+  ]
+}

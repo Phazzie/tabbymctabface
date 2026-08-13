@@ -18,6 +18,10 @@
  * GENERATED: 2026-08-12
  */
 
+// === SEAM-33: TabManager/HumorSystem → UsageStatsStore ===
+// === SEAM-34: UsageStatsStore → IChromeStorageAPI ===
+// === SEAM-35: Background/Popup → UsageStatsStore ===
+
 import { Result } from '../utils/Result';
 
 export interface UsageStats {
@@ -40,10 +44,26 @@ export type UsageStatsError =
   | { type: 'StorageWriteFailed'; details: string; originalError: unknown };
 
 export interface IUsageStatsStore {
-  /** Return a validated snapshot, using zeroes when no snapshot has been stored. */
+  /**
+   * Return a validated statistics snapshot.
+   * DATA IN: None.
+   * DATA OUT: Result<UsageStats, UsageStatsError>; missing/malformed fields normalize to zero.
+   * SEAM: SEAM-35 (Background/Popup → UsageStatsStore), SEAM-34 (store → Chrome storage).
+   * FLOW: Read the versioned key, map storage errors, normalize a defensive snapshot.
+   * ERRORS: StorageReadFailed.
+   * PERFORMANCE: Browser-I/O-bound; store overhead <5ms excluding storage latency.
+   */
   get(): Promise<Result<UsageStats, UsageStatsError>>;
 
-  /** Increment exactly one counter through a serialized read/modify/write operation. */
+  /**
+   * Increment one allow-listed counter through a serialized read/modify/write operation.
+   * DATA IN: counter, one of UsageCounter.
+   * DATA OUT: Result<UsageStats, UsageStatsError> containing the persisted snapshot.
+   * SEAM: SEAM-33 (core → UsageStatsStore), SEAM-34 (store → Chrome storage).
+   * FLOW: Queue mutation, read normalized state, increment, stamp time, and persist.
+   * ERRORS: StorageReadFailed, StorageWriteFailed.
+   * PERFORMANCE: Browser-I/O-bound; queue overhead <5ms excluding storage latency.
+   */
   increment(counter: UsageCounter): Promise<Result<UsageStats, UsageStatsError>>;
 }
 

@@ -24,6 +24,7 @@ import {
   type InitializationResult
 } from './bootstrap';
 import type {
+  RuntimeError,
   RuntimeMessageError,
   RuntimeRequest,
   RuntimeResponse,
@@ -33,13 +34,36 @@ import type { BrowserEventName, RandomTabOptions } from './contracts/ITabManager
 
 type EnsureInitialized = () => Promise<InitializationResult>;
 
+const runtimeErrorTypes = new Set<RuntimeError['type']>([
+  'InvalidMessage',
+  'InitializationFailed',
+  'UnexpectedFailure',
+  'OperationFailed',
+  'InvalidGroupName',
+  'NoTabsSelected',
+  'NoTabsToClose',
+  'InvalidGroupId',
+  'InvalidTabId',
+  'PermissionDenied',
+  'ChromeAPIFailure',
+  'StorageReadFailed',
+  'StorageWriteFailed'
+]);
+
+function isRuntimeErrorType(value: unknown): value is RuntimeError['type'] {
+  return typeof value === 'string' && runtimeErrorTypes.has(value as RuntimeError['type']);
+}
+
 function wire<T>(result: { ok: true; value: T } | { ok: false; error: unknown }): WireResult<T> {
   if (result.ok) return { ok: true, value: result.value };
   const candidate = isPlainObject(result.error) ? result.error : {};
+  if (!isRuntimeErrorType(candidate.type)) {
+    return { ok: false, error: { type: 'OperationFailed', details: 'The operation failed' } };
+  }
   return {
     ok: false,
     error: {
-      type: typeof candidate.type === 'string' ? candidate.type : 'OperationFailed',
+      type: candidate.type,
       details: typeof candidate.details === 'string' ? candidate.details : 'The operation failed'
     }
   };
@@ -122,9 +146,11 @@ export async function handleRuntimeRequest(
     case 'getUsageStats':
       return { result: wire(await context.usageStats.get()) };
     case 'getStats': {
-      const browser = await context.tabManager.getBrowserContext();
+      const [browser, usage] = await Promise.all([
+        context.tabManager.getBrowserContext(),
+        context.usageStats.get()
+      ]);
       if (!browser.ok) return { result: wire(browser) };
-      const usage = await context.usageStats.get();
       if (!usage.ok) return { result: wire(usage) };
       return { result: { ok: true, value: { browser: browser.value, usage: usage.value } } };
     }
@@ -167,12 +193,15 @@ export function registerBackgroundListeners(
     if (!context || command !== 'feeling_lucky') return;
     const result = await context.tabManager.closeRandomTab();
     if (!result.ok) {
-      await context.chromeNotificationsAPI.create({
+      const notification = await context.chromeNotificationsAPI.create({
         type: 'basic',
         title: 'TabbyMcTabface',
         message: result.error.details,
         iconUrl: 'icons/icon128.png'
       });
+      if (!notification.ok) {
+        console.error('[TabbyMcTabface] Failed to report Lucky shortcut error', notification.error);
+      }
     }
   });
 

@@ -52,7 +52,7 @@ The build uses esbuild for two browser entry points:
 - `src/background.ts` → `dist/background.js`, a bundled ESM service worker;
 - `src/ui/popup.ts` → `dist/popup.js`, a bundled popup controller.
 
-It then copies only runtime assets: `manifest.json`, popup HTML/CSS, icons, and canonical quip JSON. `dist/manifest.json` references `background.js` at the ZIP root, and `dist/popup.html` references `popup.js` at the same root.
+The canonical quip JSON is imported by `src/impl/quip-data.ts` and bundled into the browser entry points by esbuild; it is not copied as a standalone runtime asset. The build copies only `manifest.json`, popup HTML/CSS, icons, and assets referenced by the popup. `dist/manifest.json` references `background.js` at the ZIP root, and `dist/popup.html` references `popup.js` at the same root.
 
 `npm run build` finishes by validating that:
 
@@ -60,7 +60,9 @@ It then copies only runtime assets: `manifest.json`, popup HTML/CSS, icons, and 
 - no bundled entry contains unresolved relative imports;
 - the manifest has valid release metadata and safe command defaults;
 - icon dimensions and transparency are correct; and
-- both content files pass schema, uniqueness, enum, regex, and count checks.
+- the generated bundles and their referenced runtime assets are complete and safe.
+
+The unit and release smoke suites import the same JSON-backed exports used at runtime and enforce schema, uniqueness, enum, regex, reachability, category, and count policies before packaging. `copyStaticAssets` and `validateDist` intentionally do not expect standalone quip JSON in `dist/`.
 
 ## Package
 

@@ -1376,7 +1376,7 @@
     "id": "EE-144",
     "type": "tab-inception",
     "conditions": {
-      "domainRegex": "(?:chromewebstore\\.google\\.com|chrome\\.google\\.com)",
+      "domainRegex": "(?:^|\\.)(chromewebstore\\.google\\.com|chrome\\.google\\.com)$",
       "titleContains": "tab"
     },
     "quips": [

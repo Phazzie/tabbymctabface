@@ -30,6 +30,7 @@ import type {
     GroupData,
     GroupUpdateData,
     BrowserContext,
+    BrowserEventName,
     TabManagerError,
 } from '../contracts/ITabManager';
 import type { ChromeTab, ChromeTabGroup } from '../contracts/IChromeTabsAPI';
@@ -49,8 +50,7 @@ import type { ChromeTab, ChromeTabGroup } from '../contracts/IChromeTabsAPI';
  */
 export class MockTabManager implements ITabManager {
     private mockTabs: ChromeTab[] = [];
-    private mockGroups: Map<number, ChromeTabGroup> = new Map();
-    private _nextTabId = 100;
+    private mockGroups: ChromeTabGroup[] = [];
     private nextGroupId = 1;
     private callHistory: MockCallRecord[] = [];
     private shouldReturnError = false;
@@ -142,8 +142,7 @@ export class MockTabManager implements ITabManager {
         });
 
         // Track event
-        this.recentEvents.push('TabGroupCreated');
-        if (this.recentEvents.length > 10) this.recentEvents.shift();
+        this.recordRecentEvent('TabGroupCreated');
 
         return Result.ok({
             groupId,
@@ -221,8 +220,7 @@ export class MockTabManager implements ITabManager {
         this.mockTabs = this.mockTabs.filter(t => t.id !== tabToClose.id);
 
         // Track event
-        this.recentEvents.push('TabClosed');
-        if (this.recentEvents.length > 10) this.recentEvents.shift();
+        this.recordRecentEvent('TabClosed');
 
         return Result.ok({
             closedTabId: tabToClose.id,
@@ -443,9 +441,8 @@ export class MockTabManager implements ITabManager {
         return Result.ok(context);
     }
 
-    async recordBrowserEvent(event: import('../contracts/ITabManager').BrowserEventName): Promise<void> {
-        this.recentEvents.unshift(event);
-        this.recentEvents = this.recentEvents.slice(0, 20);
+    async recordBrowserEvent(event: BrowserEventName): Promise<void> {
+        this.recordRecentEvent(event);
     }
 
     // ========================================
@@ -496,7 +493,6 @@ export class MockTabManager implements ITabManager {
         this.mockTabs = [];
         this.mockGroups = [];
         this.nextGroupId = 1;
-        this.nextTabId = 100;
         this.recentEvents = [];
         this.seedDefaultTabs();
     }
@@ -574,6 +570,11 @@ export class MockTabManager implements ITabManager {
                 index: 5,
             },
         ];
+    }
+
+    private recordRecentEvent(event: string): void {
+        this.recentEvents.unshift(event);
+        this.recentEvents = this.recentEvents.slice(0, 20);
     }
 }
 

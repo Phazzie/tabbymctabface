@@ -19,6 +19,8 @@
  * CUSTOM SECTIONS: None
  */
 
+// === SEAM-14: Packaged JSON → QuipStorage ===
+
 import { describe, expect, it } from 'vitest';
 import { EASTER_EGGS, PASSIVE_AGGRESSIVE_QUIPS } from '../../../impl/quip-data';
 

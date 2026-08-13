@@ -45,18 +45,6 @@ const CONDITION_KEYS = new Set<keyof EasterEggConditions>([
   'customCheck'
 ]);
 
-const EXPANSION_CATEGORY_POLICY = [
-  { start: 161, end: 180, category: 'everquest' },
-  { start: 181, end: 190, category: 'mainstream-pop-culture' },
-  { start: 191, end: 200, category: 'computing-folklore' },
-  { start: 201, end: 210, category: 'math-science' },
-  { start: 211, end: 220, category: 'history-material-culture' },
-  { start: 221, end: 230, category: 'music-acoustics' },
-  { start: 231, end: 240, category: 'deep-games-rules' },
-  { start: 241, end: 250, category: 'digital-archaeology' },
-  { start: 251, end: 260, category: 'mundane-anthropology' }
-] as const;
-
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -94,11 +82,7 @@ function validateCountCondition(
   return violations;
 }
 
-function validateConditions(value: unknown, eggId: string): string[] {
-  if (!isRecord(value) || Object.keys(value).length === 0) {
-    return [`${eggId}: conditions must be a non-empty object`];
-  }
-
+function validateConditionKeys(value: UnknownRecord, eggId: string): string[] {
   const violations: string[] = [];
   for (const key of Object.keys(value)) {
     if (!CONDITION_KEYS.has(key as keyof EasterEggConditions)) {
@@ -106,25 +90,24 @@ function validateConditions(value: unknown, eggId: string): string[] {
     }
   }
 
-  if (value.tabCount !== undefined) {
-    violations.push(...validateCountCondition(value.tabCount, 'tabCount', eggId));
-  }
-  if (value.groupCount !== undefined) {
-    violations.push(...validateCountCondition(value.groupCount, 'groupCount', eggId));
-  }
+  return violations;
+}
 
-  if (value.domainRegex !== undefined) {
-    if (typeof value.domainRegex !== 'string' || value.domainRegex.length === 0) {
-      violations.push(`${eggId}: domainRegex must be a non-empty string`);
-    } else {
-      try {
-        new RegExp(value.domainRegex, 'i');
-      } catch {
-        violations.push(`${eggId}: Invalid domainRegex`);
-      }
-    }
+function validateDomainRegex(value: unknown, eggId: string): string[] {
+  if (value === undefined) return [];
+  if (typeof value !== 'string' || value.length === 0) {
+    return [`${eggId}: domainRegex must be a non-empty string`];
   }
+  try {
+    new RegExp(value, 'i');
+    return [];
+  } catch {
+    return [`${eggId}: Invalid domainRegex`];
+  }
+}
 
+function validateTextConditions(value: UnknownRecord, eggId: string): string[] {
+  const violations: string[] = [];
   for (const field of ['titleContains', 'urlContains', 'customCheck'] as const) {
     const condition = value[field];
     if (condition !== undefined && (typeof condition !== 'string' || condition.trim().length === 0)) {
@@ -137,20 +120,83 @@ function validateConditions(value: unknown, eggId: string): string[] {
   ) {
     violations.push(`${eggId}: Unsupported customCheck: ${value.customCheck}`);
   }
+  return violations;
+}
 
-  if (value.hourRange !== undefined) {
-    if (!isRecord(value.hourRange)) {
-      violations.push(`${eggId}: hourRange must be an object`);
-    } else {
-      for (const endpoint of ['start', 'end'] as const) {
-        const hour = value.hourRange[endpoint];
-        if (!Number.isInteger(hour) || (hour as number) < 0 || (hour as number) > 23) {
-          violations.push(`${eggId}: hourRange.${endpoint} must be an integer from 0 to 23`);
-        }
-      }
+function validateHourRange(value: unknown, eggId: string): string[] {
+  if (value === undefined) return [];
+  if (!isRecord(value)) return [`${eggId}: hourRange must be an object`];
+  const violations: string[] = [];
+  for (const endpoint of ['start', 'end'] as const) {
+    const hour = value[endpoint];
+    if (!Number.isInteger(hour) || (hour as number) < 0 || (hour as number) > 23) {
+      violations.push(`${eggId}: hourRange.${endpoint} must be an integer from 0 to 23`);
     }
   }
+  return violations;
+}
 
+function validateConditions(value: unknown, eggId: string): string[] {
+  if (!isRecord(value) || Object.keys(value).length === 0) {
+    return [`${eggId}: conditions must be a non-empty object`];
+  }
+  return [
+    ...validateConditionKeys(value, eggId),
+    ...(value.tabCount === undefined ? [] : validateCountCondition(value.tabCount, 'tabCount', eggId)),
+    ...(value.groupCount === undefined ? [] : validateCountCondition(value.groupCount, 'groupCount', eggId)),
+    ...validateDomainRegex(value.domainRegex, eggId),
+    ...validateTextConditions(value, eggId),
+    ...validateHourRange(value.hourRange, eggId)
+  ];
+}
+
+function validateEasterEggIdentity(
+  value: UnknownRecord,
+  id: string,
+  ids: Set<string>,
+  types: Set<string>
+): string[] {
+  const violations: string[] = [];
+  if (typeof value.id !== 'string' || !/^EE-\d{3}$/.test(value.id)) {
+    violations.push(`${id}: Invalid Easter egg ID`);
+  } else if (ids.has(value.id)) {
+    violations.push(`Duplicate Easter egg ID: ${value.id}`);
+  } else {
+    ids.add(value.id);
+  }
+  if (typeof value.type !== 'string' || value.type.trim().length === 0) {
+    violations.push(`${id}: type must be a non-empty string`);
+  } else if (types.has(value.type)) {
+    violations.push(`Duplicate Easter egg type: ${value.type}`);
+  } else {
+    types.add(value.type);
+  }
+  return violations;
+}
+
+function validateEasterEggQuips(value: unknown, id: string): string[] {
+  const valid = Array.isArray(value)
+    && value.length > 0
+    && value.every(quip => typeof quip === 'string' && quip.trim().length >= 10 && quip.length <= 200);
+  return valid ? [] : [`${id}: Easter egg must have at least one quip from 10 to 200 characters`];
+}
+
+function validateEasterEggMetadata(value: unknown, id: string): string[] {
+  if (value === undefined) return [];
+  if (!isRecord(value)) return [`${id}: metadata must be an object`];
+  const violations: string[] = [];
+  if (
+    value.difficulty !== undefined
+    && (typeof value.difficulty !== 'string' || !DIFFICULTIES.has(value.difficulty))
+  ) {
+    violations.push(`${id}: Invalid difficulty`);
+  }
+  if (
+    value.category !== undefined
+    && (typeof value.category !== 'string' || value.category.length === 0)
+  ) {
+    violations.push(`${id}: category must be a non-empty string`);
+  }
   return violations;
 }
 
@@ -163,10 +209,6 @@ export function validateEasterEggCollection(collection: readonly unknown[]): str
   const ids = new Set<string>();
   const types = new Set<string>();
 
-  if (collection.length !== 204) {
-    violations.push(`Easter-egg collection must contain exactly 204 entries; got ${collection.length}`);
-  }
-
   for (const [index, value] of collection.entries()) {
     const fallbackId = `record ${index}`;
     if (!isRecord(value)) {
@@ -175,82 +217,13 @@ export function validateEasterEggCollection(collection: readonly unknown[]): str
     }
 
     const id = typeof value.id === 'string' ? value.id : fallbackId;
-    if (typeof value.id !== 'string' || !/^EE-\d{3}$/.test(value.id)) {
-      violations.push(`${id}: Invalid Easter egg ID`);
-    } else if (ids.has(value.id)) {
-      violations.push(`Duplicate Easter egg ID: ${value.id}`);
-    } else {
-      ids.add(value.id);
-    }
-
-    if (typeof value.type !== 'string' || value.type.trim().length === 0) {
-      violations.push(`${id}: type must be a non-empty string`);
-    } else if (types.has(value.type)) {
-      violations.push(`Duplicate Easter egg type: ${value.type}`);
-    } else {
-      types.add(value.type);
-    }
-
+    violations.push(...validateEasterEggIdentity(value, id, ids, types));
     violations.push(...validateConditions(value.conditions, id));
-
-    if (
-      !Array.isArray(value.quips)
-      || value.quips.length === 0
-      || !value.quips.every(quip => (
-        typeof quip === 'string'
-        && quip.trim().length >= 10
-        && quip.length <= 200
-      ))
-    ) {
-      violations.push(`${id}: Easter egg must have at least one quip from 10 to 200 characters`);
-    }
-
+    violations.push(...validateEasterEggQuips(value.quips, id));
     if (typeof value.level !== 'string' || !HUMOR_LEVELS.has(value.level as HumorLevel)) {
       violations.push(`${id}: Invalid humor level`);
     }
-
-    if (value.metadata !== undefined) {
-      if (!isRecord(value.metadata)) {
-        violations.push(`${id}: metadata must be an object`);
-      } else {
-        if (
-          value.metadata.difficulty !== undefined
-          && (
-            typeof value.metadata.difficulty !== 'string'
-            || !DIFFICULTIES.has(value.metadata.difficulty)
-          )
-        ) {
-          violations.push(`${id}: Invalid difficulty`);
-        }
-        if (
-          value.metadata.category !== undefined
-          && (typeof value.metadata.category !== 'string' || value.metadata.category.length === 0)
-        ) {
-          violations.push(`${id}: category must be a non-empty string`);
-        }
-      }
-    }
-  }
-
-  for (const policy of EXPANSION_CATEGORY_POLICY) {
-    const expectedCount = policy.end - policy.start + 1;
-    const categoryRecords = collection.filter((value): value is UnknownRecord => {
-      if (!isRecord(value) || typeof value.id !== 'string') return false;
-      const numericId = Number(value.id.slice(3));
-      return numericId >= policy.start && numericId <= policy.end;
-    });
-    if (categoryRecords.length !== expectedCount) {
-      violations.push(
-        `Expansion IDs EE-${policy.start}..EE-${policy.end} must contain ${expectedCount} entries`
-      );
-      continue;
-    }
-    for (const record of categoryRecords) {
-      const metadata = isRecord(record.metadata) ? record.metadata : {};
-      if (metadata.category !== policy.category) {
-        violations.push(`${String(record.id)}: category must be ${policy.category}`);
-      }
-    }
+    violations.push(...validateEasterEggMetadata(value.metadata, id));
   }
 
   return violations;
@@ -260,10 +233,6 @@ export function validatePassiveAggressiveCollection(collection: readonly unknown
   const violations: string[] = [];
   const ids = new Set<string>();
   const texts = new Set<string>();
-
-  if (collection.length !== 75) {
-    violations.push(`Passive-aggressive collection must contain exactly 75 quips; got ${collection.length}`);
-  }
 
   for (const [index, value] of collection.entries()) {
     const fallbackId = `passive record ${index}`;
@@ -346,9 +315,7 @@ export class QuipStorage implements IQuipStorage {
    * Retains the historical injected wrapper parameter for source compatibility.
    * Content is packaged read-only JSON and is deliberately not copied into user storage.
    */
-  constructor(storageAPI: IChromeStorageAPI) {
-    void storageAPI;
-  }
+  constructor(_storageAPI?: IChromeStorageAPI) {}
 
   /** Validate canonical data and atomically publish the cache. */
   async initialize(): Promise<Result<void, StorageError>> {

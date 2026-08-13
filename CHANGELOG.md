@@ -4,6 +4,8 @@ All notable changes are documented here. This project uses semantic versioning.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-12
+
 ### Added
 
 - Exactly 100 new easter eggs (`EE-161` through `EE-260`), including 20 EverQuest entries and eight additional mainstream-to-niche categories.

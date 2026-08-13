@@ -29,6 +29,7 @@ import { Result } from './utils/Result';
 
 let extensionContext: ExtensionContext | null = null;
 let initializationPromise: Promise<InitializationResult> | null = null;
+let initializationGeneration = 0;
 
 export interface ExtensionContext {
   tabManager: TabManager;
@@ -53,26 +54,31 @@ export function ensureInitialized(factory: InitializationFactory = initializeExt
   if (extensionContext) return Promise.resolve(Result.ok(extensionContext));
   if (initializationPromise) return initializationPromise;
 
-  initializationPromise = factory()
-    .then(result => {
+  const generation = initializationGeneration;
+  const pending: Promise<InitializationResult> = factory()
+    .then<InitializationResult>(result => {
+      if (generation !== initializationGeneration || initializationPromise !== pending) {
+        return result;
+      }
       if (result.ok) extensionContext = result.value;
       else initializationPromise = null;
       return result;
     })
-    .catch(error => {
-      initializationPromise = null;
-      return Result.error({
+    .catch<InitializationResult>(error => {
+      if (generation === initializationGeneration && initializationPromise === pending) {
+        initializationPromise = null;
+      }
+      return Result.error<InitializationError>({
         type: 'StorageInitFailed',
         details: 'Unexpected error during initialization',
         originalError: error
       });
     });
-  return initializationPromise;
+  initializationPromise = pending;
+  return pending;
 }
 
 export async function initializeExtension(): Promise<InitializationResult> {
-  if (extensionContext) return Result.ok(extensionContext);
-
   try {
     const chromeTabsAPI = new ChromeTabsAPI();
     const chromeNotificationsAPI = new ChromeNotificationsAPI();
@@ -118,7 +124,6 @@ export async function initializeExtension(): Promise<InitializationResult> {
       chromeStorageAPI,
       usageStats
     };
-    extensionContext = context;
     return Result.ok(context);
   } catch (error) {
     return Result.error({
@@ -134,6 +139,7 @@ export function getExtensionContext(): ExtensionContext | null {
 }
 
 export function cleanupExtension(): void {
+  initializationGeneration += 1;
   extensionContext = null;
   initializationPromise = null;
 }

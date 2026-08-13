@@ -22,6 +22,15 @@ import {
 import { Result } from '../utils/Result';
 
 export class ChromeTabsAPI implements IChromeTabsAPI {
+    /**
+     * Create a new group or move tabs into an existing group.
+     * DATA IN: non-empty tabIds; optional existingGroupId must be a non-negative integer.
+     * DATA OUT: Result<number, ChromeAPIError> containing Chrome's group ID.
+     * SEAM: SEAM-20 (TabManager → ChromeTabsAPI).
+     * FLOW: Validate, call chrome.tabs.group, map rejection, return Result.
+     * ERRORS: InvalidGroupId, InvalidTabId, PermissionDenied, ChromeAPIFailure.
+     * PERFORMANCE: Browser-I/O-bound; wrapper overhead <5ms excluding Chrome latency.
+     */
     async createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>> {
         try {
             if (!tabIds || tabIds.length === 0) {
@@ -125,7 +134,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
     }
 
     private mapChromeError(error: unknown, operation: string, context?: { tabId?: number; groupId?: number }): Result<never, ChromeAPIError> {
-        const chromeError = chrome.runtime?.lastError ?? error;
+        const chromeError = error ?? chrome.runtime?.lastError;
         if (!chromeError) {
             return Result.error({ type: 'ChromeAPIFailure', details: `Unknown error in ${operation}`, originalError: error });
         }

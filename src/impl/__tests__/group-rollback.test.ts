@@ -12,11 +12,12 @@ import { TabManager } from '../TabManager';
 import { MockChromeTabsAPI, createMockTabs } from './test-helpers';
 import { MockHumorSystem } from '../../mocks/MockHumorSystem';
 import { Result } from '../../utils/Result';
+import type { ChromeAPIError } from '../../contracts/IChromeTabsAPI';
 
 describe('createGroup compensation', () => {
   it('ungroups selected tabs and returns the title failure when updating the new group fails', async () => {
     const tabs = new MockChromeTabsAPI(createMockTabs(3));
-    tabs.updateGroup = vi.fn(async () => Result.error({ type: 'ChromeAPIFailure', details: 'title failed', originalError: new Error('title failed') }));
+    tabs.updateGroup = vi.fn(async (): Promise<Result<void, ChromeAPIError>> => Result.error({ type: 'ChromeAPIFailure', details: 'title failed', originalError: new Error('title failed') }));
     const manager = new TabManager(tabs, new MockHumorSystem());
 
     const result = await manager.createGroup('Work', [1, 2]);
@@ -28,8 +29,8 @@ describe('createGroup compensation', () => {
 
   it('reports both failures when compensation also fails', async () => {
     const tabs = new MockChromeTabsAPI(createMockTabs(3));
-    tabs.updateGroup = vi.fn(async () => Result.error({ type: 'ChromeAPIFailure', details: 'title failed', originalError: 'title' }));
-    tabs.ungroupTabs = vi.fn(async () => Result.error({ type: 'ChromeAPIFailure', details: 'rollback failed', originalError: 'rollback' }));
+    tabs.updateGroup = vi.fn(async (): Promise<Result<void, ChromeAPIError>> => Result.error({ type: 'ChromeAPIFailure', details: 'title failed', originalError: 'title' }));
+    tabs.ungroupTabs = vi.fn(async (): Promise<Result<void, ChromeAPIError>> => Result.error({ type: 'ChromeAPIFailure', details: 'rollback failed', originalError: 'rollback' }));
     const manager = new TabManager(tabs, new MockHumorSystem());
 
     const result = await manager.createGroup('Work', [1, 2]);

@@ -176,7 +176,7 @@ input {
   height: 30px;
   place-items: center;
   margin-bottom: var(--space-1);
-  border: 2px solid currentColor;
+  border: 2px solid currentcolor;
   border-radius: 9px;
   font-size: 20px;
   font-weight: 800;

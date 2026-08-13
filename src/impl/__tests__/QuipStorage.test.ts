@@ -116,7 +116,7 @@ describe('QuipStorage canonical-data implementation', () => {
     expect(violations.some(value => value.includes('Unsupported customCheck'))).toBe(true);
   });
 
-  it('enforces the 75-entry passive collection and unique IDs/text', () => {
+  it('enforces unique IDs/text without coupling runtime validation to a release count', () => {
     expect(validatePassiveAggressiveCollection(PASSIVE_AGGRESSIVE_QUIPS)).toEqual([]);
 
     const duplicateCollection = PASSIVE_AGGRESSIVE_QUIPS.map(quip => ({ ...quip }));
@@ -129,7 +129,19 @@ describe('QuipStorage canonical-data implementation', () => {
 
     expect(violations.some(value => value.includes('Duplicate passive-aggressive quip ID'))).toBe(true);
     expect(violations.some(value => value.includes('Duplicate passive-aggressive quip text'))).toBe(true);
-    expect(validatePassiveAggressiveCollection(duplicateCollection.slice(1)))
-      .toContain('Passive-aggressive collection must contain exactly 75 quips; got 74');
+    expect(validatePassiveAggressiveCollection(duplicateCollection.slice(2))).toEqual([]);
+  });
+
+  it('keeps exact release counts outside runtime schema validation', () => {
+    const oneEgg: EasterEggData = {
+      id: 'EE-999',
+      type: 'small-valid-runtime-set',
+      conditions: { tabCount: 1 },
+      quips: ['A structurally valid runtime quip.'],
+      level: 'default'
+    };
+
+    expect(validateEasterEggCollection([oneEgg])).toEqual([]);
+    expect(validatePassiveAggressiveCollection(PASSIVE_AGGRESSIVE_QUIPS.slice(0, 1))).toEqual([]);
   });
 });

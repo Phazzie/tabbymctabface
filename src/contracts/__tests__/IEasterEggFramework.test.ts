@@ -25,6 +25,7 @@ import { describe, it, expect } from 'vitest';
 import type {
     EasterEggMatch,
     EasterEggDefinition,
+    EasterEggRegistration,
     EasterEggConditions,
     EasterEggError
 } from '../IEasterEggFramework';
@@ -153,12 +154,10 @@ describe('IEasterEggFramework CONTRACT v1.1.0', () => {
     });
 
     describe('CONTRACT: registerEasterEgg()', () => {
-        it('MUST accept EasterEggDefinition as parameter', () => {
-            // Contract specifies: EasterEggDefinition structure
-            const definition: EasterEggDefinition = {
+        it('MUST accept registration input without caller-controlled priority', () => {
+            const definition: EasterEggRegistration = {
                 id: 'EE-001',
                 type: '42-tabs',
-                priority: 100,
                 conditions: { tabCount: 42 },
                 metadata: {
                     nicheReference: 'Douglas Adams',
@@ -169,7 +168,7 @@ describe('IEasterEggFramework CONTRACT v1.1.0', () => {
 
             expect(definition.id).toBeDefined();
             expect(definition.type).toBeDefined();
-            expect(definition.priority).toBeDefined();
+            expect('priority' in definition).toBe(false);
             expect(definition.conditions).toBeDefined();
         });
 

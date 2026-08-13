@@ -9,7 +9,7 @@
  * HOW DATA FLOWS:
  *   1. Tests call IChromeNotificationsAPI methods
  *   2. Validate notification options structure
- *   3. Verify Result<string, NotificationsAPIError> returns
+ *   3. Verify Result<string, NotificationError> returns
  *   4. Ensure error mapping from Chrome to domain errors
  * 
  * SEAMS:
@@ -25,7 +25,7 @@ import { describe, it, expect } from 'vitest';
 import type { 
   IChromeNotificationsAPI,
   NotificationOptions,
-  NotificationsAPIError
+  NotificationError
 } from '../../contracts/IChromeNotificationsAPI';
 import { Result } from '../../utils/Result';
 
@@ -76,7 +76,7 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
     });
 
     it('MUST return PermissionDenied when lacking notification permission', () => {
-      const error: NotificationsAPIError = {
+      const error: NotificationError = {
         type: 'PermissionDenied',
         details: 'Extension lacks notifications permission'
       };
@@ -86,9 +86,10 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
     });
 
     it('MUST return InvalidOptions for malformed notification options', () => {
-      const error: NotificationsAPIError = {
+      const error: NotificationError = {
         type: 'InvalidOptions',
-        details: 'Missing required field: message'
+        details: 'Missing required field: message',
+        field: 'message'
       };
       
       expect(error.type).toBe('InvalidOptions');
@@ -128,7 +129,7 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
     });
 
     it('MUST return InvalidNotificationId for non-existent notification', () => {
-      const error: NotificationsAPIError = {
+      const error: NotificationError = {
         type: 'InvalidNotificationId',
         details: 'Notification notification-999 not found',
         notificationId: 'notification-999'
@@ -174,7 +175,7 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
     });
 
     it('MUST return InvalidNotificationId for non-existent notification', () => {
-      const error: NotificationsAPIError = {
+      const error: NotificationError = {
         type: 'InvalidNotificationId',
         details: 'Cannot update non-existent notification',
         notificationId: 'notification-999'
@@ -186,20 +187,21 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
 
   describe('CONTRACT: Error Type Guarantees', () => {
     it('NotificationsAPIError MUST be discriminated union', () => {
-      const error1: NotificationsAPIError = {
+      const error1: NotificationError = {
         type: 'PermissionDenied',
         details: 'No permission'
       };
-      const error2: NotificationsAPIError = {
+      const error2: NotificationError = {
         type: 'InvalidOptions',
-        details: 'Bad options'
+        details: 'Bad options',
+        field: 'options'
       };
-      const error3: NotificationsAPIError = {
+      const error3: NotificationError = {
         type: 'InvalidNotificationId',
         details: 'Not found',
         notificationId: 'id-123'
       };
-      const error4: NotificationsAPIError = {
+      const error4: NotificationError = {
         type: 'ChromeAPIFailure',
         details: 'Chrome failed',
         originalError: new Error()
@@ -213,7 +215,7 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
 
     it('MUST preserve originalError in ChromeAPIFailure', () => {
       const chromeError = new Error('Notification system error');
-      const error: NotificationsAPIError = {
+      const error: NotificationError = {
         type: 'ChromeAPIFailure',
         details: 'Wrapped notification error',
         originalError: chromeError
@@ -233,7 +235,7 @@ describe('IChromeNotificationsAPI CONTRACT', () => {
   describe('CONTRACT: No Exceptions', () => {
     it('MUST never throw exceptions - always return Result', () => {
       const successResult = Result.ok('notification-123');
-      const errorResult = Result.error<NotificationsAPIError>({
+      const errorResult = Result.error<NotificationError>({
         type: 'PermissionDenied',
         details: 'No permission'
       });

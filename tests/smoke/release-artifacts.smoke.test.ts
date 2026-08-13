@@ -11,8 +11,13 @@
  *   2. Chrome runtime paths cross SEAM-RUN-01/02 from manifest/HTML to root bundles.
  *   3. The validated dist tree crosses SEAM-REL-03 into a deterministic ZIP.
  *
+ * SEAMS:
+ *   IN: Build and source assets -> smoke contracts (SEAM-REL-01/02, SEAM-RUN-01/02)
+ *   OUT: Smoke contracts -> validated ZIP evidence (SEAM-REL-03)
+ *
  * CONTRACT: ExtensionReleaseArtifact v1.0.0
  * GENERATED: 2026-08-12
+ * CUSTOM SECTIONS: None
  */
 
 import { mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises';
