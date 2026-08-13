@@ -7,8 +7,8 @@
  *
  * HOW DATA FLOWS:
  *   1. Each canonical definition crosses the packaged-data seam (SEAM-14).
- *   2. A synthesized BrowserContext crosses SEAM-16 into an isolated framework.
- *   3. The selected type crosses SEAM-17 back to storage for its authored quip.
+ *   2. A synthesized BrowserContext crosses SEAM-16 into the full production catalog.
+ *   3. Selection samples prove each authored ID can win without isolated-test masking.
  *
  * SEAMS:
  *   IN: Packaged JSON → QuipStorage fixture (SEAM-14)
@@ -25,15 +25,10 @@
 
 import { describe, expect, it } from 'vitest';
 import type { BrowserContext } from '../../../contracts/ITabManager';
-import type {
-  EasterEggData,
-  HumorLevel,
-  IQuipStorage,
-  QuipData
-} from '../../../contracts/IQuipStorage';
+import type { EasterEggData } from '../../../contracts/IQuipStorage';
 import { EasterEggFramework } from '../../../impl/EasterEggFramework';
 import { EASTER_EGGS } from '../../../impl/quip-data';
-import { Result } from '../../../utils/Result';
+import { QuipStorage } from '../../../impl/QuipStorage';
 
 /** Deliberately explicit so a novel regex cannot pass via a misleading string transformation. */
 const CANDIDATE_DOMAINS = [
@@ -87,29 +82,67 @@ const CANDIDATE_DOMAINS = [
   'noaa.gov',
   'city.gov'
 ] as const;
-
-class SingleEggStorage implements IQuipStorage {
-  constructor(private readonly egg: EasterEggData) {}
-
-  async initialize() { return Result.ok<void>(undefined); }
-  async getPassiveAggressiveQuips(_level: HumorLevel, _triggerType?: string) {
-    return Result.ok<QuipData[]>([]);
-  }
-  async getEasterEggQuips(type: string, _level: HumorLevel) {
-    return Result.ok(type === this.egg.type ? [this.egg] : []);
-  }
-  async getAllEasterEggQuips(_level?: HumorLevel) { return Result.ok([this.egg]); }
-  async getAvailableTriggerTypes() { return Result.ok<string[]>([]); }
-  isInitialized() { return true; }
-}
+const PRODUCED_CUSTOM_CHECKS = new Set([
+  'timestamp-is-unix-milestone',
+  'konami-code-entered',
+  'date-is-march-14',
+  'date-is-may-4',
+  'rapid-tab-opening',
+  'time-after-midnight',
+  'time-exactly-midnight',
+  'day-is-friday-after-3pm',
+  'season-is-winter',
+  'duplicate-tabs-detected',
+  'tab-just-closed',
+  'new-tab-opened-while-tabs-exist'
+]);
+const EXACT_TAB_COUNTS = new Set(
+  EASTER_EGGS.flatMap(egg => (
+    typeof egg.conditions.tabCount === 'number' ? [egg.conditions.tabCount] : []
+  ))
+);
+const EXACT_GROUP_COUNTS = new Set(
+  EASTER_EGGS.flatMap(egg => (
+    typeof egg.conditions.groupCount === 'number' ? [egg.conditions.groupCount] : []
+  ))
+);
+const BOUNDED_TAB_RANGES = EASTER_EGGS.flatMap(egg => {
+  const condition = egg.conditions.tabCount;
+  return typeof condition === 'object'
+    && condition.min !== undefined
+    && condition.max !== undefined
+    ? [condition]
+    : [];
+});
+const BOUNDED_GROUP_RANGES = EASTER_EGGS.flatMap(egg => {
+  const condition = egg.conditions.groupCount;
+  return typeof condition === 'object'
+    && condition.min !== undefined
+    && condition.max !== undefined
+    ? [condition]
+    : [];
+});
 
 function valueForCount(
   condition: number | { min?: number; max?: number } | undefined,
-  fallback: number
+  fallback: number,
+  exactCounts: ReadonlySet<number>,
+  boundedRanges: ReadonlyArray<{ min?: number; max?: number }>
 ): number {
   if (typeof condition === 'number') return condition;
-  if (condition?.min !== undefined) return condition.min;
-  if (condition?.max !== undefined) return Math.max(0, condition.max);
+  if (condition) {
+    const min = Math.max(1, condition.min ?? 1);
+    const max = condition.max ?? min + 512;
+    for (let candidate = min; candidate <= max; candidate += 1) {
+      const collidesWithNarrowerRange = boundedRanges.some(range => (
+        range !== condition
+        && candidate >= (range.min ?? 0)
+        && candidate <= (range.max ?? Number.MAX_SAFE_INTEGER)
+      ));
+      if (!exactCounts.has(candidate) && !collidesWithNarrowerRange) return candidate;
+    }
+    return min;
+  }
   return fallback;
 }
 
@@ -122,7 +155,13 @@ function matchingDomain(pattern: string | undefined): string | undefined {
 function contextFor(egg: EasterEggData): BrowserContext {
   const conditions = egg.conditions;
   const domain = matchingDomain(conditions.domainRegex) ?? 'no-candidate.invalid';
-  const tabCount = valueForCount(conditions.tabCount, 8);
+  const tabCount = valueForCount(conditions.tabCount, 31, EXACT_TAB_COUNTS, BOUNDED_TAB_RANGES);
+  const requestedGroupCount = valueForCount(
+    conditions.groupCount,
+    2,
+    EXACT_GROUP_COUNTS,
+    BOUNDED_GROUP_RANGES
+  );
   const context: BrowserContext = {
     tabCount,
     activeTab: {
@@ -135,17 +174,16 @@ function contextFor(egg: EasterEggData): BrowserContext {
     currentDay: 1,
     currentMonth: 6,
     currentDate: '2026-06-15',
-    currentTimestamp: 1_700_000_000_000,
-    tabUrls: ['https://example.com/a', 'https://example.com/b'],
+    currentTimestamp: 1_700_000_123_000,
+    tabUrls: Array.from({ length: tabCount }, (_, index) => `https://example.com/${index}`),
     duplicateTabCount: 0,
     recentEvents: [],
-    groupCount: valueForCount(conditions.groupCount, 2)
+    // A browser cannot contain more non-empty groups than tabs. Clamping here
+    // prevents the reachability proof from accepting physically impossible fixtures.
+    groupCount: Math.min(tabCount, requestedGroupCount)
   };
 
   switch (conditions.customCheck) {
-    case 'ctrl-shift-t-pressed-3x':
-      context.recentEvents = ['TabReopened', 'TabReopened', 'TabReopened'];
-      break;
     case 'timestamp-is-unix-milestone':
       context.currentTimestamp = 1_700_000_000_000;
       break;
@@ -180,7 +218,10 @@ function contextFor(egg: EasterEggData): BrowserContext {
       break;
     case 'duplicate-tabs-detected':
       context.duplicateTabCount = 1;
-      context.tabUrls = ['https://example.com/same', 'https://example.com/same'];
+      context.tabUrls = Array.from(
+        { length: context.tabCount },
+        (_, index) => index < 2 ? 'https://example.com/same' : `https://example.com/${index}`
+      );
       break;
     case 'tab-just-closed':
       context.recentEvents = ['TabClosed'];
@@ -189,13 +230,6 @@ function contextFor(egg: EasterEggData): BrowserContext {
       context.tabCount = Math.max(context.tabCount, 2);
       context.recentEvents = ['TabOpened'];
       break;
-    case 'tab-closed-then-reopened':
-      context.recentEvents = ['TabReopened', 'TabClosed'];
-      break;
-    case 'browser-crashed-from-tabs':
-      context.tabCount = Math.max(context.tabCount, 200);
-      context.recentEvents = ['BrowserCrashed'];
-      break;
     case undefined:
       break;
   }
@@ -203,26 +237,49 @@ function contextFor(egg: EasterEggData): BrowserContext {
   return context;
 }
 
-describe.each(EASTER_EGGS)('$id ($type) reachability', egg => {
-  it('has a curated domain candidate when it declares a domain regex', () => {
-    if (!egg.conditions.domainRegex) return;
-    expect(matchingDomain(egg.conditions.domainRegex)).toBeDefined();
+describe('production catalog reachability', () => {
+  it('has a curated matching hostname for every authored domain regex', () => {
+    const missing = EASTER_EGGS
+      .filter(egg => egg.conditions.domainRegex && !matchingDomain(egg.conditions.domainRegex))
+      .map(egg => egg.id);
+
+    expect(missing).toEqual([]);
   });
 
-  it('can be selected alone and its authored quip can be retrieved', async () => {
-    const storage = new SingleEggStorage(egg);
-    const framework = new EasterEggFramework(storage, () => 0);
-    const result = await framework.checkTriggers(contextFor(egg));
+  it('uses only contexts and event predicates the shipped browser can produce', () => {
+    for (const egg of EASTER_EGGS) {
+      const customCheck = egg.conditions.customCheck;
+      if (customCheck) expect(PRODUCED_CUSTOM_CHECKS.has(customCheck)).toBe(true);
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value?.easterEggId).toBe(egg.id);
-
-    const quips = await storage.getEasterEggQuips(
-      result.value?.easterEggType ?? '',
-      egg.level
-    );
-    expect(quips.ok && quips.value[0]?.id).toBe(egg.id);
-    expect(quips.ok && quips.value[0]?.quips.length).toBeGreaterThan(0);
+      const tabCount = egg.conditions.tabCount;
+      if (typeof tabCount === 'number') expect(tabCount).toBeGreaterThanOrEqual(1);
+      if (typeof tabCount === 'object' && tabCount.max !== undefined) {
+        expect(tabCount.max).toBeGreaterThanOrEqual(1);
+      }
+    }
   });
+
+  it('can select every definition against the complete production catalog', async () => {
+    const storage = new QuipStorage();
+    expect((await storage.initialize()).ok).toBe(true);
+    let random = 0;
+    const framework = new EasterEggFramework(storage, () => random);
+    expect((await framework.initialize()).ok).toBe(true);
+
+    const unreachable: string[] = [];
+    for (const egg of EASTER_EGGS) {
+      let selected = false;
+      for (let sample = 0; sample < 512 && !selected; sample += 1) {
+        random = (sample + 0.5) / 512;
+        // Use the unscoped production selection path so every egg competes with
+        // the complete catalog. Event-only scoped checks are covered separately
+        // at the HumorSystem producer boundary.
+        const result = await framework.checkTriggers(contextFor(egg));
+        selected = result.ok && result.value?.easterEggId === egg.id;
+      }
+      if (!selected) unreachable.push(egg.id);
+    }
+
+    expect(unreachable).toEqual([]);
+  }, 30_000);
 });

@@ -195,7 +195,7 @@ export interface IQuipStorage {
 }
 
 /**
- * Humor level type (re-exported from IHumorPersonality)
+ * Humor level metadata used by packaged quip and easter-egg content.
  */
 export type HumorLevel = 'default' | 'mild' | 'intense';
 

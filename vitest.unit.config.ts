@@ -1,8 +1,8 @@
 /**
  * FILE: vitest.unit.config.ts
  *
- * WHAT: Selects isolated unit and contract tests.
- * WHY: Fast feedback must exercise module behavior without integration-only fixtures.
+ * WHAT: Selects executable unit tests without contract-shape suites.
+ * WHY: Unit counts must reflect behavior tests instead of being inflated by type examples.
  * HOW DATA FLOWS:
  *   1. Shared Vitest policy enters through SEAM-TEST-01.
  *   2. Unit globs cross SEAM-TEST-01 into the Vitest runner.
@@ -22,6 +22,6 @@ export default defineConfig({
   test: {
     ...commonTestConfig,
     include: ['src/**/*.test.ts'],
-    exclude: ['src/**/*.integration.test.ts'],
+    exclude: ['src/**/*.integration.test.ts', 'src/contracts/__tests__/**'],
   },
 });

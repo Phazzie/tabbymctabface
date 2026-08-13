@@ -212,7 +212,10 @@ export class ChromeStorageAPI implements IChromeStorageAPI {
     error: unknown,
     operation: string
   ): Result<never, StorageAPIError> {
-    const chromeError = chrome.runtime?.lastError ?? error;
+    // Promise rejections are the error for this operation. A stale
+    // runtime.lastError can belong to an unrelated callback and must not
+    // overwrite the rejection we actually caught.
+    const chromeError = error ?? chrome.runtime?.lastError;
 
     if (!chromeError) {
       return Result.error({

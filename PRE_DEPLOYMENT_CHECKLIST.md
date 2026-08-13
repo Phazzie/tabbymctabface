@@ -4,16 +4,16 @@ Use this checklist for the 1.0.0 Chrome Web Store submission. CI evidence and a 
 
 ## Automated gates
 
-- [ ] `npm ci` succeeds from a clean checkout on Node 20.
+- [ ] `npm ci --ignore-scripts` succeeds from a clean checkout on Node 20 and 22.
 - [ ] `npm run verify` passes without skipped release-critical tests.
 - [ ] TypeScript strict mode and ESLint pass.
-- [ ] Unit, integration, content-validation, and coverage thresholds pass.
+- [ ] Unit, contract, integration, full-catalog reachability, smoke, and coverage gates pass.
 - [ ] `npm run build` emits bundled `dist/background.js` and `dist/popup.js`.
 - [ ] Static smoke validation resolves every manifest, popup, icon, and data reference.
 - [ ] `npm run package` creates the versioned ZIP and validates its root layout.
 - [ ] Playwright loads the extension in persistent Chromium, opens the popup, and reports no worker/page errors.
 - [ ] Cold service-worker startup, grouping, confirmation/cancel, eligible-tab closure, and immediate stat refresh pass E2E.
-- [ ] `npm audit --omit=dev` reports no production vulnerabilities.
+- [ ] `npm run audit` reports no moderate-or-higher dependency vulnerabilities.
 - [ ] GitHub CI passes on every supported Node version.
 
 ## Manual Chrome checks

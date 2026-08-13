@@ -22,7 +22,7 @@ Do not add content to `src/impl/quip-data.ts`; that module is only a typed compa
 }
 ```
 
-IDs and text must be unique. `level` is `default`, `mild`, or `intense`; rarity is `common`, `uncommon`, or `rare`. Use an existing, tested trigger type.
+IDs and text must be unique. V1 has one shipped humor pool, so base quips must use `level: "default"`; the other level values are reserved until a user-facing preference exists. Rarity is `common`, `uncommon`, or `rare`. Use one or more production trigger types: `TabGroupCreated`, `FeelingLuckyClicked`, `TabOpened`, `TabClosed`, or `ManualTrigger`.
 
 ## Easter-egg schema
 

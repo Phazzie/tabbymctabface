@@ -86,8 +86,8 @@ describe('MockTabManager event history', () => {
     const events: BrowserEventName[] = [
       'TabOpened',
       'TabActivated',
-      'TabReopened',
-      'BrowserCrashed',
+      'TabClosed',
+      'PopupOpened',
     ];
     for (let index = 0; index < 21; index += 1) {
       await manager.recordBrowserEvent(events[index % events.length]);

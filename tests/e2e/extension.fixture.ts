@@ -29,6 +29,7 @@ import {
   test as base,
   type BrowserContext,
   type Page,
+  type Worker,
 } from '@playwright/test';
 import { popupSelectors } from './selectors';
 
@@ -71,17 +72,39 @@ export const test = base.extend<ExtensionFixtures>({
     await use(extensionId);
   },
 
-  popupErrors: async ({ browserName: _browserName }, use) => {
-    await use([]);
-  },
+  popupErrors: [async ({ extensionContext }, use) => {
+    const errors: string[] = [];
+    const attachedPages = new WeakSet<Page>();
+    const attachedWorkers = new WeakSet<Worker>();
+    const attachPage = (page: Page): void => {
+      if (attachedPages.has(page)) return;
+      attachedPages.add(page);
+      page.on('console', (message) => {
+        if (message.type() === 'error') errors.push(`page console: ${message.text()}`);
+      });
+      page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+    };
+    const attachWorker = (worker: Worker): void => {
+      if (attachedWorkers.has(worker)) return;
+      attachedWorkers.add(worker);
+      worker.on('console', (message) => {
+        if (message.type() === 'error') errors.push(`worker console: ${message.text()}`);
+      });
+    };
+    extensionContext.pages().forEach(attachPage);
+    extensionContext.serviceWorkers().forEach(attachWorker);
+    extensionContext.on('page', attachPage);
+    extensionContext.on('serviceworker', attachWorker);
 
-  popupPage: async ({ extensionContext, extensionId, popupErrors }, use) => {
+    await use(errors);
+
+    extensionContext.off('page', attachPage);
+    extensionContext.off('serviceworker', attachWorker);
+    expect(errors).toEqual([]);
+  }, { auto: true }],
+
+  popupPage: async ({ extensionContext, extensionId }, use) => {
     const page = await extensionContext.newPage();
-    page.on('console', (message) => {
-      if (message.type() === 'error') popupErrors.push(`console: ${message.text()}`);
-    });
-    page.on('pageerror', (error) => popupErrors.push(`pageerror: ${error.message}`));
-
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await expect(page.locator(popupSelectors.root)).toBeVisible();
     await expect(page.locator(popupSelectors.tabCount)).toHaveText(/^\d+$/u);

@@ -35,6 +35,13 @@ const ALLOWED_CONDITION_KEYS = new Set([
   'groupCount',
   'customCheck'
 ]);
+const PRODUCTION_QUIP_TRIGGERS = new Set([
+  'TabGroupCreated',
+  'FeelingLuckyClicked',
+  'TabOpened',
+  'TabClosed',
+  'ManualTrigger'
+]);
 
 describe('canonical Easter-egg data contract', () => {
   it('contains the 104 existing entries plus exactly 100 new entries', () => {
@@ -103,6 +110,10 @@ describe('canonical Easter-egg data contract', () => {
         quip.text.trim().length >= 10 && quip.text.length <= 200
       ))
     ).toBe(true);
+    expect(PASSIVE_AGGRESSIVE_QUIPS.every(quip => quip.level === 'default')).toBe(true);
+    expect(PASSIVE_AGGRESSIVE_QUIPS.every(quip => (
+      quip.triggerTypes.some(trigger => PRODUCTION_QUIP_TRIGGERS.has(trigger))
+    ))).toBe(true);
   });
 
   it('adds twenty EverQuest eggs and eight ten-entry spectrum categories', () => {

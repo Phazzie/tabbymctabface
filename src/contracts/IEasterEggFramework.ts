@@ -31,7 +31,6 @@ import { BrowserContext } from './ITabManager';
  * Packaged data is rejected if it references anything outside this contract.
  */
 export const SUPPORTED_EASTER_EGG_CUSTOM_CHECKS = [
-  'ctrl-shift-t-pressed-3x',
   'timestamp-is-unix-milestone',
   'konami-code-entered',
   'date-is-march-14',
@@ -43,9 +42,7 @@ export const SUPPORTED_EASTER_EGG_CUSTOM_CHECKS = [
   'season-is-winter',
   'duplicate-tabs-detected',
   'tab-just-closed',
-  'new-tab-opened-while-tabs-exist',
-  'tab-closed-then-reopened',
-  'browser-crashed-from-tabs'
+  'new-tab-opened-while-tabs-exist'
 ] as const;
 
 export type SupportedEasterEggCustomCheck =

@@ -20,7 +20,6 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MockChromeStorageAPI } from '../../mocks/MockChromeStorageAPI';
 import type { EasterEggData } from '../../contracts/IQuipStorage';
 import { PASSIVE_AGGRESSIVE_QUIPS } from '../quip-data';
 import {
@@ -33,7 +32,7 @@ describe('QuipStorage canonical-data implementation', () => {
   let storage: QuipStorage;
 
   beforeEach(() => {
-    storage = new QuipStorage(new MockChromeStorageAPI());
+    storage = new QuipStorage();
   });
 
   it('requires initialization before reads', async () => {
@@ -67,11 +66,12 @@ describe('QuipStorage canonical-data implementation', () => {
     expect(first.ok).toBe(true);
     if (!first.ok) return;
 
+    const originalText = first.value[0].quips[0];
     first.value[0].quips[0] = 'mutated';
     const second = await storage.getAllEasterEggQuips();
 
     expect(second.ok).toBe(true);
-    if (second.ok) expect(second.value[0].quips[0]).toBe("Don't Panic.");
+    if (second.ok) expect(second.value[0].quips[0]).toBe(originalText);
   });
 
   it('reports duplicate IDs and types instead of accepting ambiguous content', () => {
@@ -99,6 +99,7 @@ describe('QuipStorage canonical-data implementation', () => {
       conditions: {
         domainRegex: '[',
         tabCount: { min: 4, max: 2 },
+        hourRange: { start: 24, end: -1 },
         customCheck: 'made-up-check',
         madeUpCondition: true
       },
@@ -111,9 +112,24 @@ describe('QuipStorage canonical-data implementation', () => {
     expect(violations.some(value => value.includes('Unknown condition key'))).toBe(true);
     expect(violations.some(value => value.includes('Invalid domainRegex'))).toBe(true);
     expect(violations.some(value => value.includes('tabCount min must be <= max'))).toBe(true);
+    expect(violations.some(value => value.includes('hourRange.start'))).toBe(true);
+    expect(violations.some(value => value.includes('hourRange.end'))).toBe(true);
     expect(violations.some(value => value.includes('10 to 200 characters'))).toBe(true);
     expect(violations.some(value => value.includes('Invalid humor level'))).toBe(true);
     expect(violations.some(value => value.includes('Unsupported customCheck'))).toBe(true);
+  });
+
+  it('rejects unsafe count integers that cannot round-trip exactly', () => {
+    const invalid = {
+      id: 'EE-997',
+      type: 'unsafe-count',
+      conditions: { tabCount: Number.MAX_SAFE_INTEGER + 1 },
+      quips: ['This count cannot be represented safely.'],
+      level: 'default'
+    } as EasterEggData;
+
+    expect(validateEasterEggCollection([invalid]))
+      .toContain('EE-997: tabCount must be a non-negative safe integer');
   });
 
   it('enforces unique IDs/text without coupling runtime validation to a release count', () => {
@@ -143,5 +159,25 @@ describe('QuipStorage canonical-data implementation', () => {
 
     expect(validateEasterEggCollection([oneEgg])).toEqual([]);
     expect(validatePassiveAggressiveCollection(PASSIVE_AGGRESSIVE_QUIPS.slice(0, 1))).toEqual([]);
+  });
+
+  it('makes every shipped base quip retrievable through a production trigger', async () => {
+    expect((await storage.initialize()).ok).toBe(true);
+    const productionTriggers = [
+      'TabGroupCreated',
+      'FeelingLuckyClicked',
+      'TabOpened',
+      'TabClosed',
+      'ManualTrigger'
+    ];
+    const reachableIds = new Set<string>();
+
+    for (const trigger of productionTriggers) {
+      const result = await storage.getPassiveAggressiveQuips('default', trigger);
+      expect(result.ok).toBe(true);
+      if (result.ok) result.value.forEach(quip => reachableIds.add(quip.id));
+    }
+
+    expect(reachableIds).toEqual(new Set(PASSIVE_AGGRESSIVE_QUIPS.map(quip => quip.id)));
   });
 });

@@ -90,9 +90,7 @@ const browserEventNames = new Set<BrowserEventName>([
   'KonamiCodeEntered',
   'TabOpened',
   'TabClosed',
-  'TabActivated',
-  'TabReopened',
-  'BrowserCrashed'
+  'TabActivated'
 ]);
 
 export function validateRuntimeRequest(message: unknown): RuntimeRequest | null {
@@ -102,7 +100,8 @@ export function validateRuntimeRequest(message: unknown): RuntimeRequest | null 
       if (
         typeof message.groupName === 'string'
         && Array.isArray(message.tabIds)
-        && message.tabIds.every(tabId => Number.isInteger(tabId) && (tabId as number) > 0)
+        && message.tabIds.every(tabId => Number.isSafeInteger(tabId) && (tabId as number) > 0)
+        && new Set(message.tabIds).size === message.tabIds.length
       ) {
         return { action: 'createGroup', groupName: message.groupName, tabIds: message.tabIds as number[] };
       }
@@ -110,10 +109,7 @@ export function validateRuntimeRequest(message: unknown): RuntimeRequest | null 
     case 'closeRandomTab':
       if (message.options === undefined) return { action: 'closeRandomTab' };
       return isOptions(message.options) ? { action: 'closeRandomTab', options: message.options } : null;
-    case 'getAllGroups':
     case 'getCurrentTabs':
-    case 'getBrowserContext':
-    case 'getUsageStats':
     case 'getStats':
       return { action: message.action };
     case 'recordBrowserEvent':
@@ -137,14 +133,8 @@ export async function handleRuntimeRequest(
       return { result: wire(await context.tabManager.createGroup(request.groupName, request.tabIds)) };
     case 'closeRandomTab':
       return { result: wire(await context.tabManager.closeRandomTab(request.options)) };
-    case 'getAllGroups':
-      return { result: wire(await context.tabManager.getAllGroups()) };
     case 'getCurrentTabs':
       return { result: wire(await context.chromeTabsAPI.queryTabs({ currentWindow: true })) };
-    case 'getBrowserContext':
-      return { result: wire(await context.tabManager.getBrowserContext()) };
-    case 'getUsageStats':
-      return { result: wire(await context.usageStats.get()) };
     case 'getStats': {
       const [browser, usage] = await Promise.all([
         context.tabManager.getBrowserContext(),
@@ -152,7 +142,18 @@ export async function handleRuntimeRequest(
       ]);
       if (!browser.ok) return { result: wire(browser) };
       if (!usage.ok) return { result: wire(usage) };
-      return { result: { ok: true, value: { browser: browser.value, usage: usage.value } } };
+      return {
+        result: {
+          ok: true,
+          value: {
+            browser: {
+              tabCount: browser.value.tabCount,
+              groupCount: browser.value.groupCount
+            },
+            usage: usage.value
+          }
+        }
+      };
     }
     case 'recordBrowserEvent':
       await context.tabManager.recordBrowserEvent(request.event);
@@ -183,26 +184,13 @@ export function registerBackgroundListeners(
     await context.chromeNotificationsAPI.create({
       type: 'basic',
       title: 'TabbyMcTabface Installed',
-      message: 'Your tab chaos is now under skeptical wombat supervision. Use the popup or the Lucky shortcut.',
+      message: 'Your tab chaos is now under skeptical wombat supervision. Open the popup to get started.',
       iconUrl: 'icons/icon128.png'
     });
   });
 
   chromeApi.commands.onCommand.addListener(async command => {
-    const context = await getInitializedContext(ensure);
-    if (!context || command !== 'feeling_lucky') return;
-    const result = await context.tabManager.closeRandomTab();
-    if (!result.ok) {
-      const notification = await context.chromeNotificationsAPI.create({
-        type: 'basic',
-        title: 'TabbyMcTabface',
-        message: result.error.details,
-        iconUrl: 'icons/icon128.png'
-      });
-      if (!notification.ok) {
-        console.error('[TabbyMcTabface] Failed to report Lucky shortcut error', notification.error);
-      }
-    }
+    if (command === '_execute_action') await getInitializedContext(ensure);
   });
 
   chromeApi.tabs.onCreated.addListener(async () => {
@@ -218,7 +206,11 @@ export function registerBackgroundListeners(
     if (context) await context.tabManager.recordBrowserEvent('TabActivated');
   });
 
-  chromeApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  chromeApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (typeof chromeApi.runtime.id === 'string' && sender.id !== chromeApi.runtime.id) {
+      sendResponse(invalid('Messages are accepted only from this extension'));
+      return false;
+    }
     void (async () => {
       const context = await getInitializedContext(ensure);
       if (!context) {

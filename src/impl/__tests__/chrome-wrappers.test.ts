@@ -124,20 +124,29 @@ describe('Chrome wrappers', () => {
 
   it('rejects invalid IDs and maps tab, group, permission, and generic failures', async () => {
     const api = new ChromeTabsAPI();
-    expect((await api.createGroup([])).ok).toBe(false);
-    expect((await api.createGroup([1], -1)).ok).toBe(false);
-    expect((await api.updateGroup(-1, {})).ok).toBe(false);
-    expect((await api.removeTab(0)).ok).toBe(false);
-    expect((await api.ungroupTabs([])).ok).toBe(false);
+    const emptyGroup = await api.createGroup([]);
+    const invalidExistingGroup = await api.createGroup([1], -1);
+    const invalidUpdateGroup = await api.updateGroup(-1, {});
+    const invalidTab = await api.removeTab(0);
+    const emptyUngroup = await api.ungroupTabs([]);
+    expect(!emptyGroup.ok && emptyGroup.error.type).toBe('ChromeAPIFailure');
+    expect(!invalidExistingGroup.ok && invalidExistingGroup.error.type).toBe('InvalidGroupId');
+    expect(!invalidUpdateGroup.ok && invalidUpdateGroup.error.type).toBe('InvalidGroupId');
+    expect(!invalidTab.ok && invalidTab.error.type).toBe('InvalidTabId');
+    expect(!emptyUngroup.ok && emptyUngroup.error.type).toBe('ChromeAPIFailure');
 
     removeTab.mockRejectedValueOnce(new Error('No tab with id: 8'));
-    expect((await api.removeTab(8)).ok).toBe(false);
+    const missingTab = await api.removeTab(8);
+    expect(!missingTab.ok && missingTab.error.type).toBe('InvalidTabId');
     updateGroup.mockRejectedValueOnce(new Error('No group with id: 4'));
-    expect((await api.updateGroup(4, {})).ok).toBe(false);
+    const missingGroup = await api.updateGroup(4, {});
+    expect(!missingGroup.ok && missingGroup.error.type).toBe('InvalidGroupId');
     query.mockRejectedValueOnce(new Error('Permission denied'));
-    expect((await api.queryTabs({})).ok).toBe(false);
+    const deniedTabs = await api.queryTabs({});
+    expect(!deniedTabs.ok && deniedTabs.error.type).toBe('PermissionDenied');
     queryGroups.mockRejectedValueOnce(new Error('unexpected'));
-    expect((await api.getAllGroups()).ok).toBe(false);
+    const groupFailure = await api.getAllGroups();
+    expect(!groupFailure.ok && groupFailure.error.type).toBe('ChromeAPIFailure');
   });
 
   it('validates notification input and maps notification errors', async () => {
@@ -152,11 +161,14 @@ describe('Chrome wrappers', () => {
     expect((await api.update('', { title: 'title', message: 'message' })).ok).toBe(false);
 
     createNotification.mockRejectedValueOnce(new Error('Permission denied'));
-    expect((await api.create({ title: 'title', message: 'message' })).ok).toBe(false);
+    const denied = await api.create({ title: 'title', message: 'message' });
+    expect(!denied.ok && denied.error.type).toBe('PermissionDenied');
     clearNotification.mockRejectedValueOnce(new Error('notification not found'));
-    expect((await api.clear('missing')).ok).toBe(false);
+    const missing = await api.clear('missing');
+    expect(!missing.ok && missing.error.type).toBe('InvalidNotificationId');
     updateNotification.mockRejectedValueOnce(new Error('unexpected'));
-    expect((await api.update('id', { title: 'title', message: 'message' })).ok).toBe(false);
+    const updateFailure = await api.update('id', { title: 'title', message: 'message' });
+    expect(!updateFailure.ok && updateFailure.error.type).toBe('ChromeAPIFailure');
   });
 
   it('classifies promise rejections before an unrelated runtime.lastError', async () => {
@@ -165,12 +177,15 @@ describe('Chrome wrappers', () => {
     };
     removeTab.mockRejectedValueOnce(new Error('No tab with id: 8'));
     clearNotification.mockRejectedValueOnce(new Error('notification not found'));
+    storageGet.mockRejectedValueOnce(new Error('QUOTA_BYTES quota'));
 
     const tabResult = await new ChromeTabsAPI().removeTab(8);
     const notificationResult = await new ChromeNotificationsAPI().clear('missing');
+    const storageResult = await new ChromeStorageAPI().get(null);
 
     expect(!tabResult.ok && tabResult.error.type).toBe('InvalidTabId');
     expect(!notificationResult.ok && notificationResult.error.type).toBe('InvalidNotificationId');
+    expect(!storageResult.ok && storageResult.error.type).toBe('QuotaExceeded');
   });
 
   it('covers storage operations, serialization validation, and error mapping', async () => {
@@ -184,17 +199,23 @@ describe('Chrome wrappers', () => {
 
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
-    expect((await api.set({ cyclic })).ok).toBe(false);
+    const invalidData = await api.set({ cyclic });
+    expect(!invalidData.ok && invalidData.error.type).toBe('InvalidData');
 
     storageGet.mockRejectedValueOnce(new Error('Permission denied'));
-    expect((await api.get(null)).ok).toBe(false);
+    const denied = await api.get(null);
+    expect(!denied.ok && denied.error.type).toBe('PermissionDenied');
     storageSet.mockRejectedValueOnce(new Error('QUOTA_BYTES quota'));
-    expect((await api.set({ value: 1 })).ok).toBe(false);
+    const quota = await api.set({ value: 1 });
+    expect(!quota.ok && quota.error.type).toBe('QuotaExceeded');
     storageRemove.mockRejectedValueOnce(new Error('unexpected'));
-    expect((await api.remove('value')).ok).toBe(false);
+    const removeFailure = await api.remove('value');
+    expect(!removeFailure.ok && removeFailure.error.type).toBe('ChromeAPIFailure');
     storageClear.mockRejectedValueOnce(new Error('unexpected'));
-    expect((await api.clear()).ok).toBe(false);
+    const clearFailure = await api.clear();
+    expect(!clearFailure.ok && clearFailure.error.type).toBe('ChromeAPIFailure');
     getBytesInUse.mockRejectedValueOnce(new Error('unexpected'));
-    expect((await api.getBytesInUse(null)).ok).toBe(false);
+    const bytesFailure = await api.getBytesInUse(null);
+    expect(!bytesFailure.ok && bytesFailure.error.type).toBe('ChromeAPIFailure');
   });
 });

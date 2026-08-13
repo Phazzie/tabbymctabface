@@ -11,7 +11,7 @@ TabbyMcTabface is a bundled Chrome Manifest V3 extension. Chrome must load the g
 Install the locked dependency graph:
 
 ```bash
-npm ci
+npm ci --ignore-scripts
 ```
 
 ## Quality gates
@@ -28,17 +28,19 @@ Individual gates are available when diagnosing a failure:
 npm run typecheck
 npm run lint
 npm run test:unit
+npm run test:contracts
 npm run test:integration
 npm run test:coverage
 npm run build
 npm run test:smoke
 npm run test:e2e
+npm run audit
 ```
 
 Install Playwright's pinned browser if the E2E gate reports that it is missing:
 
 ```bash
-npx playwright install chromium
+./node_modules/.bin/playwright install chromium
 ```
 
 ## Build output
@@ -90,7 +92,7 @@ Do not load the source repository root.
 
 ## Release automation
 
-Pull requests and pushes run the CI workflow on Node 20 and 22. It typechecks, lints, runs unit/integration/coverage tests, builds, validates and packages the artifact, then runs Chromium extension tests. The ZIP and reports are retained as workflow artifacts.
+Pull requests and pushes run the CI workflow on Node 20 and 22. It typechecks, lints, reports contract examples separately from executable unit tests, runs integration/coverage tests, builds, validates and packages the artifact, audits the dependency tree, then runs Chromium extension tests without automatic retries. The ZIP and reports are retained as workflow artifacts.
 
 A `v*` tag reruns the release gates, generates a SHA-256 checksum, and creates a GitHub Release with the validated ZIP. Chrome Web Store submission remains manual until the owner configures a store item ID and publishing credentials.
 

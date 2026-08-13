@@ -145,7 +145,7 @@
     "id": "EE-061",
     "type": "heat-death-universe",
     "conditions": {
-      "tabCount": 0
+      "tabCount": 256
     },
     "quips": [
       "Maximum entropy achieved. The universe is now in a state of heat death."
@@ -771,10 +771,10 @@
     "type": "princess-bride-inconceivable",
     "conditions": {
       "tabCount": 3,
-      "customCheck": "ctrl-shift-t-pressed-3x"
+      "customCheck": "rapid-tab-opening"
     },
     "quips": [
-      "Inconceivable! That tab means what you think it means."
+      "Inconceivable! Three tabs opened that quickly means exactly what you think it means."
     ],
     "level": "default",
     "metadata": {
@@ -1437,10 +1437,11 @@
     "id": "EE-148",
     "type": "gandalf-tabs",
     "conditions": {
-      "tabCount": 0
+      "tabCount": 1,
+      "customCheck": "tab-just-closed"
     },
     "quips": [
-      "YOU SHALL NOT PASS! Wait, you closed them all? Impressive."
+      "YOU SHALL NOT PASS into a second tab. One remains, and the bridge is closed."
     ],
     "level": "intense",
     "metadata": {
@@ -1543,10 +1544,11 @@
     "id": "EE-155",
     "type": "roll-safe",
     "conditions": {
-      "tabCount": 0
+      "tabCount": 2,
+      "customCheck": "tab-just-closed"
     },
     "quips": [
-      "Can't have too many tabs if you have no tabs. *taps head*"
+      "Can't have too many tabs if you keep closing them. *taps head*"
     ],
     "level": "intense",
     "metadata": {
@@ -1603,10 +1605,11 @@
     "id": "EE-159",
     "type": "tab-drake",
     "conditions": {
-      "customCheck": "tab-closed-then-reopened"
+      "tabCount": 5,
+      "customCheck": "tab-just-closed"
     },
     "quips": [
-      "Drake: ❌ Keeping tabs open. Drake: ✅ Closing tabs, immediately reopening same tabs."
+      "Drake: ❌ Keeping every tab open. Drake: ✅ Closing one and pretending five is restraint."
     ],
     "level": "default",
     "metadata": {

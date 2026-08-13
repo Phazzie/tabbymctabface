@@ -38,7 +38,7 @@ Requirements: Node.js 20 or 22 and npm 10 or newer.
 ```bash
 git clone https://github.com/Phazzie/tabbymctabface.git
 cd tabbymctabface
-npm ci
+npm ci --ignore-scripts
 npm run verify
 ```
 
@@ -48,18 +48,20 @@ Useful gates:
 npm run typecheck          # strict TypeScript contracts
 npm run lint               # source and test linting
 npm run test:unit          # focused module tests
+npm run test:contracts     # shape/type contract examples, reported separately
 npm run test:integration   # multi-component tests with Chrome fakes
 npm run test:coverage      # coverage thresholds
 npm run build              # bundled MV3 extension in dist/
 npm run test:smoke         # static package/installability checks
 npm run test:e2e           # persistent-Chromium extension flows
 npm run package            # validated Chrome Web Store ZIP
+npm run audit              # moderate-or-higher dependency audit
 ```
 
 The first local browser run may need:
 
 ```bash
-npx playwright install chromium
+./node_modules/.bin/playwright install chromium
 ```
 
 Never commit `dist/`, Playwright profiles, coverage output, or release ZIPs.
@@ -109,7 +111,7 @@ See [BUILD.md](./BUILD.md) for artifact details, [docs/USER_GUIDE.md](./docs/USE
 | `tabs` | List and operate on tabs in the current window and derive temporary quip context. |
 | `tabGroups` | Create, name, inspect, and count tab groups. |
 | `notifications` | Show action results and quips. |
-| `storage` | Persist non-identifying counters and preferences locally. |
+| `storage` | Persist non-identifying counters locally. |
 
 Tab URLs and titles are not persisted or transmitted. Read the full [privacy policy](./PRIVACY.md), [security policy](./SECURITY.md), and [support guide](./SUPPORT.md).
 

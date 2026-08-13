@@ -57,9 +57,9 @@ test('Feeling Lucky closes one eligible tab in the isolated browser profile', as
 
 test('Konami input crosses the event seam and delivers its exact easter egg', async ({ popupPage }) => {
   const readQuipCount = () => popupPage.evaluate(async () => {
-    const response = await chrome.runtime.sendMessage({ action: 'getUsageStats' });
+    const response = await chrome.runtime.sendMessage({ action: 'getStats' });
     if (!response?.result?.ok) throw new Error('Could not read usage stats');
-    return response.result.value.quipsDelivered as number;
+    return response.result.value.usage.quipsDelivered as number;
   });
   const before = await readQuipCount();
 

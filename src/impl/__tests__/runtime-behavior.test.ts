@@ -3,7 +3,12 @@
  *
  * WHAT: Tests current-window tab operations, context freshness, and awaited humor delivery.
  * WHY: A tab action must never mutate another window or outlive its MV3 event promise.
- * SEAMS: TabManager -> ChromeTabs/Humor/UsageStats (SEAM-02, SEAM-09, SEAM-33)
+ * HOW DATA FLOWS:
+ *   1. Browser-like tab state enters TabManager through SEAM-02.
+ *   2. Context, humor, and usage Results return through SEAM-09/33.
+ * SEAMS:
+ *   IN: Chrome API doubles -> TabManager (SEAM-02)
+ *   OUT: TabManager -> humor and usage stores (SEAM-09, SEAM-33)
  * CONTRACT: ITabManager v1.1.0
  * GENERATED: 2026-08-12
  */
@@ -12,7 +17,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { TabManager } from '../TabManager';
 import {
   MockChromeNotificationsAPI,
-  MockChromeStorageAPI,
   MockChromeTabsAPI,
   createMockTabs
 } from './test-helpers';
@@ -23,8 +27,37 @@ import { EasterEggFramework } from '../EasterEggFramework';
 import { HumorSystem } from '../HumorSystem';
 import type { ChromeAPIError } from '../../contracts/IChromeTabsAPI';
 import type { HumorError, QuipDeliveryResult } from '../../contracts/IHumorSystem';
+import type { IUsageStatsStore, UsageStatsError } from '../../contracts/IUsageStats';
 
 describe('TabManager runtime behavior', () => {
+  it('serializes overlapping tab mutations', async () => {
+    const tabs = new MockChromeTabsAPI(createMockTabs(4));
+    expect((await tabs.createGroup([1, 2])).ok).toBe(true);
+    const originalQuery = tabs.queryTabs.bind(tabs);
+    let releaseFirstQuery!: () => void;
+    let firstQueryBlocked = true;
+    tabs.queryTabs = vi.fn(async query => {
+      if (firstQueryBlocked && query.groupId === 1) {
+        firstQueryBlocked = false;
+        await new Promise<void>(resolve => { releaseFirstQuery = resolve; });
+      }
+      return originalQuery(query);
+    });
+    const manager = new TabManager(tabs, new MockHumorSystem());
+
+    const first = manager.updateGroup(1, { tabIds: [1, 3] });
+    await vi.waitFor(() => expect(releaseFirstQuery).toBeTypeOf('function'));
+    const second = manager.updateGroup(1, { tabIds: [2, 4] });
+    await Promise.resolve();
+    expect(tabs.queryTabs).toHaveBeenCalledTimes(1);
+    releaseFirstQuery();
+    expect((await first).ok).toBe(true);
+    expect((await second).ok).toBe(true);
+
+    const finalTabs = await tabs.queryTabs({ currentWindow: true, groupId: 1 });
+    expect(finalTabs.ok && finalTabs.value.map(tab => tab.id).sort()).toEqual([2, 4]);
+  });
+
   it('queries only the current window before Feeling Lucky closes a tab', async () => {
     const tabs = new MockChromeTabsAPI(createMockTabs(2));
     const manager = new TabManager(tabs, new MockHumorSystem());
@@ -55,7 +88,7 @@ describe('TabManager runtime behavior', () => {
     expect(result.ok).toBe(true);
     expect(notifications.createCalls).toHaveLength(2);
     expect(notifications.createCalls[1].options.title).toBe('Skeptical Wombat found something');
-    expect(notifications.createCalls[1].options.message).toContain('Press F to pay respects');
+    expect(notifications.createCalls[1].options.message).toContain('YOU SHALL NOT PASS');
   });
 
   it('invalidates cached context after recording or mutating browser state', async () => {
@@ -70,9 +103,38 @@ describe('TabManager runtime behavior', () => {
     expect(context.ok && context.value.recentEvents).toContain('TabOpened');
   });
 
+  it('discards a late browser snapshot after an intervening tab event', async () => {
+    const tabs = new MockChromeTabsAPI(createMockTabs(1));
+    const originalQuery = tabs.queryTabs.bind(tabs);
+    let releaseSnapshot!: () => void;
+    let holdFirstSnapshot = true;
+    tabs.queryTabs = vi.fn(async query => {
+      const snapshot = await originalQuery(query);
+      if (holdFirstSnapshot && query.currentWindow) {
+        holdFirstSnapshot = false;
+        await new Promise<void>(resolve => { releaseSnapshot = resolve; });
+      }
+      return snapshot;
+    });
+    const manager = new TabManager(tabs, new MockHumorSystem());
+
+    const pendingContext = manager.getBrowserContext();
+    await vi.waitFor(() => expect(releaseSnapshot).toBeTypeOf('function'));
+    tabs.addTab({ ...createMockTabs(1)[0], id: 2, index: 1, active: false });
+    await manager.recordBrowserEvent('TabOpened');
+    releaseSnapshot();
+
+    const refreshed = await pendingContext;
+    expect(refreshed.ok && refreshed.value.tabCount).toBe(2);
+    expect(tabs.queryTabs).toHaveBeenCalledTimes(2);
+    const cached = await manager.getBrowserContext();
+    expect(cached.ok && cached.value).toBe(refreshed.ok ? refreshed.value : null);
+    expect(tabs.queryTabs).toHaveBeenCalledTimes(2);
+  });
+
   it('evaluates and delivers an event-only easter egg after recording the event', async () => {
     const tabs = new MockChromeTabsAPI(createMockTabs(2));
-    const storage = new QuipStorage(new MockChromeStorageAPI());
+    const storage = new QuipStorage();
     expect((await storage.initialize()).ok).toBe(true);
     const framework = new EasterEggFramework(storage, () => 0);
     expect((await framework.initialize()).ok).toBe(true);
@@ -100,7 +162,7 @@ describe('TabManager runtime behavior', () => {
       url: 'https://stackoverflow.com/questions/typescript',
       title: 'TypeScript Questions - Stack Overflow'
     }));
-    const storage = new QuipStorage(new MockChromeStorageAPI());
+    const storage = new QuipStorage();
     expect((await storage.initialize()).ok).toBe(true);
     const framework = new EasterEggFramework(storage, () => 0);
     expect((await framework.initialize()).ok).toBe(true);
@@ -165,6 +227,28 @@ describe('TabManager runtime behavior', () => {
     expect(result.ok && result.value.currentMinute).toBeTypeOf('number');
     expect(result.ok && result.value.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.ok && result.value.tabUrls).toHaveLength(4);
+  });
+
+  it('derives the exact local calendar fields used by date-based eggs', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 2, 14, 23, 7, 0));
+      const manager = new TabManager(
+        new MockChromeTabsAPI(createMockTabs(1)),
+        new MockHumorSystem()
+      );
+
+      const result = await manager.getBrowserContext();
+
+      expect(result.ok && result.value).toMatchObject({
+        currentDate: '2026-03-14',
+        currentMonth: 3,
+        currentHour: 23,
+        currentMinute: 7
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('rejects selected tabs outside the current window before creating a group', async () => {
@@ -266,5 +350,37 @@ describe('TabManager runtime behavior', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.details).toBe('There are no tabs to close');
+  });
+
+  it('logs Result failures from non-blocking humor and statistics side effects', async () => {
+    const tabs = new MockChromeTabsAPI(createMockTabs(2));
+    const humor = new MockHumorSystem();
+    humor.deliverQuip = vi.fn(async () => Result.error<HumorError>({
+      type: 'DeliveryFailed',
+      details: 'notification failed',
+      deliveryMethod: 'notification'
+    }));
+    const usageStats = {
+      increment: vi.fn(async () => Result.error<UsageStatsError>({
+        type: 'StorageWriteFailed',
+        details: 'storage failed',
+        originalError: null
+      }))
+    } as unknown as IUsageStatsStore;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const manager = new TabManager(tabs, humor, usageStats);
+
+    const result = await manager.createGroup('Work', [1]);
+
+    expect(result.ok).toBe(true);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Usage statistics update failed'),
+      expect.objectContaining({ type: 'StorageWriteFailed' })
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Humor delivery failed'),
+      expect.objectContaining({ type: 'DeliveryFailed' })
+    );
+    warn.mockRestore();
   });
 });

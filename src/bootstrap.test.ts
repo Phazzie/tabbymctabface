@@ -3,7 +3,12 @@
  *
  * WHAT: Tests idempotent MV3 dependency initialization.
  * WHY: Concurrent cold-worker events must share one initialization promise.
- * SEAMS: Chrome lifecycle -> bootstrap context (SEAM-32)
+ * HOW DATA FLOWS:
+ *   1. Test factories enter the bootstrap cache through SEAM-32.
+ *   2. Initialization Results and cached contexts return to event callers.
+ * SEAMS:
+ *   IN: Test factories -> bootstrap cache (SEAM-32)
+ *   OUT: Bootstrap cache -> initialized extension context (SEAM-32)
  * CONTRACT: Extension bootstrap v1.1.0
  * GENERATED: 2026-08-12
  */
@@ -13,6 +18,8 @@ import {
   cleanupExtension,
   ensureInitialized,
   getExtensionContext,
+  initializeExtension,
+  isInitialized,
   type ExtensionContext,
   type InitializationResult
 } from './bootstrap';
@@ -20,6 +27,38 @@ import { Result } from './utils/Result';
 
 describe('bootstrap cold-worker initialization', () => {
   afterEach(() => cleanupExtension());
+
+  it('constructs the real production dependency graph and caches it through the sole owner', async () => {
+    expect(isInitialized()).toBe(false);
+
+    const initialized = await ensureInitialized();
+
+    expect(initialized.ok).toBe(true);
+    if (!initialized.ok) return;
+    expect(isInitialized()).toBe(true);
+    expect(getExtensionContext()).toBe(initialized.value);
+    expect(initialized.value).toMatchObject({
+      tabManager: expect.any(Object),
+      humorSystem: expect.any(Object),
+      easterEggFramework: expect.any(Object),
+      quipStorage: expect.any(Object),
+      chromeTabsAPI: expect.any(Object),
+      chromeNotificationsAPI: expect.any(Object),
+      chromeStorageAPI: expect.any(Object),
+      usageStats: expect.any(Object)
+    });
+
+    const cached = await ensureInitialized();
+    expect(cached.ok && cached.value).toBe(initialized.value);
+  });
+
+  it('keeps initializeExtension pure when called directly', async () => {
+    const initialized = await initializeExtension();
+
+    expect(initialized.ok).toBe(true);
+    expect(getExtensionContext()).toBeNull();
+    expect(isInitialized()).toBe(false);
+  });
 
   it('shares one in-flight initialization across simultaneous events', async () => {
     const context = {} as ExtensionContext;

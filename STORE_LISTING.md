@@ -41,7 +41,7 @@ One hint for egg hunters: 42 is still a very good answer.
 
 **`notifications`:** Required to show the quip or completion message after an explicit action.
 
-**`storage`:** Required to persist non-identifying local counters and preferences. Browsing history, tab URLs, and tab titles are not stored.
+**`storage`:** Required to persist non-identifying local counters. Browsing history, tab URLs, and tab titles are not stored.
 
 **Remote code:** None. All executable code ships in the extension package.
 

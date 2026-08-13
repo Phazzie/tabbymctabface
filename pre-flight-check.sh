@@ -21,7 +21,7 @@ fi
 echo "Running the TabbyMcTabface release gate with Node $(node --version)..."
 npm run verify
 
-echo "Checking production dependencies..."
-npm audit --omit=dev
+echo "Building the deterministic release archive..."
+npm run package
 
-echo "Pre-flight complete: tests, build, package, browser smoke, and production audit passed."
+echo "Pre-flight complete: tests, build, package, browser smoke, and dependency audit passed."

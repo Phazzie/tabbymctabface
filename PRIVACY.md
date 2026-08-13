@@ -10,7 +10,7 @@ TabbyMcTabface does not collect, transmit, sell, or share personal data. It has 
 
 The extension temporarily reads open-tab metadata—such as title, URL, active state, pinned state, window, and group—to show the current-window tab picker, protect active and pinned tabs, calculate local statistics, and choose context-aware quips. This metadata is not persisted or sent anywhere.
 
-The extension stores small local counters and preferences, such as the number of quips delivered and actions completed, in `chrome.storage.local`. It does not store browsing history or the titles and URLs of your tabs. Removing the extension deletes this local extension storage through Chrome.
+The extension stores only small local usage counters, such as the number of quips delivered and actions completed, in `chrome.storage.local`. It does not store browsing history or the titles and URLs of your tabs. Removing the extension deletes this local extension storage through Chrome.
 
 ## Permission use
 
@@ -19,7 +19,7 @@ The extension stores small local counters and preferences, such as the number of
 | `tabs` | List the current window's tabs, group selected tabs, close the confirmed eligible tab, and evaluate on-device context for quips. |
 | `tabGroups` | Create, name, inspect, and count Chrome tab groups. |
 | `notifications` | Display the quip or result of a completed tab action. |
-| `storage` | Keep local, non-identifying usage counters and preferences between browser sessions. |
+| `storage` | Keep local, non-identifying usage counters between browser sessions. |
 
 TabbyMcTabface requests no host permissions, injects no content scripts, and cannot read page contents.
 

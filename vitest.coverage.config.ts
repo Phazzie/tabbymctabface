@@ -22,6 +22,7 @@ export default defineConfig({
   test: {
     ...commonTestConfig,
     include: ['src/**/*.test.ts'],
+    exclude: ['src/contracts/__tests__/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
@@ -38,6 +39,12 @@ export default defineConfig({
         functions: 80,
         statements: 76,
         branches: 70,
+        'src/background.ts': { statements: 78, branches: 65, functions: 95, lines: 80 },
+        'src/bootstrap.ts': { statements: 85, branches: 75, functions: 85, lines: 88 },
+        'src/impl/EasterEggFramework.ts': { statements: 89, branches: 86, functions: 96, lines: 89 },
+        'src/impl/HumorSystem.ts': { statements: 85, branches: 76, functions: 93, lines: 86 },
+        'src/impl/TabManager.ts': { statements: 84, branches: 69, functions: 97, lines: 85 },
+        'src/ui/popup.ts': { statements: 82, branches: 68, functions: 82, lines: 85 },
       },
     },
   },

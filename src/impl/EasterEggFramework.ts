@@ -67,10 +67,32 @@ const DIFFICULTY_WEIGHTS: Record<NonNullable<Difficulty>, number> = {
   legendary: 1
 };
 
+function cloneConditions(conditions: EasterEggConditions): EasterEggConditions {
+  return {
+    ...conditions,
+    tabCount: typeof conditions.tabCount === 'object' && conditions.tabCount !== null
+      ? { ...conditions.tabCount }
+      : conditions.tabCount,
+    groupCount: typeof conditions.groupCount === 'object' && conditions.groupCount !== null
+      ? { ...conditions.groupCount }
+      : conditions.groupCount,
+    hourRange: conditions.hourRange ? { ...conditions.hourRange } : undefined
+  };
+}
+
+function cloneDefinition(definition: EasterEggDefinition): EasterEggDefinition {
+  return {
+    ...definition,
+    conditions: cloneConditions(definition.conditions),
+    metadata: definition.metadata ? { ...definition.metadata } : undefined
+  };
+}
+
 /** Real IEasterEggFramework implementation. */
 export class EasterEggFramework implements IEasterEggFramework {
   private easterEggs: EasterEggDefinition[] = [];
   private readonly easterEggMap = new Map<string, EasterEggDefinition>();
+  private readonly domainRegexCache = new Map<string, RegExp>();
   private initialized = false;
   private loadPromise: Promise<Result<void, EasterEggError>> | null = null;
 
@@ -127,8 +149,8 @@ export class EasterEggFramework implements IEasterEggFramework {
         id: egg.id,
         type: egg.type,
         priority: calculateConditionSpecificity(egg.conditions),
-        conditions: egg.conditions,
-        metadata: egg.metadata
+        conditions: cloneConditions(egg.conditions),
+        metadata: egg.metadata ? { ...egg.metadata } : undefined
       };
       definitions.push(definition);
       definitionsById.set(definition.id, definition);
@@ -218,7 +240,9 @@ export class EasterEggFramework implements IEasterEggFramework {
 
     const storedDefinition: EasterEggDefinition = {
       ...definition,
-      priority: calculateConditionSpecificity(definition.conditions)
+      priority: calculateConditionSpecificity(definition.conditions),
+      conditions: cloneConditions(definition.conditions),
+      metadata: definition.metadata ? { ...definition.metadata } : undefined
     };
     this.easterEggMap.set(storedDefinition.id, storedDefinition);
     this.easterEggs.push(storedDefinition);
@@ -235,13 +259,14 @@ export class EasterEggFramework implements IEasterEggFramework {
         details: 'EasterEggFramework not initialized'
       });
     }
-    return Result.ok([...this.easterEggs]);
+    return Result.ok(this.easterEggs.map(cloneDefinition));
   }
 
   /** Clear runtime definitions for isolation in tests. */
   clearAll(): void {
     this.easterEggs = [];
     this.easterEggMap.clear();
+    this.domainRegexCache.clear();
     this.initialized = false;
     this.loadPromise = null;
   }
@@ -319,7 +344,20 @@ export class EasterEggFramework implements IEasterEggFramework {
     if (!context.activeTab) return Result.ok(false);
 
     try {
-      if (!new RegExp(conditions.domainRegex, 'i').test(context.activeTab.domain)) {
+      let regex = this.domainRegexCache.get(conditions.domainRegex);
+      if (!regex) {
+        regex = new RegExp(conditions.domainRegex, 'i');
+        this.domainRegexCache.set(conditions.domainRegex, regex);
+      }
+      const match = regex.exec(context.activeTab.domain);
+      const startsAtHostnameBoundary = Boolean(match) && (
+        match!.index === 0
+        || match![0].startsWith('.')
+        || context.activeTab.domain[match!.index - 1] === '.'
+      );
+      const endsAtHostnameBoundary = Boolean(match)
+        && match!.index + match![0].length === context.activeTab.domain.length;
+      if (!match || !startsAtHostnameBoundary || !endsAtHostnameBoundary) {
         return Result.ok(false);
       }
     } catch (error) {
@@ -441,8 +479,6 @@ function evaluateCustomPredicate(identifier: string, context: BrowserContext): b
   const extended = context as ExtendedBrowserContext;
 
   switch (identifier) {
-    case 'ctrl-shift-t-pressed-3x':
-      return countEvents(context, 'TabReopened', 'CtrlShiftTPressed') >= 3;
     case 'timestamp-is-unix-milestone': {
       const timestamp = extended.currentTimestamp;
       return typeof timestamp === 'number'
@@ -480,13 +516,6 @@ function evaluateCustomPredicate(identifier: string, context: BrowserContext): b
       return eventIndex(context, 'TabClosed') === 0;
     case 'new-tab-opened-while-tabs-exist':
       return context.tabCount > 1 && eventIndex(context, 'TabOpened') === 0;
-    case 'tab-closed-then-reopened': {
-      const reopenedIndex = eventIndex(context, 'TabReopened');
-      const closedIndex = eventIndex(context, 'TabClosed');
-      return reopenedIndex >= 0 && closedIndex > reopenedIndex;
-    }
-    case 'browser-crashed-from-tabs':
-      return context.tabCount >= 200 && countEvents(context, 'BrowserCrashed') > 0;
     default:
       return false;
   }
@@ -496,7 +525,10 @@ function evaluateCustomPredicate(identifier: string, context: BrowserContext): b
 export function calculateConditionSpecificity(conditions: EasterEggConditions): number {
   let score = 0;
   score += countConditionSpecificity(conditions.tabCount, 40);
-  score += countConditionSpecificity(conditions.groupCount, 35);
+  // A group count is as structurally discriminating as a tab count. Giving it
+  // a lower base score made group-only rules impossible whenever a broad tab
+  // rule also matched the live browser context.
+  score += countConditionSpecificity(conditions.groupCount, 40);
   if (conditions.domainRegex !== undefined) score += 30;
   if (conditions.titleContains !== undefined) score += 25;
   if (conditions.urlContains !== undefined) score += 25;
@@ -567,9 +599,9 @@ function validateCountCondition(
 ): string[] {
   if (condition === undefined) return [];
   if (typeof condition === 'number') {
-    return Number.isFinite(condition) && Number.isInteger(condition) && condition >= 0
+    return Number.isSafeInteger(condition) && condition >= 0
       ? []
-      : [`${name} must be a non-negative finite integer`];
+      : [`${name} must be a non-negative safe integer`];
   }
 
   const violations: string[] = [];
@@ -577,8 +609,8 @@ function validateCountCondition(
     violations.push(`${name} range must define min or max`);
   }
   for (const [endpoint, value] of [['min', condition.min], ['max', condition.max]] as const) {
-    if (value !== undefined && (!Number.isFinite(value) || !Number.isInteger(value) || value < 0)) {
-      violations.push(`${name}.${endpoint} must be a non-negative finite integer`);
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
+      violations.push(`${name}.${endpoint} must be a non-negative safe integer`);
     }
   }
   if (condition.min !== undefined && condition.max !== undefined && condition.min > condition.max) {

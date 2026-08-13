@@ -25,13 +25,7 @@ import {
   HumorError,
   HumorTrigger,
   IHumorSystem,
-  Observable,
-  QuipDeliveryResult,
-  QuipNotification,
-  Subscription,
-  TabEvent,
-  TabEventType,
-  UnsubscribeFn
+  QuipDeliveryResult
 } from '../contracts/IHumorSystem';
 import {
   type IEasterEggFramework,
@@ -52,7 +46,7 @@ export type BrowserContextProvider = () => Promise<Result<BrowserContext, TabMan
 type SelectedQuip = { quipText: string; isEasterEgg: boolean; easterEggId: string | null };
 
 export class HumorSystem implements IHumorSystem {
-  private humorLevel: HumorLevel = 'default';
+  private readonly humorLevel: HumorLevel = 'default';
   private lastDeliveryTimestamp = 0;
   private lastDeliveredEasterEggId: string | null = null;
   private deliveryQueue: Promise<void> = Promise.resolve();
@@ -61,8 +55,6 @@ export class HumorSystem implements IHumorSystem {
   private readonly recentQuips = new Set<string>();
   private readonly recentQuipsList: string[] = [];
   private readonly maxRecentQuips = 10;
-  private readonly notificationObservers: Array<(value: QuipNotification) => void> = [];
-  private readonly eventHandlers = new Map<TabEventType, Array<(event: TabEvent) => void>>();
   private browserContextProvider?: BrowserContextProvider;
 
   constructor(
@@ -77,18 +69,6 @@ export class HumorSystem implements IHumorSystem {
     this.minDeliveryInterval = options.minDeliveryIntervalMs ?? 5000;
     this.random = options.random ?? Math.random;
   }
-
-  notifications$: Observable<QuipNotification> = {
-    subscribe: (observer: (value: QuipNotification) => void): Subscription => {
-      this.notificationObservers.push(observer);
-      return {
-        unsubscribe: () => {
-          const index = this.notificationObservers.indexOf(observer);
-          if (index >= 0) this.notificationObservers.splice(index, 1);
-        }
-      };
-    }
-  };
 
   setBrowserContextProvider(provider: BrowserContextProvider): void {
     this.browserContextProvider = provider;
@@ -167,25 +147,6 @@ export class HumorSystem implements IHumorSystem {
         details: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
       });
     }
-  }
-
-  onTabEvent(eventType: TabEventType, handler: (event: TabEvent) => void): UnsubscribeFn {
-    const handlers = this.eventHandlers.get(eventType) ?? [];
-    handlers.push(handler);
-    this.eventHandlers.set(eventType, handlers);
-    return () => {
-      const index = handlers.indexOf(handler);
-      if (index >= 0) handlers.splice(index, 1);
-    };
-  }
-
-  setHumorLevel(level: HumorLevel): Result<void, HumorError> {
-    this.humorLevel = level;
-    return Result.ok(undefined);
-  }
-
-  getHumorLevel(): HumorLevel {
-    return this.humorLevel;
   }
 
   private async selectQuipForTrigger(
@@ -270,13 +231,6 @@ export class HumorSystem implements IHumorSystem {
         console.warn('[TabbyMcTabface] Quip delivered, but usage counter could not be saved', statsResult.error);
       }
     }
-    this.emitNotification({
-      id: deliveryResult.value,
-      quipText,
-      isEasterEgg,
-      timestamp,
-      displayDuration: 5000
-    });
     return Result.ok({
       delivered: true,
       quipText,
@@ -330,25 +284,6 @@ export class HumorSystem implements IHumorSystem {
     }
   }
 
-  private emitNotification(notification: QuipNotification): void {
-    for (const observer of this.notificationObservers) {
-      try {
-        observer(notification);
-      } catch (error) {
-        console.error('[TabbyMcTabface] Notification observer failed', error);
-      }
-    }
-  }
-
-  _emitTabEvent(event: TabEvent): void {
-    for (const handler of this.eventHandlers.get(event.type) ?? []) {
-      try {
-        handler(event);
-      } catch (error) {
-        console.error('[TabbyMcTabface] Tab-event observer failed', error);
-      }
-    }
-  }
 }
 
 function customChecksForTrigger(trigger: HumorTrigger): SupportedEasterEggCustomCheck[] {
@@ -366,10 +301,6 @@ function customChecksForTrigger(trigger: HumorTrigger): SupportedEasterEggCustom
   switch (trigger.data.event) {
     case 'KonamiCodeEntered':
       return ['konami-code-entered'];
-    case 'TabReopened':
-      return ['ctrl-shift-t-pressed-3x', 'tab-closed-then-reopened'];
-    case 'BrowserCrashed':
-      return ['browser-crashed-from-tabs'];
     default:
       return [];
   }

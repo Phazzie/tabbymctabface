@@ -281,9 +281,7 @@ export type BrowserEventName =
   | 'KonamiCodeEntered'
   | 'TabOpened'
   | 'TabClosed'
-  | 'TabActivated'
-  | 'TabReopened'
-  | 'BrowserCrashed';
+  | 'TabActivated';
 
 /**
  * Tab Manager error types

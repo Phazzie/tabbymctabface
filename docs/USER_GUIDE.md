@@ -8,7 +8,7 @@ Pin TabbyMcTabface from Chrome's extension menu, then select its toolbar icon. T
 
 The suggested popup shortcut is **Ctrl+Shift+Y** on Windows/Linux or **Command+Shift+Y** on macOS. Chrome may decline or change a suggested shortcut when another command owns it. Review assignments at `chrome://extensions/shortcuts`.
 
-The destructive Feeling Lucky command has no default keyboard binding. You may assign one yourself on the shortcuts page, but a manually assigned command runs immediately; use the popup if you want the confirmation step.
+Feeling Lucky is intentionally available only in the popup, where it always requires a second confirming click.
 
 ## Create a tab group
 

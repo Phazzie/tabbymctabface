@@ -4,6 +4,24 @@ All notable changes are documented here. This project uses semantic versioning.
 
 ## [Unreleased]
 
+### Security
+
+- Enforced the extension's exact least-privilege manifest, local-only resource policy, explicit CSP, and safe bundle syntax/API surface in release validation.
+- Removed the manually assignable destructive command so every random tab closure requires the popup's two-step confirmation.
+- Restricted runtime messages to this extension and reduced popup responses to the minimum required fields.
+
+### Reliability
+
+- Added mutation serialization and Chrome-faithful rollback for tabs moved from existing groups.
+- Prevented popup cancellation, stale stats, and overlapping actions from racing in-flight mutations.
+- Made all 75 passive quips production-routable and proved all 204 easter eggs selectable against the complete catalog under live-browser invariants.
+- Split behavioral tests from contract-shape examples and expanded negative package mutation tests.
+
+### Maintenance
+
+- Removed obsolete personality, observer, mock, and planning surfaces that were not part of the shipped architecture.
+- Replaced stale completion and seam documentation with release-candidate evidence that matches the implementation.
+
 ## [1.0.0] - 2026-08-12
 
 ### Added
@@ -20,7 +38,7 @@ All notable changes are documented here. This project uses semantic versioning.
 - Made JSON the single validated runtime source for quips and easter eggs.
 - Scoped tab cleanup and counts to the current window.
 - Added a popup confirmation step before random tab closure.
-- Replaced the reserved reopen-tab shortcut and removed the destructive command's default binding.
+- Replaced the reserved reopen-tab shortcut and removed the destructive command so random closure is popup-confirmed only.
 - Reworked the popup for labels, keyboard use, live status, real stats, and reduced motion.
 - Aligned version, author, repository, and MIT license metadata.
 

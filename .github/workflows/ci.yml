@@ -40,6 +40,8 @@ jobs:
         run: npm run lint
       - name: Run unit tests
         run: npm run test:unit
+      - name: Run contract examples
+        run: npm run test:contracts
       - name: Run integration tests
         run: npm run test:integration
       - name: Run artifact smoke tests
@@ -53,7 +55,7 @@ jobs:
         run: npm run validate
       - name: Audit dependency tree
         if: matrix.node == 22
-        run: npm audit --audit-level=high
+        run: npm run audit
 
   e2e:
     name: MV3 browser E2E

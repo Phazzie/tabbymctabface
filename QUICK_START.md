@@ -5,11 +5,11 @@
 ```bash
 git clone https://github.com/Phazzie/tabbymctabface.git
 cd tabbymctabface
-npm ci
+npm ci --ignore-scripts
 npm run verify
 ```
 
-Node.js 20 or 22 is supported. If browser E2E reports a missing executable, run `npx playwright install chromium` once and repeat the gate.
+Node.js 20.19 or newer is supported. If browser E2E reports a missing executable, run `./node_modules/.bin/playwright install chromium` once and repeat the gate.
 
 ## Load in Chrome
 

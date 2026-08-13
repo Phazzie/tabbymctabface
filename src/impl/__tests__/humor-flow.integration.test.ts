@@ -19,15 +19,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { QuipStorage } from '../QuipStorage';
 import { EasterEggFramework } from '../EasterEggFramework';
 import { HumorSystem } from '../HumorSystem';
-import {
-  MockChromeStorageAPI,
-  MockChromeNotificationsAPI,
-  assertOk
-} from './test-helpers';
+import { MockChromeNotificationsAPI, assertOk } from './test-helpers';
 import { HumorTrigger } from '../../contracts/IHumorSystem';
 
 describe('Humor Flow Integration Tests', () => {
-  let mockStorage: MockChromeStorageAPI;
   let mockNotifications: MockChromeNotificationsAPI;
   let quipStorage: QuipStorage;
   let easterEggFramework: EasterEggFramework;
@@ -35,11 +30,10 @@ describe('Humor Flow Integration Tests', () => {
 
   beforeEach(async () => {
     // Reset mocks
-    mockStorage = new MockChromeStorageAPI();
     mockNotifications = new MockChromeNotificationsAPI();
 
     // Initialize components
-    quipStorage = new QuipStorage(mockStorage);
+    quipStorage = new QuipStorage();
     await quipStorage.initialize();
 
     easterEggFramework = new EasterEggFramework(quipStorage);
@@ -103,30 +97,31 @@ describe('Humor Flow Integration Tests', () => {
 
     it('returns different quips on subsequent calls (deduplication)', async () => {
       // Arrange
+      humorSystem = new HumorSystem(
+        easterEggFramework,
+        quipStorage,
+        mockNotifications,
+        undefined,
+        undefined,
+        { minDeliveryIntervalMs: 0, random: () => 0 }
+      );
       const trigger: HumorTrigger = {
         type: 'TabGroupCreated',
         data: { type: 'TabGroupCreated', groupName: 'Test', tabCount: 3 },
         timestamp: Date.now()
       };
 
-      // Act - Test Set-based deduplication mechanism
-      // Deliver 2 quips with sufficient delay to avoid throttling
+      // Act - deterministic random selection exercises the recent-quips pool.
       const result1 = await humorSystem.deliverQuip(trigger);
-
-      // Wait for throttling period to pass (5.5 seconds)
-      await new Promise(resolve => setTimeout(resolve, 5500));
-
       const result2 = await humorSystem.deliverQuip(trigger);
 
-      // Assert - both should succeed
+      // Assert - both should succeed and the second must avoid the first.
       assertOk(result1);
       assertOk(result2);
       expect(result1.value.quipText).toBeTruthy();
       expect(result2.value.quipText).toBeTruthy();
-
-      // Set-based deduplication is working if both calls succeeded
-      // (The actual variety depends on quip pool size, which we can't guarantee in unit tests)
-    }, 10000); // 10 second timeout for throttling delay
+      expect(result2.value.quipText).not.toBe(result1.value.quipText);
+    });
 
     it('throttles quips when called too frequently', async () => {
       // Arrange
@@ -161,7 +156,10 @@ describe('Humor Flow Integration Tests', () => {
         activeTab: { url: 'https://example.com', title: 'Example', domain: 'example.com' },
         currentHour: 14,
         recentEvents: ['TabGroupCreated'],
-        groupCount: 3
+        // Avoid also satisfying EE-060 (exactly three groups). Equal-specificity
+        // matches are intentionally rarity-weighted, so this assertion must
+        // describe a context whose unique top match is the 42-tab egg.
+        groupCount: 2
       };
 
       // Act (framework already initialized in beforeEach)
@@ -291,8 +289,7 @@ describe('Humor Flow Integration Tests', () => {
   describe('Error Handling', () => {
     it('handles storage errors gracefully', async () => {
       // Arrange - Create a new system with failing storage
-      const failingStorage = new MockChromeStorageAPI();
-      const failingQuipStorage = new QuipStorage(failingStorage);
+      const failingQuipStorage = new QuipStorage();
 
       // Don't initialize - this will cause errors when trying to get quips
       const failingHumorSystem = new HumorSystem(
@@ -345,33 +342,6 @@ describe('Humor Flow Integration Tests', () => {
       if (!result.ok) {
         expect(result.error.type).toBe('DeliveryFailed');
       }
-    });
-  });
-
-  describe('Observable Pattern', () => {
-    it('emits notifications to observers when quip is delivered', async () => {
-      // Arrange
-      const notifications: any[] = [];
-      const subscription = humorSystem.notifications$.subscribe(notification => {
-        notifications.push(notification);
-      });
-
-      const trigger: HumorTrigger = {
-        type: 'TabGroupCreated',
-        data: { type: 'TabGroupCreated', groupName: 'Test', tabCount: 3 },
-        timestamp: Date.now()
-      };
-
-      // Act
-      await humorSystem.deliverQuip(trigger);
-
-      // Assert
-      expect(notifications.length).toBeGreaterThan(0);
-      expect(notifications[0].quipText).toBeTruthy();
-      expect(notifications[0].displayDuration).toBe(5000);
-
-      // Cleanup
-      subscription.unsubscribe();
     });
   });
 

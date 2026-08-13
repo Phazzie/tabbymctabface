@@ -34,7 +34,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "sarcasm"
@@ -48,7 +48,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "productivity"
@@ -62,7 +62,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "tab-hoarding"
@@ -104,7 +104,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "confidence"
@@ -133,7 +133,7 @@
     "triggerTypes": [
       "FeelingLuckyClicked"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "gambling"
@@ -161,7 +161,7 @@
     "triggerTypes": [
       "FeelingLuckyClicked"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "dj-khaled",
@@ -176,7 +176,7 @@
     "triggerTypes": [
       "FeelingLuckyClicked"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "bravery"
@@ -218,7 +218,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "decision-making"
@@ -246,7 +246,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "focus"
@@ -274,7 +274,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "decisiveness"
@@ -302,7 +302,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "research"
@@ -330,7 +330,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "curiosity"
@@ -358,7 +358,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "workflow"
@@ -370,7 +370,7 @@
     "id": "PA-027",
     "text": "You're still browsing. You must have incredible stamina.",
     "triggerTypes": [
-      "SessionContinued"
+      "ManualTrigger"
     ],
     "level": "default",
     "metadata": {
@@ -384,9 +384,9 @@
     "id": "PA-028",
     "text": "Midnight browsing? You must have important work to do.",
     "triggerTypes": [
-      "LateNightActivity"
+      "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "late-night"
@@ -398,7 +398,7 @@
     "id": "PA-029",
     "text": "So many tabs. You must be very knowledgeable.",
     "triggerTypes": [
-      "HighTabCount"
+      "TabOpened"
     ],
     "level": "default",
     "metadata": {
@@ -412,9 +412,9 @@
     "id": "PA-030",
     "text": "Tab management at this level. You must be very organized.",
     "triggerTypes": [
-      "TabManagement"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "organization"
@@ -426,7 +426,7 @@
     "id": "PA-031",
     "text": "You're clearly someone who knows their way around a browser.",
     "triggerTypes": [
-      "BrowserNavigation"
+      "ManualTrigger"
     ],
     "level": "default",
     "metadata": {
@@ -440,9 +440,9 @@
     "id": "PA-032",
     "text": "This tab behavior suggests you have a method to your madness.",
     "triggerTypes": [
-      "UnusualBehavior"
+      "ManualTrigger"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "methodology"
@@ -454,7 +454,7 @@
     "id": "PA-033",
     "text": "You must have very specific reasons for these tabs.",
     "triggerTypes": [
-      "SpecificTabUsage"
+      "TabOpened"
     ],
     "level": "default",
     "metadata": {
@@ -468,9 +468,9 @@
     "id": "PA-034",
     "text": "Your tab usage patterns are quite distinctive.",
     "triggerTypes": [
-      "DistinctivePatterns"
+      "ManualTrigger"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "patterns"
@@ -482,7 +482,7 @@
     "id": "PA-035",
     "text": "I'm sure you have a perfectly logical explanation for this.",
     "triggerTypes": [
-      "QuestionableAction"
+      "FeelingLuckyClicked"
     ],
     "level": "default",
     "metadata": {
@@ -496,9 +496,9 @@
     "id": "PA-036",
     "text": "You clearly know what you're doing. I can tell.",
     "triggerTypes": [
-      "ConfidentAction"
+      "FeelingLuckyClicked"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "confidence"
@@ -510,7 +510,7 @@
     "id": "PA-037",
     "text": "This suggests you have extensive experience with browsers.",
     "triggerTypes": [
-      "ExperiencedUsage"
+      "ManualTrigger"
     ],
     "level": "default",
     "metadata": {
@@ -524,9 +524,9 @@
     "id": "PA-038",
     "text": "Your approach to tabs is quite sophisticated.",
     "triggerTypes": [
-      "SophisticatedApproach"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "sophistication"
@@ -538,7 +538,7 @@
     "id": "PA-039",
     "text": "You must have thought this through very carefully.",
     "triggerTypes": [
-      "CarefulPlanning"
+      "TabGroupCreated"
     ],
     "level": "default",
     "metadata": {
@@ -552,9 +552,9 @@
     "id": "PA-040",
     "text": "This level of tab management requires real skill.",
     "triggerTypes": [
-      "SkilledManagement"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "skill"
@@ -566,7 +566,7 @@
     "id": "PA-041",
     "text": "You're clearly very deliberate in your tab choices.",
     "triggerTypes": [
-      "DeliberateChoices"
+      "FeelingLuckyClicked"
     ],
     "level": "default",
     "metadata": {
@@ -580,9 +580,9 @@
     "id": "PA-042",
     "text": "This suggests you have a comprehensive strategy.",
     "triggerTypes": [
-      "ComprehensiveStrategy"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "strategy"
@@ -594,7 +594,7 @@
     "id": "PA-043",
     "text": "You must be very purposeful with your browsing.",
     "triggerTypes": [
-      "PurposefulBrowsing"
+      "ManualTrigger"
     ],
     "level": "default",
     "metadata": {
@@ -608,9 +608,9 @@
     "id": "PA-044",
     "text": "Your tab organization shows real foresight.",
     "triggerTypes": [
-      "Foresight"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "foresight"
@@ -622,7 +622,7 @@
     "id": "PA-045",
     "text": "This approach demonstrates considerable thought.",
     "triggerTypes": [
-      "ThoughtfulApproach"
+      "TabGroupCreated"
     ],
     "level": "default",
     "metadata": {
@@ -636,9 +636,9 @@
     "id": "PA-046",
     "text": "You clearly have a well-developed system.",
     "triggerTypes": [
-      "DevelopedSystem"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "system"
@@ -650,7 +650,7 @@
     "id": "PA-047",
     "text": "Your browsing habits suggest deep understanding.",
     "triggerTypes": [
-      "DeepUnderstanding"
+      "ManualTrigger"
     ],
     "level": "default",
     "metadata": {
@@ -664,9 +664,9 @@
     "id": "PA-048",
     "text": "This level of complexity requires real expertise.",
     "triggerTypes": [
-      "ExpertComplexity"
+      "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "expertise"
@@ -678,7 +678,7 @@
     "id": "PA-049",
     "text": "You must have extensive knowledge of web browsing.",
     "triggerTypes": [
-      "ExtensiveKnowledge"
+      "TabOpened"
     ],
     "level": "default",
     "metadata": {
@@ -692,9 +692,9 @@
     "id": "PA-050",
     "text": "Your tab management shows professional-level skill.",
     "triggerTypes": [
-      "ProfessionalSkill"
+      "TabGroupCreated"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "professional"
@@ -708,7 +708,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "multitasking"
@@ -736,7 +736,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "late-night"
@@ -750,7 +750,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "indecision"
@@ -764,7 +764,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "organization"
@@ -778,7 +778,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "learning"
@@ -792,7 +792,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "social-commentary"
@@ -834,7 +834,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "performance"
@@ -848,7 +848,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "bookmarks"
@@ -876,7 +876,7 @@
     "triggerTypes": [
       "FeelingLuckyClicked"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "gambling"
@@ -904,7 +904,7 @@
     "triggerTypes": [
       "TabClosed"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "cleaning"
@@ -918,7 +918,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "patience"
@@ -932,7 +932,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "naming"
@@ -946,7 +946,7 @@
     "triggerTypes": [
       "FeelingLuckyClicked"
     ],
-    "level": "intense",
+    "level": "default",
     "metadata": {
       "tags": [
         "regret"
@@ -974,7 +974,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "organization"
@@ -1002,7 +1002,7 @@
     "triggerTypes": [
       "TabOpened"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "multitasking"
@@ -1030,7 +1030,7 @@
     "triggerTypes": [
       "TabGroupCreated"
     ],
-    "level": "mild",
+    "level": "default",
     "metadata": {
       "tags": [
         "performance"

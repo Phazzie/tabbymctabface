@@ -8,13 +8,12 @@
  * 
  * HOW DATA FLOWS:
  *   1. Tests call IHumorSystem methods with trigger events
- *   2. Mock IHumorPersonality and IEasterEggFramework responses
+ *   2. Model IEasterEggFramework responses
  *   3. Validate Result<Success, Error> type conversions
- *   4. Verify observable notifications
  * 
  * SEAMS:
- *   IN: TabManager/UI → HumorSystem (SEAM-11, 04, 09)
- *   OUT: HumorSystem → Personality (SEAM-12), EasterEggFramework (SEAM-16), Notifications (SEAM-15)
+ *   IN: TabManager/UI → HumorSystem (SEAM-11)
+ *   OUT: HumorSystem → EasterEggFramework (SEAM-16), Notifications (SEAM-15)
  * 
  * CONTRACT: IHumorSystem v1.0.0 validation
  * GENERATED: 2025-10-12
@@ -23,15 +22,11 @@
 
 import { describe, it, expect } from 'vitest';
 import type {
-    IHumorSystem,
     HumorTrigger,
     HumorTriggerType,
     QuipDeliveryResult,
     EasterEggMatch,
-    QuipNotification,
     BrowserContext,
-    TabEvent,
-    TabEventType,
     HumorError
 } from '../IHumorSystem';
 import { Result } from '../../utils/Result';
@@ -258,96 +253,6 @@ describe('IHumorSystem CONTRACT v1.0.0', () => {
             // Contract specifies: <50ms (95th percentile)
             const SLA_MS = 50;
             expect(SLA_MS).toBe(50);
-        });
-    });
-
-    describe('CONTRACT: notifications$ Observable', () => {
-        it('MUST provide Observable<QuipNotification> stream', () => {
-            // Contract specifies: Observable with subscribe method
-            const mockObservable = {
-                subscribe: (observer: (value: QuipNotification) => void) => ({
-                    unsubscribe: () => { }
-                })
-            };
-
-            expect(mockObservable.subscribe).toBeDefined();
-            expect(typeof mockObservable.subscribe).toBe('function');
-        });
-
-        it('MUST emit QuipNotification on quip delivery', () => {
-            // Contract specifies: Notifications emitted when quips delivered
-            const notification: QuipNotification = {
-                id: 'notif-123',
-                quipText: 'Test quip',
-                isEasterEgg: false,
-                timestamp: Date.now(),
-                displayDuration: 5000
-            };
-
-            expect(notification.id).toBeDefined();
-            expect(notification.quipText).toBeDefined();
-            expect(notification.isEasterEgg).toBeDefined();
-            expect(notification.displayDuration).toBeDefined();
-        });
-
-        it('MUST include displayDuration in milliseconds', () => {
-            // Contract behavior: displayDuration controls UI auto-dismiss
-            const notification: QuipNotification = {
-                id: 'notif-1',
-                quipText: 'Test',
-                isEasterEgg: false,
-                timestamp: 0,
-                displayDuration: 5000
-            };
-
-            expect(notification.displayDuration).toBeGreaterThan(0);
-        });
-    });
-
-    describe('CONTRACT: onTabEvent()', () => {
-        it('MUST accept TabEventType and handler function', () => {
-            // Contract specifies: eventType and handler parameters
-            const eventType: TabEventType = 'created';
-            const handler = (event: TabEvent) => {
-                console.log(event);
-            };
-
-            expect(eventType).toBeDefined();
-            expect(typeof handler).toBe('function');
-        });
-
-        it('MUST support all TabEventTypes', () => {
-            // Contract specifies: Four event types
-            const eventTypes: TabEventType[] = [
-                'created',
-                'closed',
-                'grouped',
-                'ungrouped'
-            ];
-
-            expect(eventTypes.length).toBe(4);
-            eventTypes.forEach(type => expect(type).toBeDefined());
-        });
-
-        it('MUST return UnsubscribeFn', () => {
-            // Contract specifies: Returns function to unsubscribe
-            const unsubscribeFn = () => { /* cleanup */ };
-
-            expect(typeof unsubscribeFn).toBe('function');
-        });
-
-        it('MUST provide TabEvent with type, timestamp, and data', () => {
-            // Contract specifies: TabEvent structure
-            const event: TabEvent = {
-                type: 'created',
-                tabId: 123,
-                timestamp: Date.now(),
-                data: { url: 'https://example.com' }
-            };
-
-            expect(event.type).toBeDefined();
-            expect(event.timestamp).toBeDefined();
-            expect(event.data).toBeDefined();
         });
     });
 

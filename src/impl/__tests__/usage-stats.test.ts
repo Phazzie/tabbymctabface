@@ -64,6 +64,22 @@ describe('ChromeUsageStatsStore', () => {
     expect(result.ok && result.value.quipsDelivered).toBe(25);
   });
 
+  it('persists counters across store re-instantiation', async () => {
+    const storage = new MemoryStorage();
+    const firstWorker = new ChromeUsageStatsStore(storage);
+    expect((await firstWorker.increment('groupsCreated')).ok).toBe(true);
+    expect((await firstWorker.increment('quipsDelivered')).ok).toBe(true);
+
+    const restartedWorker = new ChromeUsageStatsStore(storage);
+    const result = await restartedWorker.get();
+
+    expect(result.ok && result.value).toMatchObject({
+      groupsCreated: 1,
+      quipsDelivered: 1,
+      schemaVersion: 1,
+    });
+  });
+
   it('repairs malformed persisted counters instead of leaking NaN or negatives', async () => {
     const storage = new MemoryStorage();
     storage.data['usageStats.v1'] = { schemaVersion: 99, quipsDelivered: -4, groupsCreated: 'bad' };

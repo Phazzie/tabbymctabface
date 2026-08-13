@@ -61,7 +61,9 @@ export class TabManager implements ITabManager {
   private recentEvents: string[] = [];
   private readonly maxRecentEvents = 20;
   private contextCache: { data: BrowserContext | null; timestamp: number } = { data: null, timestamp: 0 };
+  private contextGeneration = 0;
   private readonly contextCacheTtl = 500;
+  private mutationQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly chromeTabsAPI: IChromeTabsAPI,
@@ -74,6 +76,13 @@ export class TabManager implements ITabManager {
     groupName: string,
     tabIds: number[]
   ): Promise<Result<GroupCreationSuccess, TabManagerError>> {
+    return this.withMutationLock(() => this.createGroupSerially(groupName, tabIds));
+  }
+
+  private async createGroupSerially(
+    groupName: string,
+    tabIds: number[]
+  ): Promise<Result<GroupCreationSuccess, TabManagerError>> {
     const nameValidation = this.validateGroupName(groupName);
     if (!nameValidation.ok) return nameValidation;
     if (!Array.isArray(tabIds) || tabIds.length === 0) {
@@ -83,6 +92,11 @@ export class TabManager implements ITabManager {
     try {
       const scopeValidation = await this.validateCurrentWindowTabs(tabIds);
       if (!scopeValidation.ok) return scopeValidation;
+      const originalTabs = scopeValidation.value.filter(tab => tabIds.includes(tab.id));
+      // Snapshot primitives before Chrome mutates the returned tab objects.
+      const originalMembership = originalTabs.map(tab => ({ id: tab.id, originalGroupId: tab.groupId }));
+      const originalGroupsResult = await this.snapshotOriginalGroups(originalMembership);
+      if (!originalGroupsResult.ok) return originalGroupsResult;
 
       const createResult = await this.chromeTabsAPI.createGroup(tabIds);
       if (!createResult.ok) {
@@ -97,7 +111,7 @@ export class TabManager implements ITabManager {
       const groupId = createResult.value;
       const updateResult = await this.chromeTabsAPI.updateGroup(groupId, { title: groupName.trim() });
       if (!updateResult.ok) {
-        const rollbackResult = await this.chromeTabsAPI.ungroupTabs(tabIds);
+        const rollbackResult = await this.restoreAddedTabs(originalMembership, originalGroupsResult.value);
         this.invalidateContextCache();
         return Result.error({
           type: 'ChromeAPIFailure',
@@ -131,6 +145,12 @@ export class TabManager implements ITabManager {
   }
 
   async closeRandomTab(
+    options?: RandomTabOptions
+  ): Promise<Result<TabClosureResult, TabManagerError>> {
+    return this.withMutationLock(() => this.closeRandomTabSerially(options));
+  }
+
+  private async closeRandomTabSerially(
     options?: RandomTabOptions
   ): Promise<Result<TabClosureResult, TabManagerError>> {
     try {
@@ -190,7 +210,14 @@ export class TabManager implements ITabManager {
     groupId: number,
     updates: GroupUpdateData
   ): Promise<Result<void, TabManagerError>> {
-    if (!Number.isInteger(groupId) || groupId < 0) {
+    return this.withMutationLock(() => this.updateGroupSerially(groupId, updates));
+  }
+
+  private async updateGroupSerially(
+    groupId: number,
+    updates: GroupUpdateData
+  ): Promise<Result<void, TabManagerError>> {
+    if (!Number.isSafeInteger(groupId) || groupId < 0) {
       return Result.error({ type: 'InvalidGroupId', details: 'Group id must be a non-negative integer', groupId });
     }
     if (updates.name !== undefined) {
@@ -239,7 +266,11 @@ export class TabManager implements ITabManager {
   }
 
   async deleteGroup(groupId: number): Promise<Result<void, TabManagerError>> {
-    if (!Number.isInteger(groupId) || groupId < 0) {
+    return this.withMutationLock(() => this.deleteGroupSerially(groupId));
+  }
+
+  private async deleteGroupSerially(groupId: number): Promise<Result<void, TabManagerError>> {
+    if (!Number.isSafeInteger(groupId) || groupId < 0) {
       return Result.error({ type: 'InvalidGroupId', details: 'Group id must be a non-negative integer', groupId });
     }
     try {
@@ -263,45 +294,53 @@ export class TabManager implements ITabManager {
   }
 
   async getBrowserContext(): Promise<Result<BrowserContext, TabManagerError>> {
-    const timestamp = Date.now();
-    if (this.contextCache.data && timestamp - this.contextCache.timestamp < this.contextCacheTtl) {
-      return Result.ok(this.contextCache.data);
-    }
     try {
-      const tabsResult = await this.chromeTabsAPI.queryTabs({ currentWindow: true });
-      if (!tabsResult.ok) {
-        return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to query tabs for context', originalError: tabsResult.error });
-      }
-      const groupsResult = await this.chromeTabsAPI.getAllGroups();
-      if (!groupsResult.ok) {
-        return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to query groups for context', originalError: groupsResult.error });
-      }
+      while (true) {
+        const timestamp = Date.now();
+        if (this.contextCache.data && timestamp - this.contextCache.timestamp < this.contextCacheTtl) {
+          return Result.ok(this.contextCache.data);
+        }
+        const generation = this.contextGeneration;
+        const [tabsResult, groupsResult] = await Promise.all([
+          this.chromeTabsAPI.queryTabs({ currentWindow: true }),
+          this.chromeTabsAPI.getAllGroups()
+        ]);
+        // A browser event or mutation happened while Chrome was answering.
+        // Discard the inconsistent snapshot instead of poisoning the cache.
+        if (generation !== this.contextGeneration) continue;
+        if (!tabsResult.ok) {
+          return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to query tabs for context', originalError: tabsResult.error });
+        }
+        if (!groupsResult.ok) {
+          return Result.error({ type: 'ChromeAPIFailure', details: 'Failed to query groups for context', originalError: groupsResult.error });
+        }
 
-      const tabs = tabsResult.value;
-      const activeTab = tabs.find(tab => tab.active);
-      const now = new Date(timestamp);
-      const tabUrls = tabs.map(tab => tab.url || '');
-      const comparableUrls = tabUrls.filter(Boolean);
-      const currentGroupIds = new Set(tabs.filter(tab => tab.groupId >= 0).map(tab => tab.groupId));
-      const knownGroupIds = new Set(groupsResult.value.map(group => group.id));
-      const context: BrowserContext = {
-        tabCount: tabs.length,
-        activeTab: activeTab
-          ? { url: activeTab.url || '', title: activeTab.title || 'Untitled', domain: this.extractDomain(activeTab.url || '') }
-          : null,
-        currentHour: now.getHours(),
-        currentMinute: now.getMinutes(),
-        currentDay: now.getDay(),
-        currentMonth: now.getMonth() + 1,
-        currentDate: this.formatLocalDate(now),
-        currentTimestamp: timestamp,
-        recentEvents: [...this.recentEvents],
-        groupCount: [...currentGroupIds].filter(id => knownGroupIds.has(id)).length,
-        tabUrls,
-        duplicateTabCount: comparableUrls.length - new Set(comparableUrls).size
-      };
-      this.contextCache = { data: context, timestamp };
-      return Result.ok(context);
+        const tabs = tabsResult.value;
+        const activeTab = tabs.find(tab => tab.active);
+        const now = new Date(timestamp);
+        const tabUrls = tabs.map(tab => tab.url || '');
+        const comparableUrls = tabUrls.filter(Boolean);
+        const currentGroupIds = new Set(tabs.filter(tab => tab.groupId >= 0).map(tab => tab.groupId));
+        const knownGroupIds = new Set(groupsResult.value.map(group => group.id));
+        const context: BrowserContext = {
+          tabCount: tabs.length,
+          activeTab: activeTab
+            ? { url: activeTab.url || '', title: activeTab.title || 'Untitled', domain: this.extractDomain(activeTab.url || '') }
+            : null,
+          currentHour: now.getHours(),
+          currentMinute: now.getMinutes(),
+          currentDay: now.getDay(),
+          currentMonth: now.getMonth() + 1,
+          currentDate: this.formatLocalDate(now),
+          currentTimestamp: timestamp,
+          recentEvents: [...this.recentEvents],
+          groupCount: [...currentGroupIds].filter(id => knownGroupIds.has(id)).length,
+          tabUrls,
+          duplicateTabCount: comparableUrls.length - new Set(comparableUrls).size
+        };
+        this.contextCache = { data: context, timestamp };
+        return Result.ok(context);
+      }
     } catch (error) {
       return Result.error({ type: 'ChromeAPIFailure', details: 'Unexpected error building context', originalError: error });
     }
@@ -313,13 +352,8 @@ export class TabManager implements ITabManager {
     await this.deliverHumorSafely(this.toHumorTrigger(event));
   }
 
-  /** Kept as a public test hook for the context-cache contract. */
-  _invalidateContextCache(): void {
-    this.invalidateContextCache();
-  }
-
   private async validateCurrentWindowTabs(tabIds: number[]): Promise<Result<ChromeTab[], TabManagerError>> {
-    if (tabIds.some(tabId => !Number.isInteger(tabId) || tabId <= 0) || new Set(tabIds).size !== tabIds.length) {
+    if (tabIds.some(tabId => !Number.isSafeInteger(tabId) || tabId <= 0) || new Set(tabIds).size !== tabIds.length) {
       return Result.error({ type: 'ChromeAPIFailure', details: 'Tab ids must be unique positive integers', originalError: tabIds });
     }
     const currentTabs = await this.chromeTabsAPI.queryTabs({ currentWindow: true });
@@ -426,6 +460,20 @@ export class TabManager implements ITabManager {
       if (!result.ok) errors.push(result.error);
     }
     return errors.length > 0 ? Result.error(errors) : Result.ok(undefined);
+  }
+
+  private async withMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previousMutation = this.mutationQueue;
+    let releaseMutation!: () => void;
+    this.mutationQueue = new Promise(resolve => {
+      releaseMutation = resolve;
+    });
+    await previousMutation;
+    try {
+      return await operation();
+    } finally {
+      releaseMutation();
+    }
   }
 
   private async snapshotOriginalGroups(
@@ -551,7 +599,10 @@ export class TabManager implements ITabManager {
 
   private async deliverHumorSafely(trigger: HumorTrigger): Promise<void> {
     try {
-      await this.humorSystem.deliverQuip(trigger);
+      const result = await this.humorSystem.deliverQuip(trigger);
+      if (!result.ok) {
+        console.warn('[TabbyMcTabface] Humor delivery failed without blocking the tab action', result.error);
+      }
     } catch (error) {
       console.warn('[TabbyMcTabface] Humor delivery failed without blocking the tab action', error);
     }
@@ -579,7 +630,10 @@ export class TabManager implements ITabManager {
   private async incrementStat(counter: UsageCounter): Promise<void> {
     if (!this.usageStats) return;
     try {
-      await this.usageStats.increment(counter);
+      const result = await this.usageStats.increment(counter);
+      if (!result.ok) {
+        console.warn('[TabbyMcTabface] Usage statistics update failed', result.error);
+      }
     } catch (error) {
       console.warn('[TabbyMcTabface] Usage statistics update failed', error);
     }
@@ -591,6 +645,7 @@ export class TabManager implements ITabManager {
   }
 
   private invalidateContextCache(): void {
+    this.contextGeneration += 1;
     this.contextCache = { data: null, timestamp: 0 };
   }
 

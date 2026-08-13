@@ -45,7 +45,7 @@ const baseContext: BrowserContext = {
   currentTimestamp: 1_700_000_000_000,
   tabUrls: ['https://github.com/a', 'https://github.com/a'],
   duplicateTabCount: 1,
-  recentEvents: ['TabReopened', 'TabClosed', 'TabOpened', 'TabOpened', 'TabOpened'],
+  recentEvents: ['TabClosed', 'TabOpened', 'TabOpened', 'TabOpened'],
   groupCount: 2
 };
 
@@ -124,6 +124,15 @@ describe('EasterEggFramework condition contract', () => {
     }
   });
 
+  it('matches title and URL text case-insensitively', async () => {
+    const result = await match([egg('EE-901', {
+      titleContains: 'SHIP TABBYMCTABFACE',
+      urlContains: '/PULL/21'
+    })]);
+
+    expect(result.ok && result.value?.easterEggId).toBe('EE-901');
+  });
+
   it.each([
     { domainRegex: 'github' },
     { titleContains: 'ship' },
@@ -172,6 +181,29 @@ describe('EasterEggFramework condition contract', () => {
     expect(legitimate.ok && legitimate.value?.easterEggId).toBe('EE-901');
   });
 
+  it('applies hostname boundaries to legacy unanchored domain patterns', async () => {
+    const conditions = { domainRegex: 'youtube\\.com' };
+    const attacker = await match([egg('EE-901', conditions)], {
+      ...baseContext,
+      activeTab: {
+        url: 'https://evilyoutube.com/watch',
+        title: 'Not YouTube',
+        domain: 'evilyoutube.com'
+      }
+    });
+    const subdomain = await match([egg('EE-901', conditions)], {
+      ...baseContext,
+      activeTab: {
+        url: 'https://www.youtube.com/watch',
+        title: 'YouTube',
+        domain: 'www.youtube.com'
+      }
+    });
+
+    expect(attacker.ok && attacker.value).toBeNull();
+    expect(subdomain.ok && subdomain.value?.easterEggId).toBe('EE-901');
+  });
+
   it('treats an unknown custom predicate as a safe non-match', async () => {
     const result = await match([egg(
       'EE-901',
@@ -194,8 +226,6 @@ describe('EasterEggFramework custom-check contract', () => {
     ['duplicate-tabs-detected', baseContext],
     ['tab-just-closed', { ...baseContext, recentEvents: ['TabClosed'] }],
     ['new-tab-opened-while-tabs-exist', { ...baseContext, recentEvents: ['TabOpened'] }],
-    ['tab-closed-then-reopened', baseContext],
-    ['ctrl-shift-t-pressed-3x', { ...baseContext, recentEvents: ['TabReopened', 'TabReopened', 'TabReopened'] }],
     ['date-is-march-14', { ...baseContext, currentDate: '2026-03-14', currentMonth: 3 }],
     ['date-is-may-4', { ...baseContext, currentDate: '2026-05-04', currentMonth: 5 }]
   ] as const)('evaluates %s from structural BrowserContext fields', async (customCheck, context) => {
@@ -251,6 +281,27 @@ describe('EasterEggFramework selection contract', () => {
     if (!duplicate.ok) expect(duplicate.error.type).toBe('DuplicateEasterEggId');
   });
 
+  it('does not retain or expose mutable registration objects', async () => {
+    const framework = new EasterEggFramework(new FixtureStorage([]));
+    const conditions = { tabCount: { min: 5, max: 10 } };
+    expect(framework.registerEasterEgg({
+      id: 'EE-901',
+      type: 'defensive-copy',
+      conditions
+    }).ok).toBe(true);
+    conditions.tabCount.min = 99;
+
+    const first = framework.getAllEasterEggs();
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.value[0].conditions.tabCount).toEqual({ min: 5, max: 10 });
+    const returnedRange = first.value[0].conditions.tabCount;
+    if (typeof returnedRange === 'object') returnedRange.min = 77;
+
+    const second = framework.getAllEasterEggs();
+    expect(second.ok && second.value[0].conditions.tabCount).toEqual({ min: 5, max: 10 });
+  });
+
   it('derives registration priority so a caller cannot make a broad rule shadow a precise rule', async () => {
     const framework = new EasterEggFramework(new FixtureStorage([]));
     expect(framework.registerEasterEgg({
@@ -276,7 +327,8 @@ describe('EasterEggFramework selection contract', () => {
 
   it.each([
     ['tabCount', { tabCount: { min: 9, max: 4 } }],
-    ['groupCount', { groupCount: { min: Number.NaN, max: 4 } }]
+    ['groupCount', { groupCount: { min: Number.NaN, max: 4 } }],
+    ['tabCount', { tabCount: Number.MAX_SAFE_INTEGER + 1 }]
   ] as const)('rejects invalid %s registration ranges', (_name, conditions) => {
     const framework = new EasterEggFramework(new FixtureStorage([]));
     const result = framework.registerEasterEgg({

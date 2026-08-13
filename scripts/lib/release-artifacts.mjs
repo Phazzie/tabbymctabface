@@ -18,8 +18,11 @@
 
 import { createHash } from 'node:crypto';
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises';
+import { Script } from 'node:vm';
 import path from 'node:path';
 import { unzipSync, zipSync } from 'fflate';
+import { JSDOM } from 'jsdom';
+import ts from 'typescript';
 
 const REQUIRED_ICON_SIZES = ['16', '32', '48', '128'];
 const REQUIRED_ROOT_FILES = [
@@ -29,6 +32,21 @@ const REQUIRED_ROOT_FILES = [
   'popup.html',
   'popup.js',
 ];
+const REQUIRED_PERMISSIONS = ['notifications', 'storage', 'tabGroups', 'tabs'];
+const REQUIRED_MANIFEST_KEYS = [
+  'action',
+  'author',
+  'background',
+  'commands',
+  'content_security_policy',
+  'description',
+  'icons',
+  'manifest_version',
+  'name',
+  'permissions',
+  'version',
+];
+const REQUIRED_EXTENSION_CSP = "default-src 'self'; script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none';";
 const RESERVED_REOPEN_TAB_SHORTCUTS = new Set([
   'command+shift+t',
   'ctrl+shift+t',
@@ -125,6 +143,10 @@ function normalizeShortcut(shortcut) {
 }
 
 function validateCommandSafety(manifest) {
+  invariant(
+    JSON.stringify(Object.keys(manifest.commands ?? {}).sort()) === JSON.stringify(['_execute_action']),
+    'commands must contain only _execute_action',
+  );
   const executeAction = manifest.commands?._execute_action;
   invariant(executeAction, 'commands._execute_action is required');
   const suggestedKeys = executeAction.suggested_key ?? {};
@@ -138,25 +160,103 @@ function validateCommandSafety(manifest) {
   invariant(suggestedKeys.default === 'Ctrl+Shift+Y', '_execute_action.default must be Ctrl+Shift+Y');
   invariant(suggestedKeys.mac === 'Command+Shift+Y', '_execute_action.mac must be Command+Shift+Y');
 
-  const feelingLucky = manifest.commands?.feeling_lucky;
-  invariant(feelingLucky, 'commands.feeling_lucky must remain registered');
   invariant(
-    !Object.hasOwn(feelingLucky, 'suggested_key'),
-    'destructive feeling_lucky command must not claim a default keyboard shortcut',
+    !Object.hasOwn(manifest.commands ?? {}, 'feeling_lucky'),
+    'destructive feeling_lucky command must not bypass popup confirmation',
   );
+}
+
+function validateManifestPrivilegeBoundary(manifest) {
+  invariant(
+    JSON.stringify(Object.keys(manifest).sort()) === JSON.stringify(REQUIRED_MANIFEST_KEYS),
+    `manifest keys must be exactly: ${REQUIRED_MANIFEST_KEYS.join(', ')}`,
+  );
+  const permissions = Array.isArray(manifest.permissions)
+    ? [...manifest.permissions].sort((left, right) => left.localeCompare(right, 'en'))
+    : [];
+  invariant(
+    JSON.stringify(permissions) === JSON.stringify(REQUIRED_PERMISSIONS),
+    `manifest permissions must be exactly: ${REQUIRED_PERMISSIONS.join(', ')}`,
+  );
+  for (const forbiddenKey of [
+    'content_scripts',
+    'externally_connectable',
+    'host_permissions',
+    'optional_permissions',
+    'optional_host_permissions',
+    'web_accessible_resources',
+  ]) {
+    invariant(!Object.hasOwn(manifest, forbiddenKey), `manifest must not declare ${forbiddenKey}`);
+  }
+  invariant(
+    manifest.content_security_policy?.extension_pages === REQUIRED_EXTENSION_CSP,
+    `content_security_policy.extension_pages must be exactly: ${REQUIRED_EXTENSION_CSP}`,
+  );
+  invariant(
+    Object.keys(manifest.content_security_policy ?? {}).length === 1,
+    'content_security_policy must not add sandbox or other execution policies',
+  );
+  invariant(!Object.hasOwn(manifest, 'update_url'), 'manifest must not declare update_url');
+}
+
+function documentUrlAttributes(documentText) {
+  const document = new JSDOM(documentText).window.document;
+  const references = [];
+  for (const element of document.querySelectorAll('[src], [href], [srcset], [action], [formaction], [poster], [data]')) {
+    for (const attribute of ['src', 'href', 'srcset', 'action', 'formaction', 'poster', 'data']) {
+      const value = element.getAttribute(attribute);
+      if (value !== null) references.push({ attribute, value });
+    }
+  }
+  return references;
 }
 
 function extractLocalDocumentPaths(documentText) {
   const paths = new Set();
-  const attributePattern = /(?:src|href)\s*=\s*["']([^"']+)["']/giu;
-
-  for (const match of documentText.matchAll(attributePattern)) {
-    const candidate = match[1];
-    if (/^(?:[a-z]+:|\/\/|#)/iu.test(candidate)) continue;
+  for (const { attribute, value } of documentUrlAttributes(documentText)) {
+    if (attribute === 'srcset') continue;
+    const candidate = value.trim();
+    if (!candidate || /^(?:[a-z]+:|\/\/|#)/iu.test(candidate)) continue;
     paths.add(candidate.split(/[?#]/u, 1)[0]);
   }
-
   return paths;
+}
+
+function validateNoRemoteDocumentReferences(documentText, documentPath) {
+  const document = new JSDOM(documentText).window.document;
+  invariant(
+    document.querySelector('meta[http-equiv="refresh" i]') === null,
+    `${documentPath} must not contain meta refresh navigation`,
+  );
+  for (const { value } of documentUrlAttributes(documentText)) {
+    invariant(
+      !/(?:^|[\s,])(?:[a-z]+:|\/\/)/iu.test(value.trim()),
+      `${documentPath} contains a remote resource reference: ${value}`,
+    );
+  }
+}
+
+function validateDocumentExecutableReferences(documentText, documentPath) {
+  const document = new JSDOM(documentText).window.document;
+  for (const element of document.querySelectorAll('script[src], link[rel~="stylesheet"][href]')) {
+    const reference = element.getAttribute(element.localName === 'script' ? 'src' : 'href') ?? '';
+    invariant(
+      !/^(?:[a-z]+:|\/\/)/iu.test(reference),
+      `${documentPath} contains a remote executable reference: ${reference}`,
+    );
+  }
+}
+
+function validateJavaScriptSyntax(source, bundlePath) {
+  try {
+    // esbuild emits self-contained scripts with no top-level module syntax.
+    // Compiling without executing catches truncated or invalid bundles.
+    new Script(source, { filename: bundlePath });
+  } catch (error) {
+    throw new Error(`Release artifact validation failed: ${bundlePath} has invalid JavaScript syntax`, {
+      cause: error,
+    });
+  }
 }
 
 function extractLocalStylesheetPaths(stylesheetText) {
@@ -170,6 +270,235 @@ function extractLocalStylesheetPaths(stylesheetText) {
   }
 
   return paths;
+}
+
+function validateNoRemoteStylesheetReferences(stylesheetText, stylesheetPath) {
+  const referencePattern = /(?:url\(\s*["']?([^"')]+)|@import\s+["']([^"']+))["']?\s*\)?/giu;
+  for (const match of stylesheetText.matchAll(referencePattern)) {
+    const reference = match[1] ?? match[2];
+    invariant(
+      /^(?:data:|#)/iu.test(reference) || !/^(?:[a-z]+:|\/\/)/iu.test(reference),
+      `${stylesheetPath} contains a remote resource reference: ${reference}`,
+    );
+  }
+}
+
+function validateBundleCapabilities(source, bundlePath) {
+  const sourceFile = ts.createSourceFile(bundlePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const forbiddenConstructors = new Set(['Function', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'WebTransport']);
+  const forbiddenGlobalFunctions = new Set([
+    'eval',
+    'fetch',
+    'Function',
+    ...forbiddenConstructors,
+  ]);
+  const chromeRootAliases = new Set(['chrome']);
+  const globalRootAliases = new Set(['globalThis', 'window', 'self']);
+  const navigationObjectAliases = new Map();
+  const navigationMethodAliases = new Set();
+  const forbiddenFunctionAliases = new Map();
+  const domNavigationElementAliases = new Map();
+  const staticMemberName = expression => {
+    if (ts.isPropertyAccessExpression(expression)) return expression.name.text;
+    if (ts.isElementAccessExpression(expression) && ts.isStringLiteralLike(expression.argumentExpression)) {
+      return expression.argumentExpression.text;
+    }
+    return null;
+  };
+  const isChromeRoot = expression => ts.isIdentifier(expression) && chromeRootAliases.has(expression.text);
+  const isGlobalRoot = expression => ts.isIdentifier(expression) && globalRootAliases.has(expression.text);
+  const globalFunctionKind = expression => {
+    if (ts.isIdentifier(expression)) {
+      if (forbiddenFunctionAliases.has(expression.text)) return forbiddenFunctionAliases.get(expression.text);
+      if (forbiddenGlobalFunctions.has(expression.text)) return expression.text;
+      return null;
+    }
+    if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) return null;
+
+    const member = staticMemberName(expression);
+    if (member && forbiddenGlobalFunctions.has(member) && isGlobalRoot(expression.expression)) return member;
+    if (
+      member === 'sendBeacon'
+      && ts.isIdentifier(expression.expression)
+      && expression.expression.text === 'navigator'
+    ) return member;
+    return null;
+  };
+  const navigationObjectKind = expression => {
+    if (ts.isIdentifier(expression)) {
+      if (expression.text === 'location') return 'location';
+      return navigationObjectAliases.get(expression.text) ?? null;
+    }
+    if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) return null;
+
+    const member = staticMemberName(expression);
+    const owner = expression.expression;
+    if (member && ['tabs', 'windows', 'runtime'].includes(member) && isChromeRoot(owner)) {
+      return member;
+    }
+    if (member === 'location' && (isGlobalRoot(owner) || (ts.isIdentifier(owner) && owner.text === 'document'))) {
+      return 'location';
+    }
+    return null;
+  };
+  const navigationMethodKind = expression => {
+    if (ts.isIdentifier(expression) && navigationMethodAliases.has(expression.text)) return expression.text;
+    if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) return null;
+
+    const method = staticMemberName(expression);
+    const objectKind = navigationObjectKind(expression.expression);
+    if (objectKind === 'tabs' && ['create', 'update'].includes(method)) return `${objectKind}.${method}`;
+    if (objectKind === 'windows' && method === 'create') return `${objectKind}.${method}`;
+    if (objectKind === 'runtime' && method === 'setUninstallURL') return `${objectKind}.${method}`;
+    if (objectKind === 'location' && ['assign', 'replace'].includes(method)) return `${objectKind}.${method}`;
+    if (method === 'open' && isGlobalRoot(expression.expression)) return 'open';
+    return null;
+  };
+  const createdDomNavigationElementKind = expression => {
+    if (!ts.isCallExpression(expression)) return null;
+    if (!ts.isPropertyAccessExpression(expression.expression) && !ts.isElementAccessExpression(expression.expression)) {
+      return null;
+    }
+    if (staticMemberName(expression.expression) !== 'createElement') return null;
+    if (!ts.isIdentifier(expression.expression.expression) || expression.expression.expression.text !== 'document') {
+      return null;
+    }
+    const tagName = expression.arguments[0];
+    if (!tagName || !ts.isStringLiteralLike(tagName)) return null;
+    const normalized = tagName.text.toLowerCase();
+    return ['a', 'form'].includes(normalized) ? normalized : null;
+  };
+  const domNavigationElementKind = expression => {
+    if (ts.isIdentifier(expression)) return domNavigationElementAliases.get(expression.text) ?? null;
+    return createdDomNavigationElementKind(expression);
+  };
+
+  // Track the simple aliases emitted by bundlers and ordinary application code.
+  // This is a defense-in-depth release regression guard, not a general-purpose
+  // information-flow proof; the exact source tree and CSP are validated separately.
+  const collectNavigationAliases = node => {
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      if (ts.isIdentifier(node.name)) {
+        if (isChromeRoot(node.initializer)) chromeRootAliases.add(node.name.text);
+        if (isGlobalRoot(node.initializer)) globalRootAliases.add(node.name.text);
+        const domElementKind = domNavigationElementKind(node.initializer);
+        if (domElementKind) domNavigationElementAliases.set(node.name.text, domElementKind);
+        const objectKind = navigationObjectKind(node.initializer);
+        if (objectKind) navigationObjectAliases.set(node.name.text, objectKind);
+        if (navigationMethodKind(node.initializer)) {
+          navigationMethodAliases.add(node.name.text);
+        }
+        const forbiddenFunction = globalFunctionKind(node.initializer);
+        if (forbiddenFunction) forbiddenFunctionAliases.set(node.name.text, forbiddenFunction);
+      } else if (ts.isObjectBindingPattern(node.name)) {
+        const objectKind = navigationObjectKind(node.initializer);
+        for (const element of node.name.elements) {
+          if (!ts.isIdentifier(element.name)) continue;
+          const method = element.propertyName && ts.isIdentifier(element.propertyName)
+            ? element.propertyName.text
+            : element.name.text;
+          if (
+            (objectKind === 'tabs' && ['create', 'update'].includes(method))
+            || (objectKind === 'windows' && method === 'create')
+            || (objectKind === 'location' && ['assign', 'replace'].includes(method))
+          ) {
+            navigationMethodAliases.add(element.name.text);
+          }
+          if (isChromeRoot(node.initializer) && ['tabs', 'windows', 'runtime'].includes(method)) {
+            navigationObjectAliases.set(element.name.text, method);
+          }
+          if (isGlobalRoot(node.initializer)) {
+            if (method === 'location') navigationObjectAliases.set(element.name.text, 'location');
+            if (method === 'open') navigationMethodAliases.add(element.name.text);
+            if (forbiddenGlobalFunctions.has(method)) forbiddenFunctionAliases.set(element.name.text, method);
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, collectNavigationAliases);
+  };
+  // A second pass resolves aliases that refer to aliases declared earlier.
+  collectNavigationAliases(sourceFile);
+  collectNavigationAliases(sourceFile);
+
+  const visit = node => {
+    if (ts.isStringLiteralLike(node) && /^(?:https?:)?\/\//iu.test(node.text.trim())) {
+      throw new Error(`Release artifact validation failed: ${bundlePath} contains a forbidden external URL`);
+    }
+    if (ts.isCallExpression(node)) {
+      if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+        throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden dynamic import capability`);
+      }
+      const forbiddenFunction = globalFunctionKind(node.expression);
+      if (forbiddenFunction) {
+        const label = forbiddenFunction === 'Function' ? 'dynamic code generation' : forbiddenFunction;
+        throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden ${label} capability`);
+      }
+      if (navigationMethodKind(node.expression)) {
+        throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden browser navigation capability`);
+      }
+      if (ts.isPropertyAccessExpression(node.expression) || ts.isElementAccessExpression(node.expression)) {
+        const method = staticMemberName(node.expression);
+        const elementKind = domNavigationElementKind(node.expression.expression);
+        if (
+          (elementKind === 'a' && method === 'click')
+          || (elementKind === 'form' && ['submit', 'requestSubmit'].includes(method))
+        ) {
+          throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden DOM navigation capability`);
+        }
+        if (method === 'setAttribute' && elementKind) {
+          const attribute = node.arguments[0];
+          if (
+            attribute
+            && ts.isStringLiteralLike(attribute)
+            && (
+              (elementKind === 'a' && attribute.text.toLowerCase() === 'href')
+              || (elementKind === 'form' && attribute.text.toLowerCase() === 'action')
+            )
+          ) {
+            throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden DOM navigation capability`);
+          }
+        }
+      }
+    }
+    if (
+      ts.isBinaryExpression(node)
+      && node.operatorToken.kind === ts.SyntaxKind.EqualsToken
+      && (
+        (ts.isIdentifier(node.left) && node.left.text === 'location')
+        || (
+          (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left))
+          && (
+            (staticMemberName(node.left) === 'href' && navigationObjectKind(node.left.expression) === 'location')
+            || navigationObjectKind(node.left) === 'location'
+            || (
+              domNavigationElementKind(node.left.expression) === 'a'
+              && staticMemberName(node.left) === 'href'
+            )
+            || (
+              domNavigationElementKind(node.left.expression) === 'form'
+              && staticMemberName(node.left) === 'action'
+            )
+          )
+        )
+      )
+    ) {
+      throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden location navigation capability`);
+    }
+    if (ts.isNewExpression(node)) {
+      const name = globalFunctionKind(node.expression) ?? (
+        ts.isIdentifier(node.expression) && forbiddenConstructors.has(node.expression.text)
+          ? node.expression.text
+          : null
+      );
+      if (name && forbiddenConstructors.has(name)) {
+        const label = name === 'Function' ? 'dynamic code generation' : name;
+        throw new Error(`Release artifact validation failed: ${bundlePath} contains forbidden ${label} capability`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
 }
 
 async function assertReferencedFile(distDir, fileSet, relativePath, sourceLabel) {
@@ -223,6 +552,7 @@ export async function validateDist(distDir) {
   invariant(manifest.background?.service_worker === 'background.js', 'service worker must be root background.js');
   invariant(manifest.background?.type === 'module', 'background service worker must use module type');
   invariant(manifest.action?.default_popup === 'popup.html', 'default popup must be root popup.html');
+  validateManifestPrivilegeBoundary(manifest);
   validateCommandSafety(manifest);
 
   for (const size of REQUIRED_ICON_SIZES) {
@@ -245,6 +575,8 @@ export async function validateDist(distDir) {
 
   const popupPath = manifest.action.default_popup;
   const popupText = await readFile(path.join(absoluteDistDir, popupPath), 'utf8');
+  validateNoRemoteDocumentReferences(popupText, popupPath);
+  validateDocumentExecutableReferences(popupText, popupPath);
   const popupDirectory = path.posix.dirname(popupPath);
   for (const documentPath of extractLocalDocumentPaths(popupText)) {
     const resolvedPath = path.posix.normalize(path.posix.join(popupDirectory, documentPath));
@@ -253,6 +585,7 @@ export async function validateDist(distDir) {
 
   for (const cssFile of files.filter((file) => file.endsWith('.css'))) {
     const cssText = await readFile(path.join(absoluteDistDir, cssFile), 'utf8');
+    validateNoRemoteStylesheetReferences(cssText, cssFile);
     const cssDirectory = path.posix.dirname(cssFile);
     for (const assetPath of extractLocalStylesheetPaths(cssText)) {
       const resolvedPath = path.posix.normalize(path.posix.join(cssDirectory, assetPath));
@@ -267,6 +600,8 @@ export async function validateDist(distDir) {
       `${bundlePath} contains an unresolved local module import`,
     );
     LOCAL_MODULE_SPECIFIER.lastIndex = 0;
+    validateJavaScriptSyntax(bundleText, bundlePath);
+    validateBundleCapabilities(bundleText, bundlePath);
   }
 
   const sourceLeaks = files.filter((file) => /(?:^|\/)(?:src|tests?|scripts)\//u.test(file) || /\.(?:ts|tsx|map)$/u.test(file));

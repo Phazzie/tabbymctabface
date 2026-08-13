@@ -12,6 +12,10 @@
     "storage"
   ],
 
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none';"
+  },
+
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -42,9 +46,6 @@
         "mac": "Command+Shift+Y"
       },
       "description": "Open TabbyMcTabface popup"
-    },
-    "feeling_lucky": {
-      "description": "Close a random tab (I'm Feeling Lucky)"
     }
   }
 }

@@ -21,21 +21,21 @@
 // === SEAM-30: Popup/Chrome runtime → Background ===
 // === SEAM-31: Background → Popup/Chrome runtime ===
 
-import type { BrowserContext, BrowserEventName, RandomTabOptions } from './ITabManager';
+import type { BrowserEventName, RandomTabOptions } from './ITabManager';
 import type { UsageStats } from './IUsageStats';
 
 export type RuntimeRequest =
   | { action: 'createGroup'; groupName: string; tabIds: number[] }
   | { action: 'closeRandomTab'; options?: RandomTabOptions }
-  | { action: 'getAllGroups' }
   | { action: 'getCurrentTabs' }
-  | { action: 'getBrowserContext' }
-  | { action: 'getUsageStats' }
   | { action: 'getStats' }
   | { action: 'recordBrowserEvent'; event: BrowserEventName };
 
 export interface PopupStats {
-  browser: BrowserContext;
+  browser: {
+    tabCount: number;
+    groupCount: number;
+  };
   usage: UsageStats;
 }
 

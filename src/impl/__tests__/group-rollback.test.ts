@@ -42,4 +42,35 @@ describe('createGroup compensation', () => {
       expect(result.error).toHaveProperty('originalError.rollbackError');
     }
   });
+
+  it('restores selected tabs to source groups deleted by a failed create', async () => {
+    const tabs = new MockChromeTabsAPI(createMockTabs(4));
+    expect((await tabs.createGroup([1, 2])).ok).toBe(true);
+    expect((await tabs.createGroup([3, 4])).ok).toBe(true);
+    await tabs.updateGroup(1, { title: 'First', color: 'blue', collapsed: true });
+    await tabs.updateGroup(2, { title: 'Second', color: 'red', collapsed: false });
+    const updateGroup = tabs.updateGroup.bind(tabs);
+    tabs.updateGroup = vi.fn(async (groupId, properties): Promise<Result<void, ChromeAPIError>> => (
+      properties.title === 'Combined'
+        ? Result.error({ type: 'ChromeAPIFailure', details: 'title failed', originalError: 'title' })
+        : updateGroup(groupId, properties)
+    ));
+    const manager = new TabManager(tabs, new MockHumorSystem());
+
+    const result = await manager.createGroup('Combined', [1, 2, 3, 4]);
+    const groups = await tabs.getAllGroups();
+
+    expect(result.ok).toBe(false);
+    expect(groups.ok && groups.value).toHaveLength(2);
+    if (!groups.ok) return;
+    const first = groups.value.find(group => group.title === 'First');
+    const second = groups.value.find(group => group.title === 'Second');
+    expect(first).toMatchObject({ color: 'blue', collapsed: true });
+    expect(second).toMatchObject({ color: 'red', collapsed: false });
+    if (!first || !second) return;
+    const firstTabs = await tabs.queryTabs({ currentWindow: true, groupId: first.id });
+    const secondTabs = await tabs.queryTabs({ currentWindow: true, groupId: second.id });
+    expect(firstTabs.ok && firstTabs.value.map(tab => tab.id).sort()).toEqual([1, 2]);
+    expect(secondTabs.ok && secondTabs.value.map(tab => tab.id).sort()).toEqual([3, 4]);
+  });
 });

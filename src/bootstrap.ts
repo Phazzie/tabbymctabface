@@ -84,7 +84,7 @@ export async function initializeExtension(): Promise<InitializationResult> {
     const chromeNotificationsAPI = new ChromeNotificationsAPI();
     const chromeStorageAPI = new ChromeStorageAPI();
     const usageStats = new ChromeUsageStatsStore(chromeStorageAPI);
-    const quipStorage = new QuipStorage(chromeStorageAPI);
+    const quipStorage = new QuipStorage();
     const storageResult = await quipStorage.initialize();
     if (!storageResult.ok) {
       return Result.error({

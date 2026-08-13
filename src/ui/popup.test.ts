@@ -51,6 +51,12 @@ function failure(type: string, details: string) {
   return { result: { ok: false as const, error: { type, details } } };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(settle => { resolve = settle; });
+  return { promise, resolve };
+}
+
 describe('PopupController', () => {
   let sendMessage: ReturnType<typeof vi.fn>;
   let queryTabs: ReturnType<typeof vi.fn>;
@@ -166,6 +172,90 @@ describe('PopupController', () => {
       groupName: 'Work',
       tabIds: [1]
     });
+  });
+
+  it('blocks cross-actions while tabs are loading for group creation', async () => {
+    const pendingTabs = deferred<PopupRuntimeResponse<PopupTab[]>>();
+    queryTabs.mockImplementationOnce(() => pendingTabs.promise);
+    await createController().init();
+    const create = document.querySelector<HTMLButtonElement>('#createGroupBtn')!;
+    const lucky = document.querySelector<HTMLButtonElement>('#feelingLuckyBtn')!;
+
+    create.click();
+    expect(create.disabled).toBe(true);
+    expect(lucky.disabled).toBe(true);
+    lucky.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(sendMessage.mock.calls.filter(([value]) => value.action === 'closeRandomTab')).toHaveLength(0);
+
+    pendingTabs.resolve(success([{ id: 1, title: 'One', url: 'https://example.com' }]));
+    await vi.waitFor(() => expect(document.querySelector('#tab-1')).not.toBeNull());
+  });
+
+  it('blocks Cancel, Escape, and cross-actions while group creation is pending', async () => {
+    const pendingCreate = deferred<PopupRuntimeResponse<{ groupId: number; groupName: string; tabCount: number }>>();
+    sendMessage.mockImplementation(async (request: { action: string }) => {
+      if (request.action === 'getStats') {
+        return success({
+          browser: { tabCount: 2, groupCount: 0 },
+          usage: { quipsDelivered: 0, groupsCreated: 0, tabsClosed: 0, luckyClicks: 0, schemaVersion: 1, lastUpdated: null }
+        });
+      }
+      if (request.action === 'createGroup') return pendingCreate.promise;
+      return success(undefined);
+    });
+    await createController().init();
+    document.querySelector<HTMLButtonElement>('#createGroupBtn')!.click();
+    await vi.waitFor(() => expect(document.querySelector('#tab-1')).not.toBeNull());
+    document.querySelector<HTMLInputElement>('#tab-1')!.click();
+    document.querySelector<HTMLInputElement>('#groupNameInput')!.value = 'Work';
+    document.querySelector<HTMLButtonElement>('#confirmGroupBtn')!.click();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    document.querySelector<HTMLButtonElement>('#cancelGroupBtn')!.click();
+    document.querySelector<HTMLButtonElement>('#feelingLuckyBtn')!.click();
+    expect(document.querySelector('#groupCreator')?.classList.contains('hidden')).toBe(false);
+    expect(sendMessage.mock.calls.filter(([value]) => value.action === 'createGroup')).toHaveLength(1);
+    expect(sendMessage.mock.calls.filter(([value]) => value.action === 'closeRandomTab')).toHaveLength(0);
+
+    pendingCreate.resolve(success({ groupId: 1, groupName: 'Work', tabCount: 1 }));
+    await vi.waitFor(() => expect(document.querySelector('#groupCreator')?.classList.contains('hidden')).toBe(true));
+  });
+
+  it('ignores an older stats response that arrives after a mutation refresh', async () => {
+    const staleStats = deferred<PopupRuntimeResponse<{
+      browser: { tabCount: number; groupCount: number };
+      usage: { quipsDelivered: number; groupsCreated: number; tabsClosed: number; luckyClicks: number; schemaVersion: 1; lastUpdated: null };
+    }>>();
+    let statsRequests = 0;
+    sendMessage.mockImplementation(async (request: { action: string }) => {
+      if (request.action === 'getStats') {
+        statsRequests += 1;
+        if (statsRequests === 1) return staleStats.promise;
+        return success({
+          browser: { tabCount: 4, groupCount: 1 },
+          usage: { quipsDelivered: 3, groupsCreated: 1, tabsClosed: 1, luckyClicks: 1, schemaVersion: 1, lastUpdated: null }
+        });
+      }
+      if (request.action === 'closeRandomTab') {
+        return success({ closedTabTitle: 'Closed', remainingCount: 4 });
+      }
+      return success(undefined);
+    });
+    const initPromise = createController().init();
+    const lucky = document.querySelector<HTMLButtonElement>('#feelingLuckyBtn')!;
+    lucky.click();
+    lucky.click();
+    await vi.waitFor(() => expect(document.querySelector('#tabCount')?.textContent).toBe('4'));
+
+    staleStats.resolve(success({
+      browser: { tabCount: 99, groupCount: 99 },
+      usage: { quipsDelivered: 99, groupsCreated: 99, tabsClosed: 99, luckyClicks: 99, schemaVersion: 1, lastUpdated: null }
+    }));
+    await initPromise;
+    expect(document.querySelector('#tabCount')?.textContent).toBe('4');
+    expect(document.querySelector('#groupCount')?.textContent).toBe('1');
+    expect(document.querySelector('#quipCount')?.textContent).toBe('3');
   });
 
   it('surfaces query failures (including chrome.runtime.lastError wrappers) and restores controls', async () => {
@@ -295,6 +385,27 @@ describe('PopupController', () => {
     }
     expect(sendMessage).toHaveBeenCalledWith({ action: 'recordBrowserEvent', event: 'KonamiCodeEntered' });
     expect(document.querySelector('#statusMessage')?.textContent).toContain('wombat noticed');
+  });
+
+  it('contains an unexpected browser-event transport rejection', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    sendMessage.mockImplementation(async (request: { action: string }) => {
+      if (request.action === 'getStats') {
+        return success({
+          browser: { tabCount: 1, groupCount: 0 },
+          usage: { quipsDelivered: 0, groupsCreated: 0, tabsClosed: 0, luckyClicks: 0, schemaVersion: 1, lastUpdated: null }
+        });
+      }
+      throw new Error('transport rejected');
+    });
+
+    await createController().init();
+
+    await vi.waitFor(() => expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to record PopupOpened'),
+      expect.any(Error)
+    ));
+    consoleError.mockRestore();
   });
 
   it('disarms the Lucky action after five seconds and requires two fresh clicks', async () => {

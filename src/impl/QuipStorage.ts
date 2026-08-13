@@ -19,7 +19,6 @@
  * CUSTOM SECTIONS: None
  */
 
-import type { IChromeStorageAPI } from '../contracts/IChromeStorageAPI';
 import { SUPPORTED_EASTER_EGG_CUSTOM_CHECKS } from '../contracts/IEasterEggFramework';
 import type {
   EasterEggConditions,
@@ -57,9 +56,9 @@ function validateCountCondition(
   eggId: string
 ): string[] {
   if (typeof value === 'number') {
-    return Number.isInteger(value) && value >= 0
+    return Number.isSafeInteger(value) && value >= 0
       ? []
-      : [`${eggId}: ${label} must be a non-negative integer`];
+      : [`${eggId}: ${label} must be a non-negative safe integer`];
   }
 
   if (!isRecord(value)) return [`${eggId}: ${label} must be a number or range`];
@@ -70,11 +69,11 @@ function validateCountCondition(
   if (min === undefined && max === undefined) {
     violations.push(`${eggId}: ${label} range must define min or max`);
   }
-  if (min !== undefined && (!Number.isInteger(min) || (min as number) < 0)) {
-    violations.push(`${eggId}: ${label} min must be a non-negative integer`);
+  if (min !== undefined && (!Number.isSafeInteger(min) || (min as number) < 0)) {
+    violations.push(`${eggId}: ${label} min must be a non-negative safe integer`);
   }
-  if (max !== undefined && (!Number.isInteger(max) || (max as number) < 0)) {
-    violations.push(`${eggId}: ${label} max must be a non-negative integer`);
+  if (max !== undefined && (!Number.isSafeInteger(max) || (max as number) < 0)) {
+    violations.push(`${eggId}: ${label} max must be a non-negative safe integer`);
   }
   if (typeof min === 'number' && typeof max === 'number' && min > max) {
     violations.push(`${eggId}: ${label} min must be <= max`);
@@ -310,12 +309,6 @@ export class QuipStorage implements IQuipStorage {
   private passiveAggressiveQuips: QuipData[] = [];
   private easterEggQuips: EasterEggData[] = [];
   private availableTriggerTypes: string[] = [];
-
-  /**
-   * Retains the historical injected wrapper parameter for source compatibility.
-   * Content is packaged read-only JSON and is deliberately not copied into user storage.
-   */
-  constructor(_storageAPI?: IChromeStorageAPI) {}
 
   /** Validate canonical data and atomically publish the cache. */
   async initialize(): Promise<Result<void, StorageError>> {

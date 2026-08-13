@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { handleRuntimeRequest, registerBackgroundListeners } from './background';
+import { handleRuntimeRequest, registerBackgroundListeners, validateRuntimeRequest } from './background';
 import type { ExtensionContext, InitializationResult } from './bootstrap';
 import { Result } from './utils/Result';
 
@@ -19,6 +19,14 @@ function eventHook<T extends (...args: any[]) => any>() {
 }
 
 describe('background MV3 runtime', () => {
+  it('rejects zero, negative, duplicate, non-integer, and unsafe tab IDs at the wire boundary', () => {
+    for (const tabIds of [[0], [-1], [1, 1], [1.5], [Number.MAX_SAFE_INTEGER + 1]]) {
+      expect(validateRuntimeRequest({ action: 'createGroup', groupName: 'Work', tabIds })).toBeNull();
+    }
+    expect(validateRuntimeRequest({ action: 'createGroup', groupName: 'Work', tabIds: [1, 2] }))
+      .toEqual({ action: 'createGroup', groupName: 'Work', tabIds: [1, 2] });
+  });
+
   it('rejects malformed messages without invoking core operations', async () => {
     const context = { tabManager: { closeRandomTab: vi.fn() } } as unknown as ExtensionContext;
     const response = await handleRuntimeRequest({ action: 'closeRandomTab', options: { excludePinned: 'yes' } }, context);
@@ -29,12 +37,44 @@ describe('background MV3 runtime', () => {
     expect(context.tabManager.closeRandomTab).not.toHaveBeenCalled();
   });
 
+  it('rejects messages from a different extension before initialization', () => {
+    const startup = eventHook<() => void>();
+    const installed = eventHook<(details: chrome.runtime.InstalledDetails) => void>();
+    const command = eventHook<(name: string) => void>();
+    const message = eventHook<(message: unknown, sender: chrome.runtime.MessageSender, sendResponse: (value: unknown) => void) => boolean | undefined>();
+    const created = eventHook<(tab: chrome.tabs.Tab) => void>();
+    const removed = eventHook<(tabId: number, info: chrome.tabs.OnRemovedInfo) => void>();
+    const activated = eventHook<(info: chrome.tabs.OnActivatedInfo) => void>();
+    const ensure = vi.fn();
+    registerBackgroundListeners({
+      runtime: { id: 'tabby-extension', onStartup: startup, onInstalled: installed, onMessage: message },
+      commands: { onCommand: command },
+      tabs: { onCreated: created, onRemoved: removed, onActivated: activated }
+    } as unknown as typeof chrome, ensure);
+    const sendResponse = vi.fn();
+
+    const keepPortOpen = message.listeners[0](
+      { action: 'getStats' },
+      { id: 'different-extension' } as chrome.runtime.MessageSender,
+      sendResponse
+    );
+
+    expect(keepPortOpen).toBe(false);
+    expect(ensure).not.toHaveBeenCalled();
+    expect(sendResponse).toHaveBeenCalledWith({
+      result: {
+        ok: false,
+        error: { type: 'InvalidMessage', details: 'Messages are accepted only from this extension' }
+      }
+    });
+  });
+
   it('serializes Result values without their isError function', async () => {
     const context = {
-      tabManager: { getBrowserContext: vi.fn(async () => Result.ok({ tabCount: 1, groupCount: 0 })) }
+      chromeTabsAPI: { queryTabs: vi.fn(async () => Result.ok([{ id: 1, title: 'One' }])) }
     } as unknown as ExtensionContext;
-    const response = await handleRuntimeRequest({ action: 'getBrowserContext' }, context);
-    expect(response.result).toEqual({ ok: true, value: { tabCount: 1, groupCount: 0 } });
+    const response = await handleRuntimeRequest({ action: 'getCurrentTabs' }, context);
+    expect(response.result).toEqual({ ok: true, value: [{ id: 1, title: 'One' }] });
     expect('isError' in response.result).toBe(false);
   });
 
@@ -89,7 +129,7 @@ describe('background MV3 runtime', () => {
     });
   });
 
-  it('awaits cold initialization before a command and a message', async () => {
+  it('ignores non-popup commands and awaits cold initialization before a message', async () => {
     const startup = eventHook<() => void>();
     const installed = eventHook<(details: chrome.runtime.InstalledDetails) => void>();
     const command = eventHook<(name: string) => void>();
@@ -97,13 +137,11 @@ describe('background MV3 runtime', () => {
     const created = eventHook<(tab: chrome.tabs.Tab) => void>();
     const removed = eventHook<(tabId: number, info: chrome.tabs.OnRemovedInfo) => void>();
     const activated = eventHook<(info: chrome.tabs.OnActivatedInfo) => void>();
-    const closeRandomTab = vi.fn(async () => Result.error({ type: 'NoTabsToClose', details: 'none', reason: 'none' }));
     const context = {
       tabManager: {
-        closeRandomTab,
-        recordBrowserEvent: vi.fn(),
-        getBrowserContext: vi.fn(async () => Result.ok({ tabCount: 1, groupCount: 0 }))
+        recordBrowserEvent: vi.fn()
       },
+      chromeTabsAPI: { queryTabs: vi.fn(async () => Result.ok([{ id: 1 }])) },
       chromeNotificationsAPI: { create: vi.fn(async () => Result.ok('id')) }
     } as unknown as ExtensionContext;
     const ensure = vi.fn(async (): Promise<InitializationResult> => Result.ok(context));
@@ -115,13 +153,12 @@ describe('background MV3 runtime', () => {
 
     await command.listeners[0]('feeling_lucky');
     const sendResponse = vi.fn();
-    expect(message.listeners[0]({ action: 'getBrowserContext' }, {} as chrome.runtime.MessageSender, sendResponse)).toBe(true);
+    expect(message.listeners[0]({ action: 'getCurrentTabs' }, {} as chrome.runtime.MessageSender, sendResponse)).toBe(true);
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
 
-    expect(ensure).toHaveBeenCalledTimes(2);
-    expect(closeRandomTab).toHaveBeenCalledOnce();
+    expect(ensure).toHaveBeenCalledOnce();
     expect(sendResponse).toHaveBeenCalledWith({
-      result: { ok: true, value: { tabCount: 1, groupCount: 0 } }
+      result: { ok: true, value: [{ id: 1 }] }
     });
   });
 
@@ -134,7 +171,7 @@ describe('background MV3 runtime', () => {
     const removed = eventHook<(tabId: number, info: chrome.tabs.OnRemovedInfo) => void>();
     const activated = eventHook<(info: chrome.tabs.OnActivatedInfo) => void>();
     const context = {
-      tabManager: { getBrowserContext: vi.fn(async () => { throw new Error('private implementation detail'); }) }
+      chromeTabsAPI: { queryTabs: vi.fn(async () => { throw new Error('private implementation detail'); }) }
     } as unknown as ExtensionContext;
     const ensure = vi.fn(async (): Promise<InitializationResult> => Result.ok(context));
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -145,7 +182,7 @@ describe('background MV3 runtime', () => {
     } as unknown as typeof chrome, ensure);
 
     const sendResponse = vi.fn();
-    message.listeners[0]({ action: 'getBrowserContext' }, {} as chrome.runtime.MessageSender, sendResponse);
+    message.listeners[0]({ action: 'getCurrentTabs' }, {} as chrome.runtime.MessageSender, sendResponse);
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
 
     expect(sendResponse).toHaveBeenCalledWith({
@@ -189,7 +226,7 @@ describe('background MV3 runtime', () => {
     expect(recordBrowserEvent.mock.calls.map(([event]) => event)).toEqual(['TabOpened', 'TabClosed', 'TabActivated']);
   });
 
-  it('logs when the Lucky shortcut error notification also fails', async () => {
+  it('never routes a manually supplied Lucky command to a destructive operation', async () => {
     const startup = eventHook<() => void>();
     const installed = eventHook<(details: chrome.runtime.InstalledDetails) => void>();
     const command = eventHook<(name: string) => void>();
@@ -197,20 +234,9 @@ describe('background MV3 runtime', () => {
     const created = eventHook<(tab: chrome.tabs.Tab) => void>();
     const removed = eventHook<(tabId: number, info: chrome.tabs.OnRemovedInfo) => void>();
     const activated = eventHook<(info: chrome.tabs.OnActivatedInfo) => void>();
-    const context = {
-      tabManager: {
-        closeRandomTab: vi.fn(async () => Result.error({
-          type: 'NoTabsToClose', details: 'none', reason: 'none'
-        }))
-      },
-      chromeNotificationsAPI: {
-        create: vi.fn(async () => Result.error({
-          type: 'ChromeAPIFailure', details: 'notification failed', originalError: null
-        }))
-      }
-    } as unknown as ExtensionContext;
+    const closeRandomTab = vi.fn();
+    const context = { tabManager: { closeRandomTab } } as unknown as ExtensionContext;
     const ensure = vi.fn(async (): Promise<InitializationResult> => Result.ok(context));
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     registerBackgroundListeners({
       runtime: { onStartup: startup, onInstalled: installed, onMessage: message },
       commands: { onCommand: command },
@@ -219,10 +245,7 @@ describe('background MV3 runtime', () => {
 
     await command.listeners[0]('feeling_lucky');
 
-    expect(consoleError).toHaveBeenCalledWith(
-      '[TabbyMcTabface] Failed to report Lucky shortcut error',
-      expect.objectContaining({ type: 'ChromeAPIFailure' })
-    );
-    consoleError.mockRestore();
+    expect(ensure).not.toHaveBeenCalled();
+    expect(closeRandomTab).not.toHaveBeenCalled();
   });
 });

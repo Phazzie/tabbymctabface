@@ -83,6 +83,8 @@ export class PopupController {
   private selectedTabIds = new Set<number>();
   private luckyArmed = false;
   private mutationOutcomeUnknown = false;
+  private operationInProgress = false;
+  private statsRequestVersion = 0;
   private luckyTimer: ReturnType<typeof setTimeout> | null = null;
   private konamiBuffer: string[] = [];
   private readonly konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -182,7 +184,9 @@ export class PopupController {
   }
 
   private async updateStats(): Promise<void> {
+    const requestVersion = ++this.statsRequestVersion;
     const response = await this.dependencies.sendMessage<PopupStats>({ action: 'getStats' });
+    if (requestVersion !== this.statsRequestVersion) return;
     if (!response.result.ok) {
       this.renderUnavailableStats();
       console.error('[TabbyMcTabface] Failed to update popup stats', response.result.error);
@@ -194,7 +198,7 @@ export class PopupController {
   }
 
   private async handleFeelingLucky(): Promise<void> {
-    if (this.mutationOutcomeUnknown || this.feelingLuckyBtn.disabled) return;
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.feelingLuckyBtn.disabled) return;
     if (!this.luckyArmed) {
       this.luckyArmed = true;
       this.feelingLuckyBtn.classList.add('armed');
@@ -205,7 +209,9 @@ export class PopupController {
     }
 
     this.disarmLucky();
+    this.operationInProgress = true;
     this.feelingLuckyBtn.disabled = true;
+    this.createGroupBtn.disabled = true;
     this.setStatus('Choosing a random tab…', 'loading');
     const response = await this.dependencies.sendMessage<TabClosureResult>({ action: 'closeRandomTab' });
     if (!response.result.ok) {
@@ -214,24 +220,32 @@ export class PopupController {
         return;
       }
       this.setStatus(`Could not close a tab: ${response.result.error.details}`, 'error');
+      this.operationInProgress = false;
       this.feelingLuckyBtn.disabled = false;
+      this.createGroupBtn.disabled = false;
       return;
     }
     const result = response.result.value;
+    this.operationInProgress = false;
     this.feelingLuckyBtn.disabled = false;
+    this.createGroupBtn.disabled = false;
     await this.updateStats();
     this.setStatus(`Closed “${result.closedTabTitle}”. ${result.remainingCount} tabs remain in this window.`, 'success');
   }
 
   private async handleCreateGroup(): Promise<void> {
-    if (this.mutationOutcomeUnknown || this.createGroupBtn.disabled) return;
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.createGroupBtn.disabled) return;
     this.disarmLucky();
+    this.operationInProgress = true;
     this.createGroupBtn.disabled = true;
+    this.feelingLuckyBtn.disabled = true;
     const response = await this.dependencies.queryTabs();
     if (!response.result.ok) {
       this.setStatus('Failed to load tabs from this window.', 'error');
       console.error('[TabbyMcTabface] Failed to query popup tabs', response.result.error);
+      this.operationInProgress = false;
       this.createGroupBtn.disabled = false;
+      this.feelingLuckyBtn.disabled = false;
       return;
     }
     const tabs = response.result.value;
@@ -243,7 +257,9 @@ export class PopupController {
     this.groupNameInput.focus();
     this.createGroupBtn.classList.add('hidden');
     this.feelingLuckyBtn.classList.add('hidden');
+    this.operationInProgress = false;
     this.createGroupBtn.disabled = false;
+    this.feelingLuckyBtn.disabled = false;
   }
 
   private createTabItem(tab: PopupTab, renderIndex: number): HTMLElement {
@@ -278,7 +294,7 @@ export class PopupController {
   }
 
   private async handleConfirmGroup(): Promise<void> {
-    if (this.mutationOutcomeUnknown || this.confirmGroupBtn.disabled) return;
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.confirmGroupBtn.disabled) return;
     const groupName = this.groupNameInput.value.trim();
     if (!groupName) {
       this.setStatus('Group name cannot be empty.', 'error');
@@ -295,7 +311,10 @@ export class PopupController {
       return;
     }
 
+    this.operationInProgress = true;
     this.confirmGroupBtn.disabled = true;
+    this.cancelGroupBtn.disabled = true;
+    this.groupNameInput.disabled = true;
     this.setStatus('Creating group…', 'loading');
     const response = await this.dependencies.sendMessage<GroupCreationSuccess>({
       action: 'createGroup',
@@ -308,17 +327,21 @@ export class PopupController {
         return;
       }
       this.setStatus(`Could not create group: ${response.result.error.details}`, 'error');
+      this.operationInProgress = false;
       this.confirmGroupBtn.disabled = false;
+      this.cancelGroupBtn.disabled = false;
+      this.groupNameInput.disabled = false;
       return;
     }
     const result = response.result.value;
-    this.handleCancelGroup();
-    this.confirmGroupBtn.disabled = false;
+    this.operationInProgress = false;
+    this.handleCancelGroup(true);
     await this.updateStats();
     this.setStatus(`Group “${result.groupName}” created with ${result.tabCount} ${result.tabCount === 1 ? 'tab' : 'tabs'}.`, 'success');
   }
 
-  private handleCancelGroup(): void {
+  private handleCancelGroup(force = false): void {
+    if (this.operationInProgress && !force) return;
     this.disarmLucky();
     this.groupCreator.classList.add('hidden');
     this.groupCreator.setAttribute('aria-hidden', 'true');
@@ -326,6 +349,11 @@ export class PopupController {
     this.feelingLuckyBtn.classList.remove('hidden');
     this.selectedTabIds.clear();
     this.tabList.replaceChildren();
+    this.confirmGroupBtn.disabled = false;
+    this.cancelGroupBtn.disabled = false;
+    this.groupNameInput.disabled = false;
+    this.createGroupBtn.disabled = false;
+    this.feelingLuckyBtn.disabled = false;
     this.createGroupBtn.focus();
   }
 
@@ -370,9 +398,11 @@ export class PopupController {
 
   private displayDomain(url: string | undefined): string {
     if (!url) return 'Internal or unavailable URL';
-    const link = this.document.createElement('a');
-    link.href = url;
-    return link.hostname || url;
+    try {
+      return new URL(url).hostname || url;
+    } catch {
+      return url;
+    }
   }
 
   private renderUnavailableStats(): void {
@@ -384,9 +414,11 @@ export class PopupController {
 
   private renderIndeterminateMutation(action: string): void {
     this.mutationOutcomeUnknown = true;
+    this.operationInProgress = true;
     this.feelingLuckyBtn.disabled = true;
     this.createGroupBtn.disabled = true;
     this.confirmGroupBtn.disabled = true;
+    this.cancelGroupBtn.disabled = true;
     this.groupNameInput.disabled = true;
     this.setStatus(
       `Chrome did not confirm whether ${action} finished. Close and reopen this popup to verify before trying again.`,
@@ -395,9 +427,13 @@ export class PopupController {
   }
 
   private async recordBrowserEvent(event: BrowserEventName): Promise<void> {
-    const response = await this.dependencies.sendMessage({ action: 'recordBrowserEvent', event });
-    if (!response.result.ok) {
-      console.error(`[TabbyMcTabface] Failed to record ${event}`, response.result.error);
+    try {
+      const response = await this.dependencies.sendMessage({ action: 'recordBrowserEvent', event });
+      if (!response.result.ok) {
+        console.error(`[TabbyMcTabface] Failed to record ${event}`, response.result.error);
+      }
+    } catch (error) {
+      console.error(`[TabbyMcTabface] Failed to record ${event}`, error);
     }
   }
 

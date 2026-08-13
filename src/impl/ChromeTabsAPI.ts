@@ -36,7 +36,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
             if (!tabIds || tabIds.length === 0) {
                 return Result.error({ type: 'ChromeAPIFailure', details: 'tabIds array cannot be empty', originalError: new Error('Empty tabIds array') });
             }
-            if (existingGroupId !== undefined && (!Number.isInteger(existingGroupId) || existingGroupId < 0)) {
+            if (existingGroupId !== undefined && (!Number.isSafeInteger(existingGroupId) || existingGroupId < 0)) {
                 return Result.error({ type: 'InvalidGroupId', details: 'groupId must be a non-negative integer', groupId: existingGroupId });
             }
             const chromeTabIds = tabIds as [number, ...number[]];
@@ -51,7 +51,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
 
     async updateGroup(groupId: number, properties: GroupUpdateProperties): Promise<Result<void, ChromeAPIError>> {
         try {
-            if (!Number.isInteger(groupId) || groupId < 0) {
+            if (!Number.isSafeInteger(groupId) || groupId < 0) {
                 return Result.error({ type: 'InvalidGroupId', details: 'groupId must be a non-negative integer', groupId });
             }
             await chrome.tabGroups.update(groupId, properties);
@@ -82,7 +82,7 @@ export class ChromeTabsAPI implements IChromeTabsAPI {
 
     async removeTab(tabId: number): Promise<Result<void, ChromeAPIError>> {
         try {
-            if (!Number.isInteger(tabId) || tabId <= 0) {
+            if (!Number.isSafeInteger(tabId) || tabId <= 0) {
                 return Result.error({ type: 'InvalidTabId', details: 'tabId must be a positive number', tabId });
             }
             await chrome.tabs.remove(tabId);
