@@ -18,7 +18,6 @@
 
 import { createHash } from 'node:crypto';
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises';
-import { Script } from 'node:vm';
 import path from 'node:path';
 import { unzipSync, zipSync } from 'fflate';
 import { JSDOM } from 'jsdom';
@@ -248,15 +247,13 @@ function validateDocumentExecutableReferences(documentText, documentPath) {
 }
 
 function validateJavaScriptSyntax(source, bundlePath) {
-  try {
-    // esbuild emits self-contained scripts with no top-level module syntax.
-    // Compiling without executing catches truncated or invalid bundles.
-    new Script(source, { filename: bundlePath });
-  } catch (error) {
-    throw new Error(`Release artifact validation failed: ${bundlePath} has invalid JavaScript syntax`, {
-      cause: error,
-    });
-  }
+  // Parse only: release validation must never dynamically execute artifact text.
+  const sourceFile = ts.createSourceFile(bundlePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const diagnostics = sourceFile.parseDiagnostics ?? [];
+  invariant(
+    diagnostics.length === 0,
+    `${bundlePath} has invalid JavaScript syntax: ${diagnostics[0]?.messageText ?? 'parse failed'}`,
+  );
 }
 
 function extractLocalStylesheetPaths(stylesheetText) {

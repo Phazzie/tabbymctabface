@@ -133,28 +133,36 @@ describe('TabManager runtime behavior', () => {
   });
 
   it('evaluates and delivers an event-only easter egg after recording the event', async () => {
-    const tabs = new MockChromeTabsAPI(createMockTabs(2));
-    const storage = new QuipStorage();
-    expect((await storage.initialize()).ok).toBe(true);
-    const framework = new EasterEggFramework(storage, () => 0);
-    expect((await framework.initialize()).ok).toBe(true);
-    const notifications = new MockChromeNotificationsAPI();
-    const humor = new HumorSystem(framework, storage, notifications, undefined, undefined, {
-      minDeliveryIntervalMs: 60_000,
-      random: () => 0
-    });
-    const manager = new TabManager(tabs, humor);
-    humor.setBrowserContextProvider(() => manager.getBrowserContext());
+    vi.useFakeTimers();
+    try {
+      // Keep unrelated hour/date eggs from making this event-edge regression
+      // depend on the CI runner's local time zone.
+      vi.setSystemTime(new Date(2026, 5, 15, 12, 30, 0));
+      const tabs = new MockChromeTabsAPI(createMockTabs(2));
+      const storage = new QuipStorage();
+      expect((await storage.initialize()).ok).toBe(true);
+      const framework = new EasterEggFramework(storage, () => 0);
+      expect((await framework.initialize()).ok).toBe(true);
+      const notifications = new MockChromeNotificationsAPI();
+      const humor = new HumorSystem(framework, storage, notifications, undefined, undefined, {
+        minDeliveryIntervalMs: 60_000,
+        random: () => 0
+      });
+      const manager = new TabManager(tabs, humor);
+      humor.setBrowserContextProvider(() => manager.getBrowserContext());
 
-    await manager.recordBrowserEvent('PopupOpened');
-    expect(notifications.createCalls).toHaveLength(1);
-    expect(notifications.createCalls[0].options.message).toContain('tab portal');
+      await manager.recordBrowserEvent('PopupOpened');
+      expect(notifications.createCalls).toHaveLength(1);
+      expect(notifications.createCalls[0].options.message).toContain('tab portal');
 
-    await manager.recordBrowserEvent('KonamiCodeEntered');
+      await manager.recordBrowserEvent('KonamiCodeEntered');
 
-    expect(notifications.createCalls).toHaveLength(2);
-    expect(notifications.createCalls[1].options.title).toBe('Skeptical Wombat found something');
-    expect(notifications.createCalls[1].options.message).toContain('30 extra tabs unlocked');
+      expect(notifications.createCalls).toHaveLength(2);
+      expect(notifications.createCalls[1].options.title).toBe('Skeptical Wombat found something');
+      expect(notifications.createCalls[1].options.message).toContain('30 extra tabs unlocked');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('serializes concurrent browser events so rapid opening produces one notification', async () => {
