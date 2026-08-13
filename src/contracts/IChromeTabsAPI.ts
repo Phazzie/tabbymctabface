@@ -25,7 +25,19 @@
 import { Result } from '../utils/Result';
 
 export interface IChromeTabsAPI {
-  createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>>;
+  /**
+   * Create a group or move tabs into an existing group.
+   *
+   * DATA IN:
+   *   - tabIds: non-empty array of valid Chrome tab IDs
+   *   - existingGroupId: optional non-negative integer identifying the destination group
+   * DATA OUT: Result<number, ChromeAPIError> containing the created or destination group ID.
+   * SEAM: SEAM-20 (TabManager → ChromeTabsAPI)
+   * FLOW: Validate input, call chrome.tabs.group, then map the browser response to Result.
+   * ERRORS: InvalidGroupId, InvalidTabId, PermissionDenied, ChromeAPIFailure.
+   * PERFORMANCE: Browser-I/O-bound; wrapper overhead <5ms excluding Chrome API latency.
+   */
+  createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>>;
   updateGroup(groupId: number, properties: GroupUpdateProperties): Promise<Result<void, ChromeAPIError>>;
   queryTabs(queryInfo: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>>;
   removeTab(tabId: number): Promise<Result<void, ChromeAPIError>>;

@@ -39,8 +39,8 @@ import { ChromeTab } from './IChromeTabsAPI';
  * - Event emissions to humor system
  * 
  * PERFORMANCE:
- * - createGroup: <50ms (95th percentile)
- * - closeRandomTab: <30ms (95th percentile)
+ * - createGroup: browser-I/O-bound; orchestration overhead <20ms excluding dependencies
+ * - closeRandomTab: browser-I/O-bound; orchestration overhead <20ms excluding dependencies
  * - getAllGroups: <20ms (95th percentile)
  * - getBrowserContext: <10ms (95th percentile)
  */
@@ -63,7 +63,7 @@ export interface ITabManager {
    *   - NoTabsSelected: tabIds is empty array
    *   - ChromeAPIFailure: Chrome API returned error
    * 
-   * PERFORMANCE: <50ms (95th percentile)
+   * PERFORMANCE: Browser-I/O-bound; orchestration overhead <20ms excluding dependencies
    * 
    * SIDE EFFECTS:
    *   - Creates group in Chrome via SEAM-02, SEAM-03
@@ -95,7 +95,7 @@ export interface ITabManager {
    *   - NoTabsToClose: No eligible tabs to close (all pinned/active)
    *   - ChromeAPIFailure: Chrome API returned error
    * 
-   * PERFORMANCE: <30ms (95th percentile)
+   * PERFORMANCE: Browser-I/O-bound; orchestration overhead <20ms excluding dependencies
    * 
    * SIDE EFFECTS:
    *   - Queries tabs via SEAM-07
@@ -190,6 +190,17 @@ export interface ITabManager {
    * @returns Browser state including tab count, active tab, current time
    */
   getBrowserContext(): Promise<Result<BrowserContext, TabManagerError>>;
+
+  /**
+   * Record a browser lifecycle event and await its derived humor evaluation.
+   * DATA IN: event, an allow-listed BrowserEventName supplied by Chrome/runtime routing.
+   * DATA OUT: Promise<void> after history, invalidation, and non-blocking-safe humor handling.
+   * SEAM: SEAM-09 (TabManager → HumorSystem), SEAM-19 (context provider → TabManager).
+   * FLOW: Prepend event, cap history at 20, invalidate context, map trigger, await delivery.
+   * ERRORS: Humor failures are logged and contained so browser lifecycle handling succeeds.
+   * PERFORMANCE: Browser-I/O-bound; orchestration overhead <10ms excluding humor delivery.
+   */
+  recordBrowserEvent(event: BrowserEventName): Promise<void>;
 }
 
 /**
@@ -254,9 +265,23 @@ export interface BrowserContext {
     domain: string;
   } | null;
   currentHour: number; // 0-23
-  recentEvents: string[]; // last 10 tab events
+  recentEvents: string[]; // last 20 browser/tab events, newest first
   groupCount: number;
+  currentMinute?: number; // 0-59
+  currentDay?: number; // 0=Sunday, 6=Saturday
+  currentMonth?: number; // 1-12
+  currentDate?: string; // local YYYY-MM-DD
+  currentTimestamp?: number; // Unix time in milliseconds
+  tabUrls?: string[];
+  duplicateTabCount?: number;
 }
+
+export type BrowserEventName =
+  | 'PopupOpened'
+  | 'KonamiCodeEntered'
+  | 'TabOpened'
+  | 'TabClosed'
+  | 'TabActivated';
 
 /**
  * Tab Manager error types

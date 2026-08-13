@@ -41,7 +41,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   private nextTabId = 1;
   private nextGroupId = 1;
 
-  public createGroupCalls: Array<{ tabIds: number[] }> = [];
+  public createGroupCalls: Array<{ tabIds: number[]; existingGroupId?: number }> = [];
   public updateGroupCalls: Array<{ groupId: number; updates: GroupUpdateProperties }> = [];
   public removeTabCalls: Array<{ tabId: number }> = [];
   public queryTabsCalls: Array<{ query: TabQueryInfo }> = [];
@@ -51,19 +51,28 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     this.tabs = initialTabs;
   }
 
-  async createGroup(tabIds: number[]): Promise<Result<number, ChromeAPIError>> {
-    this.createGroupCalls.push({ tabIds });
+  async createGroup(tabIds: number[], existingGroupId?: number): Promise<Result<number, ChromeAPIError>> {
+    this.createGroupCalls.push({ tabIds, ...(existingGroupId !== undefined ? { existingGroupId } : {}) });
     for (const tabId of tabIds) {
       if (!this.tabs.find(t => t.id === tabId)) {
         return Result.error({ type: 'InvalidTabId', details: `Tab ID ${tabId} does not exist`, tabId });
       }
     }
-    const groupId = this.nextGroupId++;
-    this.groups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
+    if (existingGroupId !== undefined && !this.groups.some(group => group.id === existingGroupId)) {
+      return Result.error({ type: 'InvalidGroupId', details: `No group with id ${existingGroupId}`, groupId: existingGroupId });
+    }
+    const previousGroupIds = new Set(
+      tabIds.map(tabId => this.tabs.find(tab => tab.id === tabId)?.groupId ?? -1).filter(groupId => groupId >= 0)
+    );
+    const groupId = existingGroupId ?? this.nextAvailableGroupId();
+    if (existingGroupId === undefined) {
+      this.groups.push({ id: groupId, title: '', color: 'grey', collapsed: false });
+    }
     for (const tabId of tabIds) {
       const tab = this.tabs.find(t => t.id === tabId);
       if (tab) tab.groupId = groupId;
     }
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(groupId);
   }
 
@@ -82,6 +91,7 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
   async queryTabs(query: TabQueryInfo): Promise<Result<ChromeTab[], ChromeAPIError>> {
     this.queryTabsCalls.push({ query });
     let results = [...this.tabs];
+    if (query.currentWindow) results = results.filter(tab => tab.windowId === 1);
     if (query.active !== undefined) results = results.filter(tab => tab.active === query.active);
     if (query.pinned !== undefined) results = results.filter(tab => tab.pinned === query.pinned);
     if (query.groupId !== undefined) results = results.filter(tab => tab.groupId === query.groupId);
@@ -95,7 +105,9 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
     if (index === -1) {
       return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
     }
+    const previousGroupId = this.tabs[index].groupId;
     this.tabs.splice(index, 1);
+    this.deleteEmptyGroups(new Set([previousGroupId]));
     return Result.ok(undefined);
   }
 
@@ -108,14 +120,26 @@ export class MockChromeTabsAPI implements IChromeTabsAPI {
    */
   async ungroupTabs(tabIds: number[]): Promise<Result<void, ChromeAPIError>> {
     this.ungroupTabsCalls.push({ tabIds });
+    const previousGroupIds = new Set<number>();
     for (const tabId of tabIds) {
       const tab = this.tabs.find(t => t.id === tabId);
       if (!tab) {
         return Result.error({ type: 'InvalidTabId', details: `No tab with id ${tabId}`, tabId });
       }
+      if (tab.groupId >= 0) previousGroupIds.add(tab.groupId);
       tab.groupId = -1;
     }
+    this.deleteEmptyGroups(previousGroupIds);
     return Result.ok(undefined);
+  }
+
+  private nextAvailableGroupId(): number {
+    while (this.groups.some(group => group.id === this.nextGroupId)) this.nextGroupId += 1;
+    return this.nextGroupId++;
+  }
+
+  private deleteEmptyGroups(groupIds: Set<number>): void {
+    this.groups = this.groups.filter(group => !groupIds.has(group.id) || this.tabs.some(tab => tab.groupId === group.id));
   }
 
   addTab(tab: Partial<ChromeTab>): ChromeTab {
@@ -201,12 +225,13 @@ export class MockChromeStorageAPI implements IChromeStorageAPI {
   private storage = new Map<string, any>();
   private quotaBytes = 10_485_760;
 
-  public getCalls: Array<{ keys: string | string[] }> = [];
+  public getCalls: Array<{ keys: string | string[] | null }> = [];
   public setCalls: Array<{ items: StorageData }> = [];
   public removeCalls: Array<{ keys: string | string[] }> = [];
 
-  async get(keys: string | string[]): Promise<Result<StorageData, StorageAPIError>> {
+  async get(keys: string | string[] | null): Promise<Result<StorageData, StorageAPIError>> {
     this.getCalls.push({ keys });
+    if (keys === null) return Result.ok(Object.fromEntries(this.storage));
     const keysArray = Array.isArray(keys) ? keys : [keys];
     const result: StorageData = {};
     for (const key of keysArray) {
@@ -238,7 +263,7 @@ export class MockChromeStorageAPI implements IChromeStorageAPI {
     return Result.ok(undefined);
   }
 
-  async getBytesinUse(keys: string | string[] | null = null): Promise<Result<number, StorageAPIError>> {
+  async getBytesInUse(keys: string | string[] | null = null): Promise<Result<number, StorageAPIError>> {
     if (!keys) return Result.ok(this.calculateSize());
     const keysArray = Array.isArray(keys) ? keys : [keys];
     let size = 0;

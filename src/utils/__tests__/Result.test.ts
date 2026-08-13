@@ -135,7 +135,7 @@ describe('Result<T, E> CONTRACT', () => {
   describe('Result.map() - Transform Success', () => {
     it('map() transforms Ok value', () => {
       const result = Result.ok(42);
-      const mapped = Result.map(result, (n) => n * 2);
+      const mapped = Result.map<number, number, never>(result, (n) => n * 2);
       
       expect(Result.isOk(mapped)).toBe(true);
       if (Result.isOk(mapped)) {
@@ -146,7 +146,7 @@ describe('Result<T, E> CONTRACT', () => {
     it('map() passes through Err unchanged', () => {
       const error = { type: 'TestError', message: 'fail' };
       const result: Result<number, typeof error> = Result.error(error);
-      const mapped = Result.map(result, (n) => n * 2);
+      const mapped = Result.map<number, number, typeof error>(result, (n) => n * 2);
       
       expect(Result.isError(mapped)).toBe(true);
       if (Result.isError(mapped)) {
@@ -241,7 +241,7 @@ describe('Result<T, E> CONTRACT', () => {
     it('Chaining map operations on success path', () => {
       const result = Result.ok(10);
       const final = Result.map(
-        Result.map(result, (n) => n * 2),
+        Result.map<number, number, string>(result, (n) => n * 2),
         (n) => n + 5
       );
       
@@ -250,8 +250,8 @@ describe('Result<T, E> CONTRACT', () => {
 
     it('Error propagates through map chain', () => {
       const result: Result<number, string> = Result.error('initial error');
-      const final = Result.map(
-        Result.map(result, (n) => n * 2),
+      const final = Result.map<number, number, string>(
+        Result.map<number, number, string>(result, (n) => n * 2),
         (n) => n + 5
       );
       

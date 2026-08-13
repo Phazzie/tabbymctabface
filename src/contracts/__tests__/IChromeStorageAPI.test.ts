@@ -71,12 +71,12 @@ describe('IChromeStorageAPI CONTRACT', () => {
         type: 'QuotaExceeded',
         details: 'Storage quota exceeded',
         bytesUsed: 10485760,
-        quotaBytes: 10485760
+        quotaLimit: 10485760
       };
       
       expect(error.type).toBe('QuotaExceeded');
       expect(error.bytesUsed).toBeDefined();
-      expect(error.quotaBytes).toBeDefined();
+      expect(error.quotaLimit).toBeDefined();
     });
 
     it('MUST meet <20ms performance SLA', () => {
@@ -98,7 +98,7 @@ describe('IChromeStorageAPI CONTRACT', () => {
     });
 
     it('MUST return Result<void, StorageAPIError> on success', () => {
-      const successResult = Result.ok<void, StorageAPIError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
       if (Result.isOk(successResult)) {
@@ -111,11 +111,11 @@ describe('IChromeStorageAPI CONTRACT', () => {
         type: 'QuotaExceeded',
         details: 'Cannot save: would exceed quota',
         bytesUsed: 10000000,
-        quotaBytes: 10485760
+        quotaLimit: 10485760
       };
       
       expect(error.type).toBe('QuotaExceeded');
-      expect(error.bytesUsed).toBeLessThanOrEqual(error.quotaBytes);
+      expect(error.bytesUsed).toBeLessThanOrEqual(error.quotaLimit);
     });
 
     it('MUST support complex nested objects', () => {
@@ -151,14 +151,14 @@ describe('IChromeStorageAPI CONTRACT', () => {
     });
 
     it('MUST return Result<void, StorageAPIError> on success', () => {
-      const successResult = Result.ok<void, StorageAPIError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
     });
 
     it('MUST succeed even if key does not exist', () => {
       // Contract behavior: Removing non-existent key is not an error
-      const successResult = Result.ok<void, StorageAPIError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
     });
@@ -177,7 +177,7 @@ describe('IChromeStorageAPI CONTRACT', () => {
     });
 
     it('MUST return Result<void, StorageAPIError> on success', () => {
-      const successResult = Result.ok<void, StorageAPIError>(undefined);
+      const successResult = Result.ok<void>(undefined);
       
       expect(Result.isOk(successResult)).toBe(true);
     });
@@ -247,7 +247,7 @@ describe('IChromeStorageAPI CONTRACT', () => {
         type: 'QuotaExceeded',
         details: 'Quota exceeded',
         bytesUsed: 1000,
-        quotaBytes: 1000
+        quotaLimit: 1000
       };
       const error2: StorageAPIError = {
         type: 'PermissionDenied',
@@ -264,18 +264,18 @@ describe('IChromeStorageAPI CONTRACT', () => {
       expect(error3.type).toBe('ChromeAPIFailure');
     });
 
-    it('MUST include bytesUsed and quotaBytes in QuotaExceeded', () => {
+    it('MUST include bytesUsed and quotaLimit in QuotaExceeded', () => {
       const error: StorageAPIError = {
         type: 'QuotaExceeded',
         details: 'Storage full',
         bytesUsed: 10485760,
-        quotaBytes: 10485760
+        quotaLimit: 10485760
       };
       
       expect(error.bytesUsed).toBeDefined();
-      expect(error.quotaBytes).toBeDefined();
+      expect(error.quotaLimit).toBeDefined();
       expect(typeof error.bytesUsed).toBe('number');
-      expect(typeof error.quotaBytes).toBe('number');
+      expect(typeof error.quotaLimit).toBe('number');
     });
 
     it('MUST preserve originalError in ChromeAPIFailure', () => {

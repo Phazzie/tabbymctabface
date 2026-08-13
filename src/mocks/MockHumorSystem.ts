@@ -9,12 +9,11 @@
  * HOW DATA FLOWS:
  *   1. TabManager/UI calls deliverQuip (SEAM-11)
  *   2. Mock simulates quip delivery
- *   3. Mock emits to notifications$ observable
- *   4. Returns fake delivery result
+ *   3. Mock returns a fake delivery result
  * 
  * SEAMS:
  *   IN:  TabManager/UI → HumorSystem (SEAM-11)
- *   OUT: HumorSystem → notifications$ (SEAM-23 - Observable)
+ *   OUT: Test call history and configured Result
  * 
  * CONTRACT: IHumorSystem v1.0.0
  * GENERATED: 2025-10-13
@@ -22,18 +21,12 @@
  */
 
 import { Result } from '../utils/Result';
-import { MockObservable } from './MockObservable';
 import type {
     IHumorSystem,
     HumorTrigger,
     QuipDeliveryResult,
     EasterEggMatch,
     HumorError,
-    QuipNotification,
-    TabEventType,
-    TabEvent,
-    UnsubscribeFn,
-    Observable,
 } from '../contracts/IHumorSystem';
 import type { BrowserContext } from '../contracts/ITabManager';
 
@@ -41,29 +34,18 @@ import type { BrowserContext } from '../contracts/ITabManager';
  * Mock implementation of IHumorSystem
  * 
  * Provides fake humor orchestration for testing and development.
- * Simulates quip delivery, easter egg checking, and event subscriptions.
+ * Simulates quip delivery and easter egg checking.
  * 
  * MOCK BEHAVIOR:
  * - Returns predetermined delivery results
- * - Emits to notifications$ observable
  * - Can be configured to return null/errors
  * - Tracks call history
- * - Supports event subscriptions
  */
 export class MockHumorSystem implements IHumorSystem {
-    public notifications$: Observable<QuipNotification>;
-    private notificationsObservable: MockObservable<QuipNotification>;
     private callHistory: MockCallRecord[] = [];
     private shouldReturnError = false;
     private shouldReturnNoQuips = false;
     private customQuipText: string | null = null;
-    private eventHandlers: Map<TabEventType, ((event: TabEvent) => void)[]> = new Map();
-    private nextNotificationId = 1;
-
-    constructor() {
-        this.notificationsObservable = new MockObservable<QuipNotification>();
-        this.notifications$ = this.notificationsObservable;
-    }
 
     /**
      * Deliver a quip based on trigger event
@@ -78,8 +60,7 @@ export class MockHumorSystem implements IHumorSystem {
      *   2. Check if configured to return no quips
      *   3. Generate fake quip text
      *   4. Create delivery result
-     *   5. Emit to notifications$ observable
-     *   6. Return result
+     *   5. Return result
      * 
      * PERFORMANCE: <10ms (mock, no I/O)
      */
@@ -119,16 +100,6 @@ export class MockHumorSystem implements IHumorSystem {
             isEasterEgg: false,
             timestamp: Date.now(),
         };
-
-        // Emit to notifications$ observable
-        const notification: QuipNotification = {
-            id: `mock-notif-${this.nextNotificationId++}`,
-            quipText,
-            isEasterEgg: false,
-            timestamp: deliveryResult.timestamp,
-            displayDuration: 5000,
-        };
-        this.notificationsObservable.emit(notification);
 
         return Result.ok(deliveryResult);
     }
@@ -185,47 +156,6 @@ export class MockHumorSystem implements IHumorSystem {
         return Result.ok(null);
     }
 
-    /**
-     * Subscribe to tab events for automatic humor triggers
-     * 
-     * DATA IN: eventType: TabEventType, handler: (event: TabEvent) => void
-     * DATA OUT: UnsubscribeFn
-     * 
-     * SEAM: SEAM-04, SEAM-09 (TabManager → HumorSystem events)
-     * 
-     * FLOW:
-     *   1. Store handler in eventHandlers map
-     *   2. Return unsubscribe function
-     * 
-     * PERFORMANCE: <1ms (synchronous)
-     */
-    onTabEvent(
-        eventType: TabEventType,
-        handler: (event: TabEvent) => void
-    ): UnsubscribeFn {
-        this.callHistory.push({
-            method: 'onTabEvent',
-            args: [eventType, handler],
-            timestamp: Date.now(),
-        });
-
-        if (!this.eventHandlers.has(eventType)) {
-            this.eventHandlers.set(eventType, []);
-        }
-        this.eventHandlers.get(eventType)!.push(handler);
-
-        // Return unsubscribe function
-        return () => {
-            const handlers = this.eventHandlers.get(eventType);
-            if (handlers) {
-                const index = handlers.indexOf(handler);
-                if (index > -1) {
-                    handlers.splice(index, 1);
-                }
-            }
-        };
-    }
-
     // ========================================
     // MOCK HELPER METHODS
     // ========================================
@@ -252,29 +182,6 @@ export class MockHumorSystem implements IHumorSystem {
     }
 
     /**
-     * Emit tab event to trigger handlers (for testing)
-     */
-    emitTabEvent(event: TabEvent): void {
-        const handlers = this.eventHandlers.get(event.type);
-        if (handlers) {
-            handlers.forEach(handler => {
-                try {
-                    handler(event);
-                } catch (err) {
-                    console.error('MockHumorSystem: Handler threw error', err);
-                }
-            });
-        }
-    }
-
-    /**
-     * Get notification observable for direct emission (testing)
-     */
-    getNotificationsObservable(): MockObservable<QuipNotification> {
-        return this.notificationsObservable;
-    }
-
-    /**
      * Reset mock to initial state
      */
     reset(): void {
@@ -282,9 +189,6 @@ export class MockHumorSystem implements IHumorSystem {
         this.shouldReturnError = false;
         this.shouldReturnNoQuips = false;
         this.customQuipText = null;
-        this.eventHandlers.clear();
-        this.notificationsObservable.reset();
-        this.nextNotificationId = 1;
     }
 
     /**

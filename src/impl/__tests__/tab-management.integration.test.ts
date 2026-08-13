@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Result } from '../../utils/Result';
 import { TabManager } from '../TabManager';
 import { HumorSystem } from '../HumorSystem';
 import { QuipStorage } from '../QuipStorage';
@@ -25,7 +26,6 @@ import { EasterEggFramework } from '../EasterEggFramework';
 import {
   MockChromeTabsAPI,
   MockChromeNotificationsAPI,
-  MockChromeStorageAPI,
   createMockTabs,
   assertOk,
   assertError
@@ -34,7 +34,6 @@ import {
 describe('Tab Management Integration Tests', () => {
   let mockTabs: MockChromeTabsAPI;
   let mockNotifications: MockChromeNotificationsAPI;
-  let mockStorage: MockChromeStorageAPI;
   let tabManager: TabManager;
   let humorSystem: HumorSystem;
 
@@ -42,10 +41,9 @@ describe('Tab Management Integration Tests', () => {
     // Reset mocks
     mockTabs = new MockChromeTabsAPI();
     mockNotifications = new MockChromeNotificationsAPI();
-    mockStorage = new MockChromeStorageAPI();
 
     // Initialize humor system
-    const quipStorage = new QuipStorage(mockStorage);
+    const quipStorage = new QuipStorage();
     await quipStorage.initialize();
 
     const easterEggFramework = new EasterEggFramework(quipStorage);
@@ -315,7 +313,24 @@ describe('Tab Management Integration Tests', () => {
       // Assert
       assertOk(result);
       // Verify ungroup was called
-      expect(mockTabs.createGroupCalls.length).toBeGreaterThan(1);
+      expect(mockTabs.ungroupTabsCalls).toHaveLength(1);
+      expect(mockTabs.ungroupTabsCalls[0].tabIds).toEqual([1, 2, 3]);
+    });
+
+    it('rolls back a partially created group when the title update fails', async () => {
+      const tabs = createMockTabs(3);
+      tabs.forEach(tab => mockTabs.addTab(tab));
+      mockTabs.updateGroup = async () => Result.error({
+        type: 'ChromeAPIFailure',
+        details: 'Could not set title',
+        originalError: new Error('Could not set title')
+      });
+
+      const result = await tabManager.createGroup('Rollback Me', [1, 2]);
+
+      assertError(result);
+      expect(result.error.details).toContain('rolled back');
+      expect(mockTabs.ungroupTabsCalls).toEqual([{ tabIds: [1, 2] }]);
     });
 
     it('returns error for non-existent group', async () => {
@@ -466,6 +481,7 @@ describe('Tab Management Integration Tests', () => {
       // Assert
       assertOk(result1);
       assertOk(result2);
+      expect(result2.value).toBe(result1.value);
       expect(result1.value.tabCount).toBe(result2.value.tabCount);
       expect(mockTabs.queryTabsCalls.length).toBe(1); // Chrome API called only once
     });
@@ -486,20 +502,5 @@ describe('Tab Management Integration Tests', () => {
       expect(mockTabs.queryTabsCalls.length).toBeGreaterThan(1); // Called multiple times
     });
 
-    it('cache can be manually invalidated for testing', async () => {
-      // Arrange
-      const tabs = createMockTabs(5);
-      tabs.forEach(tab => mockTabs.addTab(tab));
-
-      // Act
-      await tabManager.getBrowserContext();
-      (tabManager as any)._invalidateContextCache();
-      const result = await tabManager.getBrowserContext();
-
-      // Assert
-      assertOk(result);
-      expect(mockTabs.queryTabsCalls.length).toBeGreaterThan(1);
-    });
   });
 });
-

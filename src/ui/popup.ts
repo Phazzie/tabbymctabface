@@ -1,187 +1,545 @@
 /**
  * FILE: popup.ts
  *
- * WHAT: Type-safe popup UI controller for TabbyMcTabface extension
- * CONTRACT: Popup UI Controller v1.0.0
+ * WHAT: Dependency-injected popup controller for safe tab actions and accessible feedback.
+ *
+ * WHY: Keeps DOM and Chrome APIs behind explicit seams so user flows can be tested without a browser.
+ *
+ * HOW DATA FLOWS:
+ *   1. DOM events enter PopupController (SEAM-01, 06).
+ *   2. Controller validates input and sends RuntimeRequest objects to background (SEAM-30).
+ *   3. WireResult values update live-region status and durable statistics (SEAM-31).
+ *
+ * SEAMS:
+ *   IN: Popup DOM -> PopupController (SEAM-01, 06)
+ *   OUT: PopupController -> chrome.runtime/chrome.tabs (SEAM-30)
+ *
+ * CONTRACT: PopupController v1.2.0
+ * GENERATED: 2026-08-12
  */
 
+import type {
+  PopupStats,
+  RuntimeError,
+  RuntimeRequest,
+  RuntimeResponse
+} from '../contracts/IRuntimeMessaging';
+import type { BrowserEventName, GroupCreationSuccess, TabClosureResult } from '../contracts/ITabManager';
 import { Result } from '../utils/Result';
 
-interface TabStats { tabCount: number; groupCount: number; quipCount: number; }
-interface BrowserContext { tabCount: number; groupCount: number; tabs: chrome.tabs.Tab[]; groups: chrome.tabGroups.TabGroup[]; }
-type BackgroundMessage = | { action: 'closeRandomTab' } | { action: 'createGroup'; groupName: string; tabIds: number[] } | { action: 'getBrowserContext' };
-interface BackgroundResponse<T = unknown> { result?: { ok: boolean; value?: T; error?: { type: string; details: string; }; }; error?: string; }
-interface CloseRandomTabResult { closedTabTitle: string; closedTabId: number; quipDelivered: boolean; }
-interface CreateGroupResult { groupId: number; groupName: string; tabCount: number; quipDelivered: boolean; }
+export interface PopupDependencies {
+  sendMessage: <T = unknown>(message: RuntimeRequest) => Promise<PopupRuntimeResponse<T>>;
+  queryTabs: () => Promise<PopupRuntimeResponse<PopupTab[]>>;
+  setTimer: (handler: () => void, timeout: number) => ReturnType<typeof setTimeout>;
+  clearTimer: (timer: ReturnType<typeof setTimeout>) => void;
+}
+
+export interface PopupTab {
+  id?: number;
+  index?: number;
+  url?: string;
+  title?: string;
+}
+
 type StatusType = 'success' | 'error' | 'warning' | 'loading' | 'info';
 
-let allTabs: chrome.tabs.Tab[] = [];
-let selectedTabIds: number[] = [];
+export type PopupError =
+  | { type: 'MissingElement'; details: string; selector: string }
+  | { type: 'InitializationFailed'; details: string; originalError?: unknown };
 
-const feelingLuckyBtn = document.getElementById('feelingLuckyBtn') as HTMLButtonElement;
-const createGroupBtn = document.getElementById('createGroupBtn') as HTMLButtonElement;
-const groupCreator = document.getElementById('groupCreator') as HTMLDivElement;
-const groupNameInput = document.getElementById('groupNameInput') as HTMLInputElement;
-const tabList = document.getElementById('tabList') as HTMLDivElement;
-const confirmGroupBtn = document.getElementById('confirmGroupBtn') as HTMLButtonElement;
-const cancelGroupBtn = document.getElementById('cancelGroupBtn') as HTMLButtonElement;
-const statusMessage = document.getElementById('statusMessage') as HTMLDivElement;
-const tabCountEl = document.getElementById('tabCount') as HTMLSpanElement;
-const groupCountEl = document.getElementById('groupCount') as HTMLSpanElement;
-const quipCountEl = document.getElementById('quipCount') as HTMLSpanElement;
+export type PopupTransportError = {
+  type: 'TransportTimeout' | 'TransportFailure' | 'MissingResponse';
+  details: string;
+};
 
-async function init(): Promise<void> {
-  await updateStats();
-  feelingLuckyBtn.addEventListener('click', handleFeelingLucky);
-  createGroupBtn.addEventListener('click', handleCreateGroup);
-  confirmGroupBtn.addEventListener('click', handleConfirmGroup);
-  cancelGroupBtn.addEventListener('click', handleCancelGroup);
+export type PopupRuntimeResponse<T> = RuntimeResponse<T, RuntimeError | PopupTransportError>;
+
+interface PopupElements {
+  feelingLuckyBtn: HTMLButtonElement;
+  createGroupBtn: HTMLButtonElement;
+  groupCreator: HTMLElement;
+  groupNameInput: HTMLInputElement;
+  tabList: HTMLElement;
+  confirmGroupBtn: HTMLButtonElement;
+  cancelGroupBtn: HTMLButtonElement;
+  statusMessage: HTMLElement;
+  tabCountEl: HTMLElement;
+  groupCountEl: HTMLElement;
+  quipCountEl: HTMLElement;
 }
 
-async function updateStats(): Promise<void> {
-  try {
-    const response = await sendMessage<BrowserContext>({ action: 'getBrowserContext' });
-    if (response.result?.ok && response.result.value) {
-      const context = response.result.value;
-      tabCountEl.textContent = String(context.tabCount);
-      groupCountEl.textContent = String(context.groupCount);
-      // Quip count is not yet tracked in BrowserContext; default to 0
-      quipCountEl.textContent = '0';
-    }
-  } catch (error) {
-    console.error('Failed to update stats:', error);
+const MESSAGE_TIMEOUT_MS = 5000;
+const popupTransportErrorTypes = new Set<PopupTransportError['type']>([
+  'TransportTimeout',
+  'TransportFailure',
+  'MissingResponse'
+]);
+
+function isPopupTransportError(error: RuntimeError | PopupTransportError): error is PopupTransportError {
+  return popupTransportErrorTypes.has(error.type as PopupTransportError['type']);
+}
+
+export class PopupController {
+  private selectedTabIds = new Set<number>();
+  private luckyArmed = false;
+  private mutationOutcomeUnknown = false;
+  private operationInProgress = false;
+  private statsRequestVersion = 0;
+  private luckyTimer: ReturnType<typeof setTimeout> | null = null;
+  private konamiBuffer: string[] = [];
+  private readonly konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+  private readonly feelingLuckyBtn: HTMLButtonElement;
+  private readonly createGroupBtn: HTMLButtonElement;
+  private readonly groupCreator: HTMLElement;
+  private readonly groupNameInput: HTMLInputElement;
+  private readonly tabList: HTMLElement;
+  private readonly confirmGroupBtn: HTMLButtonElement;
+  private readonly cancelGroupBtn: HTMLButtonElement;
+  private readonly statusMessage: HTMLElement;
+  private readonly tabCountEl: HTMLElement;
+  private readonly groupCountEl: HTMLElement;
+  private readonly quipCountEl: HTMLElement;
+
+  private constructor(
+    private readonly document: Document,
+    private readonly dependencies: PopupDependencies,
+    elements: PopupElements
+  ) {
+    this.feelingLuckyBtn = elements.feelingLuckyBtn;
+    this.createGroupBtn = elements.createGroupBtn;
+    this.groupCreator = elements.groupCreator;
+    this.groupNameInput = elements.groupNameInput;
+    this.tabList = elements.tabList;
+    this.confirmGroupBtn = elements.confirmGroupBtn;
+    this.cancelGroupBtn = elements.cancelGroupBtn;
+    this.statusMessage = elements.statusMessage;
+    this.tabCountEl = elements.tabCountEl;
+    this.groupCountEl = elements.groupCountEl;
+    this.quipCountEl = elements.quipCountEl;
   }
-}
 
-async function handleFeelingLucky(): Promise<void> {
-  try {
-    setStatus('Closing random tab...', 'loading');
-    feelingLuckyBtn.disabled = true;
-    const response = await sendMessage<CloseRandomTabResult>({ action: 'closeRandomTab' });
-    if (response.result?.ok && response.result.value) {
-      const result = response.result.value;
-      setStatus(`Closed: ${result.closedTabTitle}`, 'success');
-      await updateStats();
-    } else if (response.result?.error) {
-      setStatus(`Error: ${response.result.error.details}`, 'error');
-    } else {
-      setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
-    }
-  } catch (error) {
-    setStatus('Failed to close tab', 'error');
-    console.error(error);
-  } finally {
-    feelingLuckyBtn.disabled = false;
+  /** Resolve the popup DOM contract before constructing an interactive controller. */
+  static create(
+    documentRef: Document,
+    dependencies: PopupDependencies
+  ): Result<PopupController, PopupError> {
+    const feelingLuckyBtn = documentRef.querySelector<HTMLButtonElement>('#feelingLuckyBtn');
+    if (!feelingLuckyBtn) return PopupController.missingElement('#feelingLuckyBtn');
+    const createGroupBtn = documentRef.querySelector<HTMLButtonElement>('#createGroupBtn');
+    if (!createGroupBtn) return PopupController.missingElement('#createGroupBtn');
+    const groupCreator = documentRef.querySelector<HTMLElement>('#groupCreator');
+    if (!groupCreator) return PopupController.missingElement('#groupCreator');
+    const groupNameInput = documentRef.querySelector<HTMLInputElement>('#groupNameInput');
+    if (!groupNameInput) return PopupController.missingElement('#groupNameInput');
+    const tabList = documentRef.querySelector<HTMLElement>('#tabList');
+    if (!tabList) return PopupController.missingElement('#tabList');
+    const confirmGroupBtn = documentRef.querySelector<HTMLButtonElement>('#confirmGroupBtn');
+    if (!confirmGroupBtn) return PopupController.missingElement('#confirmGroupBtn');
+    const cancelGroupBtn = documentRef.querySelector<HTMLButtonElement>('#cancelGroupBtn');
+    if (!cancelGroupBtn) return PopupController.missingElement('#cancelGroupBtn');
+    const statusMessage = documentRef.querySelector<HTMLElement>('#statusMessage');
+    if (!statusMessage) return PopupController.missingElement('#statusMessage');
+    const tabCountEl = documentRef.querySelector<HTMLElement>('#tabCount');
+    if (!tabCountEl) return PopupController.missingElement('#tabCount');
+    const groupCountEl = documentRef.querySelector<HTMLElement>('#groupCount');
+    if (!groupCountEl) return PopupController.missingElement('#groupCount');
+    const quipCountEl = documentRef.querySelector<HTMLElement>('#quipCount');
+    if (!quipCountEl) return PopupController.missingElement('#quipCount');
+
+    return Result.ok(new PopupController(documentRef, dependencies, {
+      feelingLuckyBtn,
+      createGroupBtn,
+      groupCreator,
+      groupNameInput,
+      tabList,
+      confirmGroupBtn,
+      cancelGroupBtn,
+      statusMessage,
+      tabCountEl,
+      groupCountEl,
+      quipCountEl
+    }));
   }
-}
 
-async function handleCreateGroup(): Promise<void> {
-  try {
-    const tabs = await chrome.tabs.query({ currentWindow: true });
-    allTabs = tabs;
-    selectedTabIds = [];
-    tabList.innerHTML = '';
-    tabs.forEach((tab) => { const tabItem = createTabItem(tab); tabList.appendChild(tabItem); });
-    groupCreator.classList.remove('hidden');
-    groupNameInput.value = '';
-    groupNameInput.focus();
-    createGroupBtn.style.display = 'none';
-    feelingLuckyBtn.style.display = 'none';
-  } catch (error) {
-    setStatus('Failed to load tabs', 'error');
-    console.error(error);
-  }
-}
-
-function createTabItem(tab: chrome.tabs.Tab): HTMLDivElement {
-  const item = document.createElement('div');
-  item.className = 'tab-item';
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'tab-checkbox';
-  checkbox.id = `tab-${tab.id}`;
-  checkbox.addEventListener('change', (event) => {
-    const target = event.target as HTMLInputElement;
-    if (target.checked && tab.id !== undefined) { selectedTabIds.push(tab.id); item.classList.add('selected'); }
-    else if (tab.id !== undefined) { selectedTabIds = selectedTabIds.filter((id) => id !== tab.id); item.classList.remove('selected'); }
-  });
-  const info = document.createElement('div');
-  info.className = 'tab-info';
-  const title = document.createElement('div');
-  title.className = 'tab-title';
-  title.textContent = tab.title || 'Untitled';
-  const url = document.createElement('div');
-  url.className = 'tab-url';
-  try {
-    if (tab.url) { url.textContent = new URL(tab.url).hostname; }
-    else { url.textContent = 'No URL'; }
-  } catch { url.textContent = tab.url || 'Invalid URL'; }
-  info.appendChild(title);
-  info.appendChild(url);
-  item.appendChild(checkbox);
-  item.appendChild(info);
-  item.addEventListener('click', (event) => {
-    if (event.target !== checkbox) { checkbox.checked = !checkbox.checked; checkbox.dispatchEvent(new Event('change')); }
-  });
-  return item;
-}
-
-async function handleConfirmGroup(): Promise<void> {
-  const groupName = groupNameInput.value.trim();
-  if (!groupName) { setStatus('Group name cannot be empty', 'error'); return; }
-  if (groupName.length > 50) { setStatus('Group name too long (max 50 chars)', 'error'); return; }
-  if (selectedTabIds.length === 0) { setStatus('Please select at least one tab', 'error'); return; }
-  try {
-    setStatus('Creating group...', 'loading');
-    confirmGroupBtn.disabled = true;
-    const response = await sendMessage<CreateGroupResult>({ action: 'createGroup', groupName, tabIds: selectedTabIds });
-    if (response.result?.ok && response.result.value) {
-      const result = response.result.value;
-      setStatus(`Group "${result.groupName}" created with ${result.tabCount} tabs!`, 'success');
-      handleCancelGroup();
-      await updateStats();
-    } else if (response.result?.error) {
-      setStatus(`Error: ${response.result.error.details}`, 'error');
-    } else {
-      setStatus(`Error: ${response.error || 'Unknown error'}`, 'error');
-    }
-  } catch (error) {
-    setStatus('Failed to create group', 'error');
-    console.error(error);
-  } finally {
-    confirmGroupBtn.disabled = false;
-  }
-}
-
-function handleCancelGroup(): void {
-  groupCreator.classList.add('hidden');
-  createGroupBtn.style.display = '';
-  feelingLuckyBtn.style.display = '';
-  selectedTabIds = [];
-}
-
-function setStatus(message: string, type: StatusType = 'info'): void {
-  const statusText = statusMessage.querySelector('.status-text') as HTMLDivElement;
-  statusText.textContent = message;
-  statusMessage.classList.remove('success', 'error', 'warning', 'loading', 'info');
-  statusMessage.classList.add(type);
-  const colors: Record<StatusType, string> = { success: '#2ecc71', error: '#e74c3c', warning: '#f39c12', loading: '#4a90e2', info: '#4a90e2' };
-  statusMessage.style.borderLeftColor = colors[type];
-  statusMessage.style.animation = 'none';
-  setTimeout(() => { statusMessage.style.animation = ''; }, 10);
-}
-
-function sendMessage<T = unknown>(message: BackgroundMessage): Promise<BackgroundResponse<T>> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response: BackgroundResponse<T>) => {
-      if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-      else resolve(response);
+  async init(): Promise<Result<void, PopupError>> {
+    this.statusMessage.setAttribute('role', 'status');
+    this.statusMessage.setAttribute('aria-live', 'polite');
+    this.statusMessage.setAttribute('aria-atomic', 'true');
+    this.feelingLuckyBtn.addEventListener('click', () => void this.handleFeelingLucky());
+    this.createGroupBtn.addEventListener('click', () => void this.handleCreateGroup());
+    this.confirmGroupBtn.addEventListener('click', () => void this.handleConfirmGroup());
+    this.cancelGroupBtn.addEventListener('click', () => this.handleCancelGroup());
+    this.groupNameInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        void this.handleConfirmGroup();
+      }
     });
-  });
+    this.document.addEventListener('keydown', event => this.handleKeyboard(event));
+
+    void this.recordBrowserEvent('PopupOpened');
+    await this.updateStats();
+    return Result.ok(undefined);
+  }
+
+  private async updateStats(): Promise<void> {
+    const requestVersion = ++this.statsRequestVersion;
+    const response = await this.dependencies.sendMessage<PopupStats>({ action: 'getStats' });
+    if (requestVersion !== this.statsRequestVersion) return;
+    if (!response.result.ok) {
+      this.renderUnavailableStats();
+      console.error('[TabbyMcTabface] Failed to update popup stats', response.result.error);
+      return;
+    }
+    this.tabCountEl.textContent = String(response.result.value.browser.tabCount);
+    this.groupCountEl.textContent = String(response.result.value.browser.groupCount);
+    this.quipCountEl.textContent = String(response.result.value.usage.quipsDelivered);
+  }
+
+  private async handleFeelingLucky(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.feelingLuckyBtn.disabled) return;
+    if (!this.luckyArmed) {
+      this.luckyArmed = true;
+      this.feelingLuckyBtn.classList.add('armed');
+      this.setLuckyButtonCopy('Confirm random close', 'Click again within 5 seconds');
+      this.setStatus('One more click closes a random unpinned, inactive tab in this window.', 'warning');
+      this.luckyTimer = this.dependencies.setTimer(() => this.disarmLucky(), 5000);
+      return;
+    }
+
+    this.disarmLucky();
+    this.operationInProgress = true;
+    this.feelingLuckyBtn.disabled = true;
+    this.createGroupBtn.disabled = true;
+    this.setStatus('Choosing a random tab…', 'loading');
+    const response = await this.dependencies.sendMessage<TabClosureResult>({ action: 'closeRandomTab' });
+    if (!response.result.ok) {
+      if (isPopupTransportError(response.result.error)) {
+        this.renderIndeterminateMutation('the random tab close');
+        return;
+      }
+      this.setStatus(`Could not close a tab: ${response.result.error.details}`, 'error');
+      this.operationInProgress = false;
+      this.feelingLuckyBtn.disabled = false;
+      this.createGroupBtn.disabled = false;
+      return;
+    }
+    const result = response.result.value;
+    this.operationInProgress = false;
+    this.feelingLuckyBtn.disabled = false;
+    this.createGroupBtn.disabled = false;
+    await this.updateStats();
+    this.setStatus(`Closed “${result.closedTabTitle}”. ${result.remainingCount} tabs remain in this window.`, 'success');
+  }
+
+  private async handleCreateGroup(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.createGroupBtn.disabled) return;
+    this.disarmLucky();
+    this.operationInProgress = true;
+    this.createGroupBtn.disabled = true;
+    this.feelingLuckyBtn.disabled = true;
+    const response = await this.dependencies.queryTabs();
+    if (!response.result.ok) {
+      this.setStatus('Failed to load tabs from this window.', 'error');
+      console.error('[TabbyMcTabface] Failed to query popup tabs', response.result.error);
+      this.operationInProgress = false;
+      this.createGroupBtn.disabled = false;
+      this.feelingLuckyBtn.disabled = false;
+      return;
+    }
+    const tabs = response.result.value;
+    this.selectedTabIds.clear();
+    this.tabList.replaceChildren(...tabs.map((tab, index) => this.createTabItem(tab, index)));
+    this.groupCreator.classList.remove('hidden');
+    this.groupCreator.setAttribute('aria-hidden', 'false');
+    this.groupNameInput.value = '';
+    this.groupNameInput.focus();
+    this.createGroupBtn.classList.add('hidden');
+    this.feelingLuckyBtn.classList.add('hidden');
+    this.operationInProgress = false;
+    this.createGroupBtn.disabled = false;
+    this.feelingLuckyBtn.disabled = false;
+  }
+
+  private createTabItem(tab: PopupTab, renderIndex: number): HTMLElement {
+    const item = this.document.createElement('div');
+    item.className = 'tab-item';
+    const checkbox = this.document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'tab-checkbox';
+    const checkboxSuffix = tab.id ?? `unknown-${renderIndex}`;
+    checkbox.id = `tab-${checkboxSuffix}`;
+    checkbox.disabled = tab.id === undefined;
+
+    const label = this.document.createElement('label');
+    label.className = 'tab-info';
+    label.htmlFor = checkbox.id;
+    const title = this.document.createElement('span');
+    title.className = 'tab-title';
+    title.textContent = tab.title || 'Untitled';
+    const url = this.document.createElement('span');
+    url.className = 'tab-url';
+    url.textContent = this.displayDomain(tab.url);
+    label.append(title, url);
+
+    checkbox.addEventListener('change', () => {
+      if (tab.id === undefined) return;
+      if (checkbox.checked) this.selectedTabIds.add(tab.id);
+      else this.selectedTabIds.delete(tab.id);
+      item.classList.toggle('selected', checkbox.checked);
+    });
+    item.append(checkbox, label);
+    return item;
+  }
+
+  private async handleConfirmGroup(): Promise<void> {
+    if (this.mutationOutcomeUnknown || this.operationInProgress || this.confirmGroupBtn.disabled) return;
+    const groupName = this.groupNameInput.value.trim();
+    if (!groupName) {
+      this.setStatus('Group name cannot be empty.', 'error');
+      this.groupNameInput.focus();
+      return;
+    }
+    if (groupName.length > 50) {
+      this.setStatus('Group name must be 50 characters or fewer.', 'error');
+      this.groupNameInput.focus();
+      return;
+    }
+    if (this.selectedTabIds.size === 0) {
+      this.setStatus('Select at least one tab to create a group.', 'error');
+      return;
+    }
+
+    this.operationInProgress = true;
+    this.confirmGroupBtn.disabled = true;
+    this.cancelGroupBtn.disabled = true;
+    this.groupNameInput.disabled = true;
+    this.setStatus('Creating group…', 'loading');
+    const response = await this.dependencies.sendMessage<GroupCreationSuccess>({
+      action: 'createGroup',
+      groupName,
+      tabIds: [...this.selectedTabIds]
+    });
+    if (!response.result.ok) {
+      if (isPopupTransportError(response.result.error)) {
+        this.renderIndeterminateMutation('group creation');
+        return;
+      }
+      this.setStatus(`Could not create group: ${response.result.error.details}`, 'error');
+      this.operationInProgress = false;
+      this.confirmGroupBtn.disabled = false;
+      this.cancelGroupBtn.disabled = false;
+      this.groupNameInput.disabled = false;
+      return;
+    }
+    const result = response.result.value;
+    this.operationInProgress = false;
+    this.handleCancelGroup(true);
+    await this.updateStats();
+    this.setStatus(`Group “${result.groupName}” created with ${result.tabCount} ${result.tabCount === 1 ? 'tab' : 'tabs'}.`, 'success');
+  }
+
+  private handleCancelGroup(force = false): void {
+    if (this.operationInProgress && !force) return;
+    this.disarmLucky();
+    this.groupCreator.classList.add('hidden');
+    this.groupCreator.setAttribute('aria-hidden', 'true');
+    this.createGroupBtn.classList.remove('hidden');
+    this.feelingLuckyBtn.classList.remove('hidden');
+    this.selectedTabIds.clear();
+    this.tabList.replaceChildren();
+    this.confirmGroupBtn.disabled = false;
+    this.cancelGroupBtn.disabled = false;
+    this.groupNameInput.disabled = false;
+    this.createGroupBtn.disabled = false;
+    this.feelingLuckyBtn.disabled = false;
+    this.createGroupBtn.focus();
+  }
+
+  private handleKeyboard(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && !this.groupCreator.classList.contains('hidden')) {
+      this.handleCancelGroup();
+      return;
+    }
+
+    this.konamiBuffer.push(event.key.length === 1 ? event.key.toLowerCase() : event.key);
+    this.konamiBuffer = this.konamiBuffer.slice(-this.konamiSequence.length);
+    if (this.konamiBuffer.join('|') === this.konamiSequence.join('|')) {
+      this.konamiBuffer = [];
+      void this.recordBrowserEvent('KonamiCodeEntered');
+      this.setStatus('↑ ↑ ↓ ↓ ← → ← → B A. The wombat noticed.', 'success');
+    }
+  }
+
+  private disarmLucky(): void {
+    this.luckyArmed = false;
+    this.feelingLuckyBtn.classList.remove('armed');
+    if (this.luckyTimer !== null) {
+      this.dependencies.clearTimer(this.luckyTimer);
+      this.luckyTimer = null;
+    }
+    this.setLuckyButtonCopy("I'm Feeling Lucky", 'Close a random tab');
+  }
+
+  private setLuckyButtonCopy(title: string, hint: string): void {
+    const titleElement = this.feelingLuckyBtn.querySelector('.btn-text');
+    const hintElement = this.feelingLuckyBtn.querySelector('.btn-hint');
+    if (titleElement) titleElement.textContent = title;
+    if (hintElement) hintElement.textContent = hint;
+  }
+
+  private setStatus(message: string, type: StatusType): void {
+    const statusText = this.statusMessage.querySelector('.status-text') ?? this.statusMessage;
+    statusText.textContent = message;
+    this.statusMessage.classList.remove('success', 'error', 'warning', 'loading', 'info');
+    this.statusMessage.classList.add(type);
+  }
+
+  private displayDomain(url: string | undefined): string {
+    if (!url) return 'Internal or unavailable URL';
+    try {
+      return new URL(url).hostname || url;
+    } catch {
+      return url;
+    }
+  }
+
+  private renderUnavailableStats(): void {
+    this.tabCountEl.textContent = '—';
+    this.groupCountEl.textContent = '—';
+    this.quipCountEl.textContent = '—';
+    this.setStatus('Stats are temporarily unavailable. The wombat is taking notes.', 'warning');
+  }
+
+  private renderIndeterminateMutation(action: string): void {
+    this.mutationOutcomeUnknown = true;
+    this.operationInProgress = true;
+    this.feelingLuckyBtn.disabled = true;
+    this.createGroupBtn.disabled = true;
+    this.confirmGroupBtn.disabled = true;
+    this.cancelGroupBtn.disabled = true;
+    this.groupNameInput.disabled = true;
+    this.setStatus(
+      `Chrome did not confirm whether ${action} finished. Close and reopen this popup to verify before trying again.`,
+      'warning'
+    );
+  }
+
+  private async recordBrowserEvent(event: BrowserEventName): Promise<void> {
+    try {
+      const response = await this.dependencies.sendMessage({ action: 'recordBrowserEvent', event });
+      if (!response.result.ok) {
+        console.error(`[TabbyMcTabface] Failed to record ${event}`, response.result.error);
+      }
+    } catch (error) {
+      console.error(`[TabbyMcTabface] Failed to record ${event}`, error);
+    }
+  }
+
+  private static missingElement(selector: string): Result<never, PopupError> {
+    return Result.error({
+      type: 'MissingElement',
+      details: `Popup is missing required element ${selector}`,
+      selector
+    });
+  }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+function popupFailureResponse<T>(
+  type: PopupTransportError['type'],
+  details: string
+): PopupRuntimeResponse<T> {
+  return { result: { ok: false, error: { type, details } } };
+}
+
+export function createChromeDependencies(chromeApi: typeof chrome): PopupDependencies {
+  const sendMessage = <T = unknown>(message: RuntimeRequest): Promise<PopupRuntimeResponse<T>> => (
+    new Promise(resolve => {
+      let settled = false;
+      const finish = (response: PopupRuntimeResponse<T>): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(response);
+      };
+      const timeoutId = setTimeout(() => {
+        finish(popupFailureResponse<T>(
+          'TransportTimeout',
+          `The extension worker did not respond within ${MESSAGE_TIMEOUT_MS / 1000} seconds`
+        ));
+      }, MESSAGE_TIMEOUT_MS);
+
+      chromeApi.runtime.sendMessage(message, response => {
+        const runtimeError = chromeApi.runtime.lastError;
+        if (runtimeError) {
+          finish(popupFailureResponse<T>(
+            'TransportFailure',
+            runtimeError.message ?? 'Chrome runtime messaging failed'
+          ));
+          return;
+        }
+        if (!response) {
+          finish(popupFailureResponse<T>('MissingResponse', 'Background did not return a response'));
+          return;
+        }
+        finish(response as PopupRuntimeResponse<T>);
+      });
+    })
+  );
+  return {
+    sendMessage,
+    queryTabs: () => sendMessage<PopupTab[]>({ action: 'getCurrentTabs' }),
+    setTimer: (handler, timeout) => setTimeout(handler, timeout),
+    clearTimer: timer => clearTimeout(timer)
+  };
+}
+
+function renderPopupFailure(documentRef: Document, error: PopupError): void {
+  console.error('[TabbyMcTabface] Popup initialization failed', error);
+  const status = documentRef.querySelector<HTMLElement>('#statusMessage');
+  if (status) {
+    const statusText = status.querySelector<HTMLElement>('.status-text') ?? status;
+    statusText.textContent = 'The popup failed to load. Please close and reopen it.';
+    status.classList.remove('success', 'warning', 'loading', 'info');
+    status.classList.add('error');
+    status.setAttribute('role', 'alert');
+    return;
+  }
+
+  const fallback = documentRef.createElement('p');
+  fallback.setAttribute('role', 'alert');
+  fallback.textContent = 'TabbyMcTabface failed to load. Please close and reopen the popup.';
+  documentRef.body.prepend(fallback);
+}
+
+export function mountPopup(
+  documentRef: Document,
+  chromeApi: typeof chrome
+): Result<PopupController, PopupError> {
+  const created = PopupController.create(documentRef, createChromeDependencies(chromeApi));
+  if (!created.ok) {
+    renderPopupFailure(documentRef, created.error);
+    return created;
+  }
+
+  void created.value.init().then(
+    initialized => {
+      if (!initialized.ok) renderPopupFailure(documentRef, initialized.error);
+    },
+    originalError => renderPopupFailure(documentRef, {
+      type: 'InitializationFailed',
+      details: 'Unexpected popup initialization failure',
+      originalError
+    })
+  );
+  return created;
+}
+
+if (typeof document !== 'undefined' && typeof chrome !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => mountPopup(document, chrome), { once: true });
+  } else {
+    mountPopup(document, chrome);
+  }
 }

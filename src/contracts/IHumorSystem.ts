@@ -9,18 +9,14 @@
  * HOW DATA FLOWS:
  *   1. TabManager/UI emits HumorTrigger event (SEAM-11)
  *   2. HumorSystem evaluates trigger and context
- *   3. HumorSystem calls IHumorPersonality for quip selection (SEAM-12)
- *   4. Personality queries IQuipStorage for available quips (SEAM-13)
- *   5. HumorSystem checks easter egg conditions (SEAM-16)
- *   6. HumorSystem delivers quip via notifications (SEAM-15, SEAM-10)
+ *   3. HumorSystem queries IQuipStorage for available quips (SEAM-13)
+ *   4. HumorSystem checks easter egg conditions (SEAM-16)
+ *   5. HumorSystem delivers the selected quip via notifications (SEAM-15)
  * 
  * SEAMS:
  *   IN:  TabManager/UI → HumorSystem (SEAM-11: deliverQuip)
- *        TabManager → HumorSystem (SEAM-04, 09: event subscriptions)
- *   OUT: HumorSystem → Personality (SEAM-12: quip selection)
- *        HumorSystem → EasterEggFramework (SEAM-16: condition checking)
+ *   OUT: HumorSystem → EasterEggFramework (SEAM-16: condition checking)
  *        HumorSystem → NotificationAPI (SEAM-15: delivery)
- *        HumorSystem → UI (SEAM-10, 23: notifications observable)
  * 
  * CONTRACT: IHumorSystem v1.0.0
  * GENERATED: 2025-10-10
@@ -28,6 +24,8 @@
  */
 
 import { Result } from '../utils/Result';
+import type { BrowserContext, BrowserEventName } from './ITabManager';
+export type { BrowserContext } from './ITabManager';
 
 /**
  * CONTRACT: IHumorSystem
@@ -37,7 +35,7 @@ import { Result } from '../utils/Result';
  * - Passive-aggressive quip delivery
  * - Easter egg detection and delivery
  * - Quip deduplication (avoid repetition)
- * - Multi-channel delivery (popup + chrome.notifications)
+ * - Chrome notification delivery
  * 
  * PERFORMANCE:
  * - deliverQuip: <100ms total (95th percentile)
@@ -60,14 +58,13 @@ export interface IHumorSystem {
    * ERRORS:
    *   - NoQuipsAvailable: No quips match trigger criteria
    *   - DeliveryFailed: Failed to show notification
-   *   - PersonalityFailure: Personality module returned error
+   *   - PersonalityFailure: Unexpected orchestration failure
    * 
    * PERFORMANCE: <100ms total (95th percentile)
    * 
    * SIDE EFFECTS:
-   *   - Calls SEAM-12 (HumorSystem → Personality)
    *   - MAY call SEAM-16 (HumorSystem → EasterEggFramework)
-   *   - Displays notification via SEAM-15 or SEAM-10
+   *   - Displays notification via SEAM-15
    *   - Updates internal quip history for deduplication
    * 
    * GRACEFUL DEGRADATION:
@@ -98,34 +95,6 @@ export interface IHumorSystem {
    */
   checkEasterEggs(context: BrowserContext): Promise<Result<EasterEggMatch | null, HumorError>>;
 
-  /**
-   * Observable stream of quip notifications for UI display
-   * 
-   * SEAM: SEAM-23 (HumorSystem → PopupUI)
-   * 
-   * OUTPUT: Observable<QuipNotification>
-   * 
-   * Emits whenever a quip is delivered, allowing UI to display in popup
-   */
-  notifications$: Observable<QuipNotification>;
-
-  /**
-   * Subscribe to tab events for automatic humor triggers
-   * 
-   * SEAM: SEAM-04, SEAM-09 (TabManager → HumorSystem events)
-   * 
-   * INPUT:
-   *   - eventType: TabEventType
-   *   - handler: (event: TabEvent) => void
-   * 
-   * OUTPUT: UnsubscribeFn
-   * 
-   * Allows HumorSystem to react to tab events automatically
-   */
-  onTabEvent(
-    eventType: TabEventType,
-    handler: (event: TabEvent) => void
-  ): UnsubscribeFn;
 }
 
 /**
@@ -156,7 +125,7 @@ export type HumorTriggerData =
   | { type: 'TabClosed'; tabTitle: string; tabUrl: string; trigger: 'FeelingLucky' | 'Manual' }
   | { type: 'TabOpened'; tabUrl: string; tabTitle: string }
   | { type: 'TooManyTabs'; tabCount: number }
-  | { type: 'ManualTrigger' };
+  | { type: 'ManualTrigger'; event?: BrowserEventName };
 
 /**
  * Result of quip delivery attempt
@@ -180,53 +149,6 @@ export interface EasterEggMatch {
 }
 
 /**
- * Notification for UI display
- */
-export interface QuipNotification {
-  id: string;
-  quipText: string;
-  isEasterEgg: boolean;
-  timestamp: number;
-  displayDuration: number; // ms
-}
-
-/**
- * Tab event types
- */
-export type TabEventType =
-  | 'created'
-  | 'closed'
-  | 'grouped'
-  | 'ungrouped';
-
-/**
- * Tab event data
- */
-export interface TabEvent {
-  type: TabEventType;
-  tabId?: number;
-  groupId?: number;
-  timestamp: number;
-  data: Record<string, any>;
-}
-
-/**
- * Browser context for easter egg evaluation
- * (Re-exported from ITabManager for convenience)
- */
-export interface BrowserContext {
-  tabCount: number;
-  activeTab: {
-    url: string;
-    title: string;
-    domain: string;
-  } | null;
-  currentHour: number;
-  recentEvents: string[];
-  groupCount: number;
-}
-
-/**
  * Humor System error types
  */
 export type HumorError =
@@ -234,19 +156,6 @@ export type HumorError =
   | { type: 'DeliveryFailed'; details: string; deliveryMethod: string }
   | { type: 'PersonalityFailure'; details: string; originalError: unknown }
   | { type: 'EasterEggCheckFailed'; details: string };
-
-/**
- * Simple observable interface (can use RxJS or custom implementation)
- */
-export interface Observable<T> {
-  subscribe(observer: (value: T) => void): Subscription;
-}
-
-export interface Subscription {
-  unsubscribe(): void;
-}
-
-export type UnsubscribeFn = () => void;
 
 /**
  * Type guard for easter egg delivery

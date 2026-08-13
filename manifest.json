@@ -3,7 +3,7 @@
   "name": "TabbyMcTabface",
   "version": "1.0.0",
   "description": "Passive-aggressive tab management with humor. Organizes your chaos while delivering snarky quips and clever easter eggs.",
-  "author": "TabbyMcTabface Team",
+  "author": "Phazzie",
 
   "permissions": [
     "tabs",
@@ -12,8 +12,12 @@
     "storage"
   ],
 
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none';"
+  },
+
   "background": {
-    "service_worker": "dist/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
 
@@ -38,17 +42,10 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Ctrl+Shift+T",
-        "mac": "Command+Shift+T"
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
       },
       "description": "Open TabbyMcTabface popup"
-    },
-    "feeling_lucky": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+L",
-        "mac": "Command+Shift+L"
-      },
-      "description": "Close a random tab (I'm Feeling Lucky)"
     }
   }
 }

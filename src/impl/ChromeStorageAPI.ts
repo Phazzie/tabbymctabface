@@ -26,6 +26,13 @@ import {
   IChromeStorageAPI,
   StorageAPIError
 } from '../contracts/IChromeStorageAPI';
+import {
+  EMPTY_USAGE_STATS,
+  IUsageStatsStore,
+  UsageCounter,
+  UsageStats,
+  UsageStatsError
+} from '../contracts/IUsageStats';
 import { Result } from '../utils/Result';
 
 /**
@@ -205,7 +212,10 @@ export class ChromeStorageAPI implements IChromeStorageAPI {
     error: unknown,
     operation: string
   ): Result<never, StorageAPIError> {
-    const chromeError = chrome.runtime.lastError || error;
+    // Promise rejections are the error for this operation. A stale
+    // runtime.lastError can belong to an unrelated callback and must not
+    // overwrite the rejection we actually caught.
+    const chromeError = error ?? chrome.runtime?.lastError;
 
     if (!chromeError) {
       return Result.error({
@@ -241,5 +251,124 @@ export class ChromeStorageAPI implements IChromeStorageAPI {
       details: `Chrome API error in ${operation}`,
       originalError: chromeError
     });
+  }
+}
+
+/**
+ * Serialized usage-statistics persistence built on the Chrome storage contract.
+ *
+ * A service worker can receive multiple events before an earlier storage write has
+ * completed. The queue makes each read/modify/write indivisible within this worker.
+ */
+export class ChromeUsageStatsStore implements IUsageStatsStore {
+  private static readonly STORAGE_KEY = 'usageStats.v1';
+  private mutationQueue: Promise<void> = Promise.resolve();
+
+  constructor(private readonly storage: IChromeStorageAPI) {}
+
+  /**
+   * Read and normalize the persisted usage snapshot.
+   * DATA IN: None.
+   * DATA OUT: Result<UsageStats, UsageStatsError>; invalid fields become safe defaults.
+   * SEAM: SEAM-35 (Background/Popup → UsageStatsStore), SEAM-34 (store → storage).
+   * FLOW: Read the versioned key, map read failure, normalize, return a fresh snapshot.
+   * ERRORS: StorageReadFailed.
+   * PERFORMANCE: Browser-I/O-bound; normalization overhead <5ms.
+   */
+  async get(): Promise<Result<UsageStats, UsageStatsError>> {
+    // === SEAM-34: UsageStatsStore → IChromeStorageAPI ===
+    const result = await this.storage.get(ChromeUsageStatsStore.STORAGE_KEY);
+    if (!result.ok) {
+      return Result.error({
+        type: 'StorageReadFailed',
+        details: 'Failed to read usage statistics',
+        originalError: result.error
+      });
+    }
+
+    return Result.ok(this.normalize(result.value[ChromeUsageStatsStore.STORAGE_KEY]));
+  }
+
+  /**
+   * Serialize and persist a single usage-counter increment.
+   * DATA IN: one allow-listed UsageCounter.
+   * DATA OUT: Result<UsageStats, UsageStatsError> containing the saved state.
+   * SEAM: SEAM-33 (TabManager/HumorSystem → UsageStatsStore), SEAM-34 (store → storage).
+   * FLOW: Queue, read, increment, timestamp, persist, and settle the caller's operation.
+   * ERRORS: StorageReadFailed, StorageWriteFailed.
+   * PERFORMANCE: Browser-I/O-bound; queue bookkeeping overhead <5ms.
+   */
+  increment(counter: UsageCounter): Promise<Result<UsageStats, UsageStatsError>> {
+    // === SEAM-33: TabManager/HumorSystem → UsageStatsStore ===
+    let resolveOperation!: (result: Result<UsageStats, UsageStatsError>) => void;
+    const operation = new Promise<Result<UsageStats, UsageStatsError>>(resolve => {
+      resolveOperation = resolve;
+    });
+
+    this.mutationQueue = this.mutationQueue
+      .then(async () => {
+        const current = await this.get();
+        if (!current.ok) {
+          resolveOperation(current);
+          return;
+        }
+
+        const updated: UsageStats = {
+          ...current.value,
+          [counter]: current.value[counter] + 1,
+          lastUpdated: Date.now()
+        };
+        const saved = await this.storage.set({ [ChromeUsageStatsStore.STORAGE_KEY]: updated });
+        if (!saved.ok) {
+          resolveOperation(Result.error({
+            type: 'StorageWriteFailed',
+            details: 'Failed to persist usage statistics',
+            originalError: saved.error
+          }));
+          return;
+        }
+        resolveOperation(Result.ok(updated));
+      })
+      .catch(error => {
+        resolveOperation(Result.error({
+          type: 'StorageWriteFailed',
+          details: 'Unexpected usage-statistics persistence failure',
+          originalError: error
+        }));
+      });
+
+    return operation;
+  }
+
+  /**
+   * Normalize untrusted persisted data into the current schema.
+   * DATA IN: unknown structured-clone value.
+   * DATA OUT: complete UsageStats with safe non-negative counters.
+   * SEAM: Internal validation at SEAM-34's storage boundary.
+   * FLOW: Reject non-objects, validate each field, return a new versioned value.
+   * ERRORS: None; malformed fields are repaired with defaults.
+   * PERFORMANCE: <1ms for one fixed-size record.
+   */
+  private normalize(candidate: unknown): UsageStats {
+    if (!candidate || typeof candidate !== 'object') {
+      return { ...EMPTY_USAGE_STATS };
+    }
+    const value = candidate as Partial<Record<keyof UsageStats, unknown>>;
+    const count = (field: keyof UsageStats): number => {
+      const candidateValue = value[field];
+      return typeof candidateValue === 'number' && Number.isSafeInteger(candidateValue) && candidateValue >= 0
+        ? candidateValue
+        : 0;
+    };
+    return {
+      schemaVersion: 1,
+      quipsDelivered: count('quipsDelivered'),
+      groupsCreated: count('groupsCreated'),
+      tabsClosed: count('tabsClosed'),
+      luckyClicks: count('luckyClicks'),
+      lastUpdated: typeof value.lastUpdated === 'number' && Number.isFinite(value.lastUpdated)
+        ? value.lastUpdated
+        : null
+    };
   }
 }
