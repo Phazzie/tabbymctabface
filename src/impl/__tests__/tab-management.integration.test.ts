@@ -314,8 +314,9 @@ describe('Tab Management Integration Tests', () => {
 
       // Assert
       assertOk(result);
-      // Verify ungroup was called
-      expect(mockTabs.createGroupCalls.length).toBeGreaterThan(1);
+      // deleteGroup must ungroup the tabs it found, not create another group
+      expect(mockTabs.ungroupTabsCalls).toEqual([{ tabIds: [1, 2, 3] }]);
+      expect(mockTabs.createGroupCalls).toHaveLength(1);
     });
 
     it('returns error for non-existent group', async () => {
