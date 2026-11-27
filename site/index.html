@@ -1,13 +1,19 @@
 <!doctype html>
+<!--
+  WHAT: TabbyMcTabface landing page.
+  WHY: Public home for the Chrome Web Store listing and launch posts.
+  HOW DATA FLOWS: Static HTML, no scripts, no data collected.
+  SEAMS: None.
+-->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TabbyMcTabface: tab management with attitude</title>
-  <meta name="description" content="A Chrome extension that closes random tabs, groups the rest, and judges you quietly while it does.">
+  <meta name="description" content="A Chrome extension that closes random tabs, groups the ones you pick, and judges you quietly while it does.">
   <meta property="og:title" content="TabbyMcTabface">
-  <meta property="og:description" content="Tab management with attitude. Closes random tabs, groups the rest, and judges you quietly.">
-  <meta property="og:image" content="img/popup.png">
+  <meta property="og:description" content="Tab management with attitude. Closes random tabs, groups the ones you pick, and judges you quietly.">
+  <meta property="og:image" content="https://tabbymctabface.vercel.app/img/popup.png">
   <link rel="icon" href="img/icon128.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,7 +28,7 @@
       <div class="hero-text">
         <p class="eyebrow">A Chrome extension</p>
         <h1>Your tabs are a mess.<br><span>We noticed.</span></h1>
-        <p class="lede">TabbyMcTabface closes random tabs, groups the survivors, and offers a little passive-aggressive commentary on how you got here.</p>
+        <p class="lede">TabbyMcTabface closes random tabs, lets you group the survivors, and offers a little passive-aggressive commentary on how you got here.</p>
         <div class="cta">
           <a class="btn primary" id="install" href="https://github.com/Phazzie/tabbymctabface">Add to Chrome</a>
           <a class="btn ghost" href="#features">See what it does</a>
@@ -64,7 +70,7 @@
         <article>
           <div class="ico" aria-hidden="true">💬</div>
           <h3>75 quips</h3>
-          <p>Every action earns a small, carefully worded notification. Never mean. Always a little disappointed.</p>
+          <p>Your actions earn small, carefully worded notifications (at most one every few seconds). Never mean. Always a little disappointed.</p>
         </article>
         <article>
           <div class="ico" aria-hidden="true">🥚</div>
@@ -87,7 +93,7 @@
       <h2>Questions</h2>
       <details>
         <summary>Will it close a tab I need?</summary>
-        <p>It might. That's the deal. It never closes pinned tabs or the tab you're on, and Chrome's own <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> brings a closed tab back.</p>
+        <p>It might. That's the deal. It never closes pinned tabs or the tab you're on, and Chrome's own <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> on a Mac) brings a closed tab back.</p>
       </details>
       <details>
         <summary>Does it read my browsing?</summary>

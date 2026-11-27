@@ -1,3 +1,8 @@
+/*
+  WHAT: Styles for the TabbyMcTabface landing page and privacy policy.
+  WHY: Shared look that matches the extension popup's dark theme.
+  HOW DATA FLOWS: None. SEAMS: None.
+*/
 :root {
   --bg: #1e1e2e;
   --surface: #2a2a3e;
