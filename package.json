@@ -20,7 +20,9 @@
     "lint": "tsc --noEmit",
     "package": "npm run build && rm -f TabbyMcTabface.zip && cd dist && zip -r ../TabbyMcTabface.zip .",
     "dev": "npm run build:watch",
-    "bundle": "esbuild src/background.ts --bundle --format=esm --target=chrome110 --outfile=dist/background.js && esbuild src/ui/popup.ts --bundle --format=iife --target=chrome110 --outfile=dist/popup.js"
+    "bundle": "esbuild src/background.ts --bundle --format=esm --target=chrome110 --outfile=dist/background.js && esbuild src/ui/popup.ts --bundle --format=iife --target=chrome110 --outfile=dist/popup.js",
+    "site:check": "node scripts/site-check.cjs",
+    "site:quips": "node scripts/site-quips.cjs"
   },
   "keywords": [
     "sdd",

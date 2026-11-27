@@ -61,6 +61,21 @@ npm run build
 
 ---
 
+## 🧲 Website (the fridge)
+
+`site/` is the public site: the fridge door of a shared apartment, where Tabby (your roommate) leaves notes about your tabs. It's plain static HTML, CSS and JS with no build step. Vercel serves `site/` (project `tabbymctabface`).
+
+- `index.html`: the fridge. Trash day is a working I'm Feeling Lucky demo (pinned and active tabs are safe, same ~5 second note cooldown as the extension, Alt+Shift+L works). Label your stuff groups tabs. The envelope shows real easter eggs. The tear-off flyer holds the links.
+- `privacy.html`: the privacy policy as the "house rules" sheet. The Chrome Web Store listing links here, so keep the URL and keep the words accurate.
+- `404.html`: someone ate the page.
+- `quips.js`: generated. After editing `src/data/quips/*.json`, run `npm run site:quips`.
+- `fonts/` and `fonts.css`: self-hosted fonts (SIL Open Font License), so the site makes no outside requests.
+- `npm run site:check` clicks through every page and control at laptop, tablet and phone size (needs Playwright installed).
+
+Run it locally: `npx serve site` (or any static server) and open the printed address.
+
+Still rough: the 404 page only shows on Vercel or a server that serves `404.html`; the "Install" tab points at GitHub until the Chrome Web Store listing is approved; the house rules text is handwriting-styled, which is fun but slower to read than plain type.
+
 ## 🏗️ Architecture
 
 TabbyMcTabface is built using **Seam-Driven Development (SDD)**, a methodology that prioritizes:
