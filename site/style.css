@@ -92,15 +92,15 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* The door's collage */
 .door { display: grid; grid-template-columns: repeat(12, 1fr); gap: 40px 30px; align-items: start; }
-.flyer { grid-column: 1 / span 5; }
-.chart { grid-column: 6 / span 4; }
-.polaroid { grid-column: 10 / span 3; }
-.groups { grid-column: 1 / span 4; }
-.pile { grid-column: 5 / span 5; }
-.card { grid-column: 10 / span 3; }
-.envelope-wrap { grid-column: 1 / span 4; }
-.rules { grid-column: 5 / span 4; }
-.receipt { grid-column: 9 / span 4; justify-self: center; }
+.door > .flyer { grid-column: 1 / span 5; }
+.door > .chart { grid-column: 6 / span 4; }
+.door > .polaroid { grid-column: 10 / span 3; }
+.door > .groups { grid-column: 1 / span 4; }
+.door > .pile { grid-column: 5 / span 5; }
+.door > .card { grid-column: 10 / span 3; }
+.door > .envelope-wrap { grid-column: 1 / span 4; }
+.door > .rules { grid-column: 5 / span 4; }
+.door > .receipt { grid-column: 9 / span 4; justify-self: center; }
 
 /* Tear-off flyer */
 .flyer { background: var(--paper); padding: 26px 0 0; }
@@ -108,13 +108,14 @@ img { max-width: 100%; height: auto; display: block; }
 .flyer h2 { font-size: 30px; margin-top: 0; margin-bottom: 4px; letter-spacing: .04em; }
 .flyer .list { padding-left: 18px; font-size: 16px; line-height: 1.5; }
 .flyer .small { font-size: 14px; }
-.tearoffs { display: flex; border-top: 2px dashed #999; margin-top: 16px; }
+.tearoffs { display: flex; border-top: 2px dashed #999; margin: 16px 0 0; padding: 0; list-style: none; }
+.tearoffs li { flex: 1; display: flex; border-right: 2px dashed #999; }
+.tearoffs li:last-child { border-right: 0; }
 .tear {
-  flex: 1; min-height: 150px; padding: 10px 4px; border-right: 2px dashed #999; color: var(--ink); text-decoration: none;
+  flex: 1; min-height: 150px; padding: 10px 4px; color: var(--ink); text-decoration: none;
   font: 15px/1.2 var(--type); display: flex; align-items: center; justify-content: center;
   transition: transform .25s ease, opacity .25s ease; background: var(--paper);
 }
-.tear:last-child { border-right: 0; }
 .tear span { writing-mode: vertical-rl; transform: rotate(180deg); }
 .tear:hover, .tear:focus-visible { transform: translateY(8px) rotate(4deg); background: #fffde8; outline: none; }
 .tear.torn { transform: translateY(60px) rotate(12deg); opacity: 0; }

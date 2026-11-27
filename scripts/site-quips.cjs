@@ -6,13 +6,18 @@
   SEAMS: SITE-01 writes window.TABBY_QUIPS, read by site/fridge.js (SITE-02).
          Run with `node scripts/site-quips.cjs` after editing quips.
 */
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const root = path.join(__dirname, '..');
 const pa = JSON.parse(fs.readFileSync(path.join(root, 'src/data/quips/passive-aggressive.json'), 'utf8'));
 const ee = JSON.parse(fs.readFileSync(path.join(root, 'src/data/quips/easter-eggs.json'), 'utf8'));
 const byTrigger = {};
-for (const q of pa) for (const t of q.triggerTypes) (byTrigger[t] = byTrigger[t] || []).push(q.text);
+for (const q of pa) {
+  for (const t of q.triggerTypes) {
+    if (!byTrigger[t]) byTrigger[t] = [];
+    byTrigger[t].push(q.text);
+  }
+}
 // Song-lyric eggs stay in the extension but not on the public site.
 const LYRICS = /rick-?roll|never gonna/i;
 const eggs = ee.filter(e => !LYRICS.test(e.type) && !LYRICS.test(e.quips[0])).map(e => ({ type: e.type, conditions: e.conditions, quip: e.quips[0] }));

@@ -7,9 +7,9 @@
   SEAMS: Exercises SITE-02 (window.TABBY_QUIPS -> fridge.js), including when it's missing.
   Run: npm run site:check   (needs Playwright: `npm i -D playwright` or a global install)
 */
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..', 'site');
@@ -17,17 +17,31 @@ const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascrip
 const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); console.log((ok ? '  ok   ' : '  FAIL ') + msg); };
 
+// Only files that exist under site/ when the check starts can be served. Request paths are
+// looked up in this map and never joined onto the filesystem.
+function listFiles(dir, prefix = '') {
+  const out = new Map();
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix + '/' + e.name;
+    if (e.isDirectory()) for (const [k, v] of listFiles(path.join(dir, e.name), rel)) out.set(k, v);
+    else out.set(rel, path.join(dir, e.name));
+  }
+  return out;
+}
+
 function serve() {
+  const files = listFiles(ROOT);
+  const notFound = files.get('/404.html');
   const server = http.createServer((req, res) => {
-    let p = decodeURIComponent(req.url.split('?')[0]);
+    let p = req.url.split('?')[0];
     if (p.endsWith('/')) p += 'index.html';
-    const f = path.join(ROOT, p);
-    if (f.startsWith(ROOT) && fs.existsSync(f) && fs.statSync(f).isFile()) {
+    const f = files.get(p);
+    if (f) {
       res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' });
       return fs.createReadStream(f).pipe(res);
     }
     res.writeHead(404, { 'content-type': 'text/html' });
-    fs.createReadStream(path.join(ROOT, '404.html')).pipe(res);
+    fs.createReadStream(notFound).pipe(res);
   });
   return new Promise(r => server.listen(0, '127.0.0.1', () => r(server)));
 }
