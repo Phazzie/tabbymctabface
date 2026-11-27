@@ -71,6 +71,14 @@ function serve() {
         check(res.status() === 200, `${p} loads`);
         const [sw, w] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
         check(sw <= w, `${p} has no sideways scroll (${sw} <= ${w})`);
+        // The fridge clips its overflow, so also check that nothing pokes out of it.
+        const clipped = await page.evaluate(() => {
+          const f = document.querySelector('.fridge').getBoundingClientRect();
+          return [...document.querySelectorAll('.door > *, .freezer > *')]
+            .filter(el => el.getBoundingClientRect().right > f.right + 1)
+            .map(el => el.className);
+        });
+        check(clipped.length === 0, `${p} nothing cut off at the fridge edge` + (clipped.length ? ': ' + clipped.join(', ') : ''));
       }
       const missing = await page.goto(base + '/nope', { waitUntil: 'networkidle' });
       check(missing.status() === 404 && /ate this page/.test(await page.title()), '404 page shows');

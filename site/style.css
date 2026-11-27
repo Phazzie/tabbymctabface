@@ -214,8 +214,8 @@ kbd { font: 15px var(--type); background: #fff; border: 1.5px solid var(--ink); 
   .freezer { grid-template-columns: 1fr; gap: 26px; }
   .m { font-size: 64px; } .m.sm { font-size: 42px; }
   .door { grid-template-columns: 1fr 1fr; }
-  .flyer, .chart, .polaroid, .groups, .pile, .card, .envelope-wrap, .rules, .receipt { grid-column: auto; }
-  .pile { grid-column: 1 / -1; }
+  .door > .flyer, .door > .chart, .door > .polaroid, .door > .groups, .door > .card, .door > .envelope-wrap, .door > .rules, .door > .receipt { grid-column: auto; }
+  .door > .pile { grid-column: 1 / -1; }
   .polaroid { max-width: 300px; justify-self: center; }
 }
 @media (max-width: 640px) {
