@@ -15,7 +15,12 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..', 'site');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.woff2': 'font/woff2' };
 const failures = [];
-const check = (ok, msg) => { if (!ok) failures.push(msg); console.log((ok ? '  ok   ' : '  FAIL ') + msg); };
+function check(ok, msg) {
+  if (!ok) {
+    failures.push(msg);
+  }
+  console.log((ok ? '  ok   ' : '  FAIL ') + msg);
+}
 
 // Only files that exist under site/ when the check starts can be served. Request paths are
 // looked up in this map and never joined onto the filesystem.
@@ -127,4 +132,7 @@ function serve() {
   }
   if (failures.length) { console.error(`\n${failures.length} check(s) failed`); process.exit(1); }
   console.log('\nall site checks passed');
-})();
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
