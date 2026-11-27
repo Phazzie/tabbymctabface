@@ -1,0 +1,123 @@
+<!doctype html>
+<!--
+  WHAT: TabbyMcTabface landing page.
+  WHY: Public home for the Chrome Web Store listing and launch posts.
+  HOW DATA FLOWS: Static HTML, no scripts, no data collected.
+  SEAMS: None.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TabbyMcTabface: tab management with attitude</title>
+  <meta name="description" content="A Chrome extension that closes random tabs, groups the ones you pick, and judges you quietly while it does.">
+  <meta property="og:title" content="TabbyMcTabface">
+  <meta property="og:description" content="Tab management with attitude. Closes random tabs, groups the ones you pick, and judges you quietly.">
+  <meta property="og:image" content="https://tabbymctabface.vercel.app/img/popup.png">
+  <link rel="icon" href="img/icon128.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="wrap nav">
+    <a class="brand" href="./"><img src="img/icon128.png" alt="" width="28" height="28"> TabbyMcTabface</a>
+    <nav><a href="#features">Features</a><a href="#faq">FAQ</a><a href="privacy.html">Privacy</a></nav>
+  </header>
+
+  <main>
+    <section class="wrap hero">
+      <div class="hero-text">
+        <p class="eyebrow">A Chrome extension</p>
+        <h1>Your tabs are a mess.<br><span>We noticed.</span></h1>
+        <p class="lede">TabbyMcTabface closes random tabs, lets you group the survivors, and offers a little passive-aggressive commentary on how you got here.</p>
+        <div class="cta">
+          <a class="btn primary" id="install" href="https://github.com/Phazzie/tabbymctabface">Add to Chrome</a>
+          <a class="btn ghost" href="#features">See what it does</a>
+        </div>
+        <p class="fine">Free. No account. Nothing leaves your browser.</p>
+      </div>
+      <figure class="hero-shot">
+        <img src="img/popup.png" alt="The TabbyMcTabface popup showing an I'm Feeling Lucky button, a Create Tab Group button, and stats for tabs, groups and quips delivered." width="380" height="621">
+      </figure>
+    </section>
+
+    <section class="quips" aria-label="Sample quips">
+      <div class="wrap">
+        <p class="eyebrow center">Things Tabby has said to people</p>
+        <ul class="quip-list">
+          <li>“You must know what you're doing with all these tabs.”</li>
+          <li>“Closing tabs randomly. Bold strategy. Let's see if it pays off.”</li>
+          <li>“A group! You're clearly someone who has their life together.”</li>
+          <li>“Grouping tabs: the digital equivalent of ‘I'll organize this later.’”</li>
+          <li>“You're still at 47 tabs. You must have a system I don't understand.”</li>
+          <li>“Tab organization achieved. Your browser thanks you.”</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="features" class="wrap features">
+      <h2>What it does</h2>
+      <div class="grid">
+        <article>
+          <div class="ico" aria-hidden="true">🍀</div>
+          <h3>I'm Feeling Lucky</h3>
+          <p>Closes one random tab. Pinned tabs and the one you're looking at are safe. Everything else is fair game.</p>
+        </article>
+        <article>
+          <div class="ico" aria-hidden="true">📁</div>
+          <h3>Quick tab groups</h3>
+          <p>Pick a few tabs, give them a name, and they're grouped in one click. Tabby will have opinions about it.</p>
+        </article>
+        <article>
+          <div class="ico" aria-hidden="true">💬</div>
+          <h3>75 quips</h3>
+          <p>Your actions earn small, carefully worded notifications (at most one every few seconds). Never mean. Always a little disappointed.</p>
+        </article>
+        <article>
+          <div class="ico" aria-hidden="true">🥚</div>
+          <h3>Hidden easter eggs</h3>
+          <p>Over a hundred surprises that show up based on how you browse. There's no list. You'll have to find them.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="wrap keys">
+      <h2>Keyboard shortcuts</h2>
+      <dl>
+        <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></dt><dd>Feeling lucky: close a random tab</dd></div>
+        <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></dt><dd>Open the Tabby popup</dd></div>
+      </dl>
+      <p class="fine">You can change these at <code>chrome://extensions/shortcuts</code>.</p>
+    </section>
+
+    <section id="faq" class="wrap faq">
+      <h2>Questions</h2>
+      <details>
+        <summary>Will it close a tab I need?</summary>
+        <p>It might. That's the deal. It never closes pinned tabs or the tab you're on, and Chrome's own <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> on a Mac) brings a closed tab back.</p>
+      </details>
+      <details>
+        <summary>Does it read my browsing?</summary>
+        <p>Tabby looks at your open tabs' titles and addresses so it can count, group and close them, and pick the right quip. That stays on your computer. Nothing is sent anywhere. The <a href="privacy.html">privacy policy</a> has the details.</p>
+      </details>
+      <details>
+        <summary>Why does it need these permissions?</summary>
+        <p><b>Tabs</b> and <b>tab groups</b> to count, close and group tabs. <b>Notifications</b> to deliver quips. <b>Storage</b> to remember how many quips you've earned.</p>
+      </details>
+      <details>
+        <summary>Is it free?</summary>
+        <p>Yes. No ads, no account, no upsell.</p>
+      </details>
+    </section>
+
+    <section class="wrap closer">
+      <h2>Go on. You have too many tabs open right now.</h2>
+      <a class="btn primary" href="https://github.com/Phazzie/tabbymctabface">Add to Chrome</a>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span>© 2026 TabbyMcTabface</span>
+    <nav><a href="privacy.html">Privacy</a><a href="https://github.com/Phazzie/tabbymctabface">Source</a></nav>
+  </footer>
+</body>
+</html>
