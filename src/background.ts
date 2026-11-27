@@ -8,7 +8,7 @@
  * HOW DATA FLOWS:
  *   1. Extension installed → initialize()
  *   2. Extension starts → initialize()
- *   3. User presses Cmd+Shift+L → closeRandomTab()
+ *   3. User presses Alt+Shift+L → closeRandomTab()
  *   4. Commands forward to TabManager
  *
  * SEAMS:
@@ -52,7 +52,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         await context.chromeNotificationsAPI.create({
           type: 'basic',
           title: 'TabbyMcTabface Installed',
-          message: 'Your tabs are now under passive-aggressive management. Try Cmd+Shift+L to close a random tab!',
+          message: 'Your tabs are now under passive-aggressive management. Try Alt+Shift+L to close a random tab!',
           iconUrl: 'icons/icon128.png'
         });
       }
@@ -76,7 +76,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
   switch (command) {
     case 'feeling_lucky': {
-      // Close random tab (Cmd+Shift+L)
+      // Close random tab (Alt+Shift+L)
       const result = await context.tabManager.closeRandomTab();
 
       if (result.ok) {

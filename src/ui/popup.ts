@@ -45,8 +45,9 @@ async function updateStats(): Promise<void> {
       const context = response.result.value;
       tabCountEl.textContent = String(context.tabCount);
       groupCountEl.textContent = String(context.groupCount);
-      // Quip count is not yet tracked in BrowserContext; default to 0
-      quipCountEl.textContent = '0';
+      const stored = await chrome.storage.local.get('tabby_quips_delivered');
+      const quipCount = stored['tabby_quips_delivered'];
+      quipCountEl.textContent = String(typeof quipCount === 'number' ? quipCount : 0);
     }
   } catch (error) {
     console.error('Failed to update stats:', error);

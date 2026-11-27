@@ -23,7 +23,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: tabbymctabface-extension
-          path: TabbyMcTabface-v1.0.0.zip
+          path: TabbyMcTabface.zip
           if-no-files-found: error
 
   ai-review:

@@ -108,8 +108,8 @@ You'll need to create icon files at these sizes:
 ## 🚀 Usage
 
 ### Keyboard Shortcuts
-- **Cmd+Shift+L** (Mac) / **Ctrl+Shift+L** (Windows): I'm Feeling Lucky (close random tab)
-- **Cmd+Shift+T** (Mac) / **Ctrl+Shift+T** (Windows): Open TabbyMcTabface popup
+- **Alt+Shift+L** (Mac) / **Alt+Shift+L** (Windows): I'm Feeling Lucky (close random tab)
+- **Alt+Shift+T** (Mac) / **Alt+Shift+T** (Windows): Open TabbyMcTabface popup
 
 ### Features
 1. **Create Tab Group**: Select tabs and group them with a custom name
