@@ -18,8 +18,8 @@ GitHub Actions does not run for this account (billing lock). CI for TabbyMcTabfa
 | Typecheck | `npm run lint` | `tsc --noEmit` using [`tsconfig.json`](../tsconfig.json), which extends [`tsconfig.build.json`](../tsconfig.build.json). Tests and mocks stay excluded, same as the production compile. |
 | Tests | `npm test` | `vitest run` (single run, not watch). |
 | Review script | `node --test scripts/ai-review.test.mjs` | Skip and comment-flag checks. No network. |
-| Build | `npm run build` | `clean`, `tsc -p tsconfig.build.json`, popup compile, copy manifest, HTML, CSS, icons, and quips into `dist/`. |
-| Zip | `npm run package` | Runs the build again and writes `TabbyMcTabface-v1.0.0.zip`. |
+| Build | `npm run build` | `clean`, typecheck, esbuild bundles `background.js` and `popup.js`, then copies manifest, HTML, CSS, and icons into `dist/`. `dist/` is the extension root. |
+| Zip | `npm run package` | Runs the build again and writes `TabbyMcTabface.zip`, ready to upload to the Chrome Web Store. |
 | Artifact | `actions/upload-artifact@v4` | Uploads that zip as `tabbymctabface-extension`. |
 
 `npm run lint` does not typecheck `src/**/*.test.ts` or `src/mocks`. Those files are already excluded from `tsconfig.build.json`, and several no longer match the contracts (`NotificationsAPIError` versus `NotificationError`, storage quota field names, `MockTabManager` groups). Vitest still executes the tests. That drift was left alone.

@@ -108,8 +108,8 @@ You'll need to create icon files at these sizes:
 ## 🚀 Usage
 
 ### Keyboard Shortcuts
-- **Cmd+Shift+L** (Mac) / **Ctrl+Shift+L** (Windows): I'm Feeling Lucky (close random tab)
-- **Cmd+Shift+T** (Mac) / **Ctrl+Shift+T** (Windows): Open TabbyMcTabface popup
+- **Alt+Shift+L** (Mac) / **Alt+Shift+L** (Windows): I'm Feeling Lucky (close random tab)
+- **Alt+Shift+Y** (Mac) / **Alt+Shift+Y** (Windows): Open TabbyMcTabface popup
 
 ### Features
 1. **Create Tab Group**: Select tabs and group them with a custom name
@@ -179,9 +179,9 @@ This project follows **Seam-Driven Development** methodology:
 
 ### Package for Chrome Web Store
 ```bash
-npm run build
-zip -r TabbyMcTabface.zip dist/ manifest.json popup.html popup.css popup.js icons/
+npm run package
 ```
+This builds `dist/` and zips its contents (manifest at the zip root) into `TabbyMcTabface.zip`.
 
 ### Publish
 1. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)

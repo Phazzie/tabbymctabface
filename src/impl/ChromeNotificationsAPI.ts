@@ -72,7 +72,7 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
       const chromeOptions = {
         ...options,
         type: options.type || 'basic' as const,
-        iconUrl: options.iconUrl || chrome.runtime.getURL('icon.png') // Default to extension icon
+        iconUrl: options.iconUrl || chrome.runtime.getURL('icons/icon128.png') // Default to extension icon
       };
 
       // Generate notification ID since Chrome API doesn't return it
@@ -169,7 +169,7 @@ export class ChromeNotificationsAPI implements IChromeNotificationsAPI {
       const chromeOptions = {
         ...options,
         type: options.type || 'basic' as const,
-        iconUrl: options.iconUrl || chrome.runtime.getURL('icon.png')
+        iconUrl: options.iconUrl || chrome.runtime.getURL('icons/icon128.png')
       };
 
       // Call Chrome API (returns void, assume success if no error)

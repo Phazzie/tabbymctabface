@@ -139,11 +139,11 @@ ls -la dist/
 npm run package
 ```
 
-**Expected**: Creates `TabbyMcTabface-v1.0.0.zip`
+**Expected**: Creates `TabbyMcTabface.zip`
 
 **Verify ZIP**:
 ```bash
-unzip -l TabbyMcTabface-v1.0.0.zip
+unzip -l TabbyMcTabface.zip
 ```
 
 Should contain entire `dist/` directory
@@ -164,7 +164,7 @@ Should contain entire `dist/` directory
 2. Sign in with Google account
 3. Pay $5 developer fee (one time, if first extension)
 4. Click "New Item"
-5. Upload `TabbyMcTabface-v1.0.0.zip`
+5. Upload `TabbyMcTabface.zip`
 6. Fill out all fields:
    - Product name: TabbyMcTabface
    - Summary (132 chars)

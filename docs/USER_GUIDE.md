@@ -37,7 +37,7 @@ Your tabs are now under passive-aggressive management. This extension helps you 
 
 **How to use**:
 - Click "I'm Feeling Lucky" button in popup
-- Or press **Cmd+Shift+L** (Mac) / **Ctrl+Shift+L** (Windows)
+- Or press **Alt+Shift+L** (Mac) / **Alt+Shift+L** (Windows)
 - TabbyMcTabface will close a random tab and deliver a quip
 
 **Example quips**:
@@ -127,8 +127,8 @@ Your tabs are now under passive-aggressive management. This extension helps you 
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| **Cmd+Shift+T** (Mac)<br>**Ctrl+Shift+T** (Windows) | Open Popup | Opens TabbyMcTabface popup |
-| **Cmd+Shift+L** (Mac)<br>**Ctrl+Shift+L** (Windows) | Feeling Lucky | Closes random tab immediately |
+| **Alt+Shift+Y** (Mac)<br>**Alt+Shift+Y** (Windows) | Open Popup | Opens TabbyMcTabface popup |
+| **Alt+Shift+L** (Mac)<br>**Alt+Shift+L** (Windows) | Feeling Lucky | Closes random tab immediately |
 
 **Customizing Shortcuts**:
 1. Go to `chrome://extensions/shortcuts`
@@ -362,7 +362,7 @@ Future features we're considering:
 
 ### Keyboard Shortcuts Not Working
 
-**Symptoms**: `Cmd+Shift+L` or `Ctrl+Shift+L` doesn't trigger "I'm Feeling Lucky"
+**Symptoms**: `Alt+Shift+L` or `Alt+Shift+L` doesn't trigger "I'm Feeling Lucky"
 
 **Solutions**:
 1. **Check Shortcut Conflicts**:
@@ -372,8 +372,8 @@ Future features we're considering:
    - Change if conflicting with another extension
 
 2. **Platform-Specific Issues**:
-   - Mac: Use `Cmd+Shift+L`
-   - Windows/Linux: Use `Ctrl+Shift+L`
+   - Mac: Use `Alt+Shift+L`
+   - Windows/Linux: Use `Alt+Shift+L`
    - Some apps override these globally
 
 ### Easter Eggs Not Triggering
