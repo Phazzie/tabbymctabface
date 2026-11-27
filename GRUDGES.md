@@ -11,3 +11,4 @@ Things that failed silently or lied. Check this list before every deploy.
 | 5 | My own review replies | I replied "Fixed" to 13 review threads at once; some weren't fixed yet. | One reply per thread, written after checking that thread's code. |
 | 6 | "Private preview" | Branch previews on this Vercel project are public (deployment protection is off), so a "preview" is not private by default. | Turned on Vercel login protection for preview deployments before the fridge deploy (production untouched). |
 | 7 | Screenshot of a page I never scrolled | A full-page screenshot can hide content cut off sideways on a phone. | Every screenshot run also checks `scrollWidth <= innerWidth`. |
+| 8 | `git add -A` | A screenshot script ran from the repo folder and its output (5 stale PNGs, 3 MB) rode along in a fix commit. The review bot noticed before I did. | Screenshot scripts write to absolute scratch paths only; check `git status` before committing. |
