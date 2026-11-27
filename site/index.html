@@ -5,7 +5,7 @@
        The fridge is where those notes live. Every button is something you do
        to a fridge: tear a tab off a flyer, spin the chore chart, open the envelope.
   HOW DATA FLOWS: quips.js (generated from src/data/quips) -> fridge.js -> new sticky notes.
-  SEAMS: None. Static page, no network calls besides Google Fonts.
+  SEAMS: SITE-01 (src/data/quips -> site/quips.js), SITE-02 (window.TABBY_QUIPS -> fridge.js). No network calls; fonts are self-hosted.
 -->
 <html lang="en">
 <head>
@@ -18,9 +18,7 @@
   <meta property="og:image" content="https://tabbymctabface.vercel.app/img/icon128.png">
   <meta name="theme-color" content="#e9e4d8">
   <link rel="icon" href="img/icon128.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -53,7 +51,7 @@
         <ul class="typed list">
           <li>Closes one random tab when you press I'm Feeling Lucky</li>
           <li>Groups the tabs you pick and names the group</li>
-          <li>Leaves a passive-aggressive note every time (75 of them)</li>
+          <li>Leaves a passive-aggressive note almost every time (75 of them; it needs 5 seconds to recover between notes)</li>
           <li>Knows 104 secret things to say. Won't tell you which.</li>
         </ul>
         <p class="typed small">Pinned tabs and the one you're looking at are never touched.</p>
@@ -128,7 +126,7 @@
         </div>
         <div class="pile-foot">
           <button class="btn-plain" id="more" type="button">Leave me another note</button>
-          <p class="hand counter"><span id="count">4</span> notes on the fridge. Tabby keeps count too, only on your computer.</p>
+          <p class="hand counter"><span id="count">4</span> notes left so far. This fridge forgets when you leave. The real Tabby keeps count, only on your computer.</p>
         </div>
       </section>
 
@@ -148,7 +146,7 @@
         <h2 id="egg-h" class="sr">Secret notes</h2>
         <button class="envelope" id="envelope" type="button" aria-expanded="false" aria-controls="egg">
           <span class="flap" aria-hidden="true"></span>
-          <span class="hand front">DO NOT OPEN<br><small>(104 notes I only leave when you do something specific)</small></span>
+          <span class="hand front">DO NOT OPEN<br><small>(100+ notes I only leave when you do something specific)</small></span>
         </button>
         <div class="egg note yellow" id="egg" hidden>
           <p class="hand small" id="egg-when"></p>

@@ -5,7 +5,8 @@
        Rules copied from the extension: pinned and active tabs are never closed,
        and a note within ~5 seconds of the last one is skipped (HumorSystem cooldown).
   HOW DATA FLOWS: window.TABBY_QUIPS (quips.js) -> pickers below -> sticky notes in #notes.
-  SEAMS: None. No storage, no network.
+  SEAMS: SITE-02 reads window.TABBY_QUIPS (written by scripts/site-quips.cjs, SITE-01).
+         No storage, no network.
 */
 (function () {
   'use strict';
@@ -25,7 +26,11 @@
       var el = $(id);
       if (el) el.textContent = "The marker ran out (the notes didn't load). Refresh and I'll find another pen.";
     });
+    // Grouping needs no quips, but its success message promises a note, so the whole
+    // fridge goes quiet rather than half-working.
     ['lucky', 'more', 'envelope'].forEach(function (id) { var b = $(id); if (b) b.disabled = true; });
+    var gb = document.querySelector('#group-form button[type=submit]');
+    if (gb) gb.disabled = true;
     return;
   }
 
@@ -83,11 +88,14 @@
     luckyStatus.textContent = 'Eeny, meeny...';
     var target = pool[Math.floor(Math.random() * pool.length)];
     var steps = reduced ? 0 : 9 + Math.floor(Math.random() * 4);
+    // Start the flashing so the last highlighted tab is the one that actually goes.
+    var n = pool.length;
+    var start = ((pool.indexOf(target) - (steps - 1)) % n + n) % n;
     var i = 0;
     function flash() {
       pool.forEach(function (li) { li.classList.remove('spot'); });
       if (i < steps) {
-        pool[i % pool.length].classList.add('spot');
+        pool[(start + i) % n].classList.add('spot');
         i += 1;
         setTimeout(flash, 70 + i * 12);
         return;
@@ -179,6 +187,7 @@
   function hour(h) { return h === 0 ? 'midnight' : h === 12 ? 'noon' : (h % 12) + (h < 12 ? 'am' : 'pm'); }
   function num(c, noun) {
     if (typeof c === 'number') return (c === 0 ? 'no ' : 'exactly ' + c + ' ') + noun + (c === 1 ? '' : 's') + ' open';
+    if (c && c.min !== undefined && c.max !== undefined) return c.min + ' to ' + c.max + ' ' + noun + 's open';
     if (c && c.min !== undefined) return c.min + '+ ' + noun + 's open';
     if (c && c.max !== undefined) return c.max + ' or fewer ' + noun + 's open';
     return 'some ' + noun + 's open';

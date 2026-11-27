@@ -25,7 +25,7 @@
 
 ### Definition of done
 - Builds and starts with no errors, no console errors: **yes.** No build step. Playwright saw zero console errors on `/` and `/privacy.html`. The only logged error is the expected 404 status on the 404 page itself.
-- Every main feature clicked through: **yes.** I'm Feeling Lucky 7 times, until nothing was left (pinned and current tab never closed; the "nothing left" message and the restock button appeared). Restock. Alt+Shift+L. Group with no tabs (error), with no name (error), then a real group (band appears, tab disappears). "Leave me another note" twice (counter went 4 → 8). Envelope opened, "Snoop another". Tear-off tab went to the house rules page. The 404 page links back.
+- Every main feature clicked through: **yes**, and now repeatable with `npm run site:check`. I'm Feeling Lucky 7 times, until nothing was left (pinned and current tab never closed; the "nothing left" message and the restock button appeared). Restock. Alt+Shift+L. Group with no tabs (error), with no name (error), then a real group (band appears, tab disappears). "Leave me another note" twice (counter went 4 → 8). Envelope opened, "Snoop another". Tear-off tab went to the house rules page. The 404 page links back.
 - Nothing that worked before is broken: **yes.** The extension code wasn't touched (`src/` unchanged; its 305 tests passed on main). The privacy URL still works.
 - No placeholders, dead links or "coming soon": **yes.** Every link goes to GitHub, the issues page or the house rules.
 - Screenshots of every page at phone and laptop after the last change: **yes** (round 3, attached in the thread).
@@ -70,6 +70,13 @@
   - Added Alt+Shift+L on the page itself.
   - Re-shot every page at 1280 and 390. No sideways scrolling anywhere.
 - **Round 4 (after a Codex review).** On tablets (700 to 1000px wide) the opening note was pushed off the fridge's right edge and cut off. Fixed: the freezer goes to one column and the magnets shrink below 1020px. Checked at 700, 768, 900, 1020 and 1100, then re-shot phone and laptop.
+
+- **Round 5 (after a Sourcery review).**
+  - The spin now ends on the tab that actually closes.
+  - Fonts are self-hosted, so visiting the site sends nothing to Google.
+  - If the notes fail to load, the whole fridge goes quiet instead of half-working.
+  - Copy fixes: notes come "almost every time" (5-second cooldown); the counter says it forgets on refresh; the envelope says 100+.
+  - Added `npm run site:check`, a Playwright click-through at laptop, tablet and phone size. It passes.
 
 ## Earlier work (before the overnight brief)
 - Store-ready build fixed and merged (PR #24). The site template was merged earlier in PR #25.

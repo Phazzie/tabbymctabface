@@ -3,7 +3,8 @@
   WHY: The site has no build step, and the brief says real content only, so the
        notes on the fridge come from the same JSON the extension ships.
   HOW DATA FLOWS: src/data/quips/*.json -> site/quips.js (window.TABBY_QUIPS).
-  SEAMS: None. Run with `node scripts/site-quips.cjs` after editing quips.
+  SEAMS: SITE-01 writes window.TABBY_QUIPS, read by site/fridge.js (SITE-02).
+         Run with `node scripts/site-quips.cjs` after editing quips.
 */
 const fs = require('fs');
 const path = require('path');
