@@ -69,6 +69,7 @@
   - Fixed: shortened the tear-off text, hid grouped tabs, removed the lyric egg.
   - Added Alt+Shift+L on the page itself.
   - Re-shot every page at 1280 and 390. No sideways scrolling anywhere.
+- **Round 4 (after a Codex review).** On tablets (700 to 1000px wide) the opening note was pushed off the fridge's right edge and cut off. Fixed: the freezer goes to one column and the magnets shrink below 1020px. Checked at 700, 768, 900, 1020 and 1100, then re-shot phone and laptop.
 
 ## Earlier work (before the overnight brief)
 - Store-ready build fixed and merged (PR #24). The site template was merged earlier in PR #25.

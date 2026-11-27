@@ -210,6 +210,8 @@ kbd { font: 15px var(--type); background: #fff; border: 1.5px solid var(--ink); 
 
 /* Laptop-ish: tighten. Tablet: two columns. Phone: one column. */
 @media (max-width: 1020px) {
+  .freezer { grid-template-columns: 1fr; gap: 26px; }
+  .m { font-size: 64px; } .m.sm { font-size: 42px; }
   .door { grid-template-columns: 1fr 1fr; }
   .flyer, .chart, .polaroid, .groups, .pile, .card, .envelope-wrap, .rules, .receipt { grid-column: auto; }
   .pile { grid-column: 1 / -1; }
