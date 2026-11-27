@@ -5,7 +5,7 @@
 **TabbyMcTabface website: done, with one line I couldn't fully prove (see "Definition of done").**
 
 - **World:** the fridge door of a shared apartment, covered in passive-aggressive notes from Tabby, your roommate.
-- **Private preview:** https://tabbymctabface-git-site-fridge-phazzies-projects.vercel.app (branch `site-fridge`, PR open, not merged).
+- **Private preview:** https://tabbymctabface-git-site-fridge-phazzies-projects.vercel.app (branch `site-fridge`). **Update:** PR #26 was merged on 27 Nov, so the fridge is now the live, public site at https://tabbymctabface.vercel.app.
 - **Score: 7/10.** It's memorable and every part works, but it's charming rather than dangerous. Nobody will be offended by it.
 - **Still rough:** the house rules page is long in handwriting and slower to read than plain type. The "Install" tear-off goes to GitHub until the Chrome Web Store listing is approved. On a phone the page is long (about six screens).
 - **Boldest part:** Trash Day. The I'm Feeling Lucky demo spins over fake tabs, crosses one out, and slaps a real quip on the fridge, following the extension's real rules (pinned and current tab are safe, a ~5 second note cooldown, Alt+Shift+L works).
