@@ -1,0 +1,13 @@
+# GRUDGES.md
+
+Things that failed silently or lied. Check this list before every deploy.
+
+| # | What lied | How it showed up | What guards against it now |
+|---|-----------|------------------|----------------------------|
+| 1 | 305 passing tests | The packaged zip would not load in Chrome at all (the manifest pointed at files that weren't in `dist/`). Tests never load the real extension. | `npm run package` then load `dist/` in Playwright Chromium and click Lucky and Group (see BUILD.md). |
+| 2 | "It works" | It only worked until Chrome put the service worker to sleep. After that the popup said "Extension not initialized". | `ensureContext()` in `src/background.ts`; re-checked by stopping the worker over CDP. |
+| 3 | The quip counter | The popup's "quips delivered" number was hard-coded to 0. It looked like a feature. | Counter is stored under `tabby_quips_delivered` and the popup reads it live. |
+| 4 | Vercel "failed" on a branch | Branches cut before `site/` existed failed the Vercel check, which looked like a broken PR. | Merge order; any branch now carries `site/`. |
+| 5 | My own review replies | I replied "Fixed" to 13 review threads at once; some weren't fixed yet. | One reply per thread, written after checking that thread's code. |
+| 6 | "Private preview" | Branch previews on this Vercel project are public (deployment protection is off), so a "preview" is not private by default. | Checked before the fridge deploy; see PROGRESS.md for what was done. |
+| 7 | Screenshot of a page I never scrolled | A full-page screenshot can hide content cut off sideways on a phone. | Every screenshot run also checks `scrollWidth <= innerWidth`. |

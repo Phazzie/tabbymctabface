@@ -1,123 +1,192 @@
 <!doctype html>
 <!--
-  WHAT: TabbyMcTabface landing page.
-  WHY: Public home for the Chrome Web Store listing and launch posts.
-  HOW DATA FLOWS: Static HTML, no scripts, no data collected.
-  SEAMS: None.
+  WHAT: TabbyMcTabface's site, built as the fridge door of a shared apartment.
+  WHY: Tabby is the roommate who won't say it to your face, so it leaves notes.
+       The fridge is where those notes live. Every button is something you do
+       to a fridge: tear a tab off a flyer, spin the chore chart, open the envelope.
+  HOW DATA FLOWS: quips.js (generated from src/data/quips) -> fridge.js -> new sticky notes.
+  SEAMS: None. Static page, no network calls besides Google Fonts.
 -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TabbyMcTabface: tab management with attitude</title>
-  <meta name="description" content="A Chrome extension that closes random tabs, groups the ones you pick, and judges you quietly while it does.">
-  <meta property="og:title" content="TabbyMcTabface">
-  <meta property="og:description" content="Tab management with attitude. Closes random tabs, groups the ones you pick, and judges you quietly.">
-  <meta property="og:image" content="https://tabbymctabface.vercel.app/img/popup.png">
+  <title>TabbyMcTabface</title>
+  <meta name="description" content="A Chrome extension that closes a random tab, groups the rest, and leaves passive-aggressive notes about it. Free, no account, nothing leaves your browser.">
+  <meta property="og:title" content="TabbyMcTabface left you a note">
+  <meta property="og:description" content="Closes a random tab, groups the rest, and leaves passive-aggressive notes about it.">
+  <meta property="og:image" content="https://tabbymctabface.vercel.app/img/icon128.png">
+  <meta name="theme-color" content="#e9e4d8">
   <link rel="icon" href="img/icon128.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="wrap nav">
-    <a class="brand" href="./"><img src="img/icon128.png" alt="" width="28" height="28"> TabbyMcTabface</a>
-    <nav><a href="#features">Features</a><a href="#faq">FAQ</a><a href="privacy.html">Privacy</a></nav>
-  </header>
+  <main class="fridge" aria-label="The fridge">
 
-  <main>
-    <section class="wrap hero">
-      <div class="hero-text">
-        <p class="eyebrow">A Chrome extension</p>
-        <h1>Your tabs are a mess.<br><span>We noticed.</span></h1>
-        <p class="lede">TabbyMcTabface closes random tabs, lets you group the survivors, and offers a little passive-aggressive commentary on how you got here.</p>
-        <div class="cta">
-          <a class="btn primary" id="install" href="https://github.com/Phazzie/tabbymctabface">Add to Chrome</a>
-          <a class="btn ghost" href="#features">See what it does</a>
-        </div>
-        <p class="fine">Free. No account. Nothing leaves your browser.</p>
+    <!-- FREEZER: the name, in magnet letters, and the first note. -->
+    <section class="freezer" aria-labelledby="name">
+      <h1 id="name" class="magnets" aria-label="TabbyMcTabface">
+        <span class="word" aria-hidden="true"><span class="m c1">T</span><span class="m c2">A</span><span class="m c3">B</span><span class="m c4">B</span><span class="m c5">Y</span></span>
+        <span class="word" aria-hidden="true"><span class="m c3 sm">M</span><span class="m c1 sm">c</span></span>
+        <span class="word" aria-hidden="true"><span class="m c2">T</span><span class="m c5">A</span><span class="m c4">B</span><span class="m c1">F</span><span class="m c3">A</span><span class="m c2">C</span><span class="m c5">E</span></span>
+      </h1>
+      <div class="note yellow first tilt-l">
+        <span class="tape"></span>
+        <p class="hand big">To whoever has 74 tabs open on the shared laptop:</p>
+        <p class="hand">I'm not mad. I made a Chrome extension about it. It closes a random tab, groups the rest, and leaves you a note every time.</p>
+        <p class="sig">— Tabby (your roommate)</p>
       </div>
-      <figure class="hero-shot">
-        <img src="img/popup.png" alt="The TabbyMcTabface popup showing an I'm Feeling Lucky button, a Create Tab Group button, and stats for tabs, groups and quips delivered." width="380" height="621">
-      </figure>
+      <span class="handle" aria-hidden="true"></span>
     </section>
 
-    <section class="quips" aria-label="Sample quips">
-      <div class="wrap">
-        <p class="eyebrow center">Things Tabby has said to people</p>
-        <ul class="quip-list">
-          <li>“You must know what you're doing with all these tabs.”</li>
-          <li>“Closing tabs randomly. Bold strategy. Let's see if it pays off.”</li>
-          <li>“A group! You're clearly someone who has their life together.”</li>
-          <li>“Grouping tabs: the digital equivalent of ‘I'll organize this later.’”</li>
-          <li>“You're still at 47 tabs. You must have a system I don't understand.”</li>
-          <li>“Tab organization achieved. Your browser thanks you.”</li>
+    <section class="door">
+      <span class="handle" aria-hidden="true"></span>
+
+      <!-- TEAR-OFF FLYER: the install links. Tabs you tear off. -->
+      <article class="flyer tilt-r" aria-labelledby="flyer-h">
+        <span class="pin" aria-hidden="true"></span>
+        <h2 id="flyer-h" class="typed">ROOMMATE AVAILABLE</h2>
+        <p class="typed small">Free. No account. Lives in Chrome. Tidy-ish.</p>
+        <ul class="typed list">
+          <li>Closes one random tab when you press I'm Feeling Lucky</li>
+          <li>Groups the tabs you pick and names the group</li>
+          <li>Leaves a passive-aggressive note every time (75 of them)</li>
+          <li>Knows 104 secret things to say. Won't tell you which.</li>
         </ul>
-      </div>
-    </section>
+        <p class="typed small">Pinned tabs and the one you're looking at are never touched.</p>
+        <div class="tearoffs" role="list">
+          <a role="listitem" class="tear" href="https://github.com/Phazzie/tabbymctabface#readme"><span>Install it (GitHub)</span></a>
+          <a role="listitem" class="tear" href="privacy.html"><span>Read the house rules</span></a>
+          <a role="listitem" class="tear" href="https://github.com/Phazzie/tabbymctabface/issues"><span>Complain to Tabby</span></a>
+          <a role="listitem" class="tear" href="https://github.com/Phazzie/tabbymctabface"><span>Look at the source</span></a>
+        </div>
+      </article>
 
-    <section id="features" class="wrap features">
-      <h2>What it does</h2>
-      <div class="grid">
-        <article>
-          <div class="ico" aria-hidden="true">🍀</div>
-          <h3>I'm Feeling Lucky</h3>
-          <p>Closes one random tab. Pinned tabs and the one you're looking at are safe. Everything else is fair game.</p>
-        </article>
-        <article>
-          <div class="ico" aria-hidden="true">📁</div>
-          <h3>Quick tab groups</h3>
-          <p>Pick a few tabs, give them a name, and they're grouped in one click. Tabby will have opinions about it.</p>
-        </article>
-        <article>
-          <div class="ico" aria-hidden="true">💬</div>
-          <h3>75 quips</h3>
-          <p>Your actions earn small, carefully worded notifications (at most one every few seconds). Never mean. Always a little disappointed.</p>
-        </article>
-        <article>
-          <div class="ico" aria-hidden="true">🥚</div>
-          <h3>Hidden easter eggs</h3>
-          <p>Over a hundred surprises that show up based on how you browse. There's no list. You'll have to find them.</p>
-        </article>
-      </div>
-    </section>
+      <!-- CHORE CHART: a working demo of I'm Feeling Lucky. -->
+      <article class="chart tilt-l" aria-labelledby="chart-h">
+        <span class="magnet-dot red" aria-hidden="true"></span>
+        <h2 id="chart-h" class="marker">TRASH DAY</h2>
+        <p class="hand">Tabs that are going out tonight. One at a time. I pick.</p>
+        <ol class="tabs" id="tabs" aria-live="polite">
+          <li data-pinned>📌 Music: Phazzie on repeat <em>pinned, safe</em></li>
+          <li>Inbox (2,341)</li>
+          <li>How to fold a fitted sheet</li>
+          <li>Flights to anywhere, one way</li>
+          <li>Array.prototype.reduce() - MDN</li>
+          <li>That recipe you'll make "this weekend"</li>
+          <li>Untitled</li>
+          <li data-active>👀 This page <em>you're on it, safe</em></li>
+        </ol>
+        <div class="row">
+          <button class="btn-lucky" id="lucky" type="button">I'm Feeling Lucky</button>
+          <button class="btn-plain" id="restock" type="button" hidden>Open them all again (you will)</button>
+        </div>
+        <p class="hand status" id="lucky-status" aria-live="polite">Same button as the real one. Alt+Shift+L works here too.</p>
+      </article>
 
-    <section class="wrap keys">
-      <h2>Keyboard shortcuts</h2>
-      <dl>
-        <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></dt><dd>Feeling lucky: close a random tab</dd></div>
-        <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></dt><dd>Open the Tabby popup</dd></div>
-      </dl>
-      <p class="fine">You can change these at <code>chrome://extensions/shortcuts</code>.</p>
-    </section>
+      <!-- POLAROID: the real popup. -->
+      <figure class="polaroid tilt-r2">
+        <span class="magnet-dot blue" aria-hidden="true"></span>
+        <img src="img/popup.png" alt="The TabbyMcTabface popup: an I'm Feeling Lucky button, a list of open tabs with checkboxes, a group name field, and a count of notes delivered." width="380" height="621" loading="lazy">
+        <figcaption class="hand">the actual popup. Alt+Shift+Y</figcaption>
+      </figure>
 
-    <section id="faq" class="wrap faq">
-      <h2>Questions</h2>
-      <details>
-        <summary>Will it close a tab I need?</summary>
-        <p>It might. That's the deal. It never closes pinned tabs or the tab you're on, and Chrome's own <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> on a Mac) brings a closed tab back.</p>
-      </details>
-      <details>
-        <summary>Does it read my browsing?</summary>
-        <p>Tabby looks at your open tabs' titles and addresses so it can count, group and close them, and pick the right quip. That stays on your computer. Nothing is sent anywhere. The <a href="privacy.html">privacy policy</a> has the details.</p>
-      </details>
-      <details>
-        <summary>Why does it need these permissions?</summary>
-        <p><b>Tabs</b> and <b>tab groups</b> to count, close and group tabs. <b>Notifications</b> to deliver quips. <b>Storage</b> to remember how many quips you've earned.</p>
-      </details>
-      <details>
-        <summary>Is it free?</summary>
-        <p>Yes. No ads, no account, no upsell.</p>
-      </details>
-    </section>
+      <!-- GROUPING: pick tabs, name the group, get a note. -->
+      <article class="groups tilt-l2" aria-labelledby="groups-h">
+        <span class="tape"></span>
+        <h2 id="groups-h" class="marker">LABEL YOUR STUFF</h2>
+        <p class="hand">Pick the tabs that go together. Name them. I'll put a band round them.</p>
+        <form id="group-form" class="group-form">
+          <fieldset>
+            <legend class="sr">Tabs to group</legend>
+            <label><input type="checkbox" name="t" value="Cover letter draft 4"> Cover letter draft 4</label>
+            <label><input type="checkbox" name="t" value="Cover letter draft 4 (1)"> Cover letter draft 4 (1)</label>
+            <label><input type="checkbox" name="t" value="Job board: 'junior' (8 yrs exp)"> Job board: "junior" (8 yrs exp)</label>
+            <label><input type="checkbox" name="t" value="Salary negotiation tips"> Salary negotiation tips</label>
+            <label><input type="checkbox" name="t" value="Cat video (research)"> Cat video (research)</label>
+          </fieldset>
+          <label class="name-field">Group name
+            <input type="text" id="group-name" maxlength="24" autocomplete="off" placeholder="something you'll regret">
+          </label>
+          <button class="btn-plain" type="submit">Band them together</button>
+          <p class="hand status" id="group-status" aria-live="polite"></p>
+        </form>
+        <div class="banded" id="banded" aria-live="polite"></div>
+      </article>
 
-    <section class="wrap closer">
-      <h2>Go on. You have too many tabs open right now.</h2>
-      <a class="btn primary" href="https://github.com/Phazzie/tabbymctabface">Add to Chrome</a>
+      <!-- NOTE PILE: real quips, and a button to get another. -->
+      <section class="pile" aria-labelledby="pile-h">
+        <h2 id="pile-h" class="sr">Notes Tabby already left</h2>
+        <div class="notes" id="notes">
+          <div class="note pink tilt-r"><p class="hand">Closing tabs randomly. Bold strategy. Let's see if it pays off.</p></div>
+          <div class="note yellow tilt-l"><p class="hand">You know bookmarks exist, right? Just checking.</p></div>
+          <div class="note green tilt-r2"><p class="hand">Another group. Marie Kondo would be... well, confused.</p></div>
+          <div class="note blue tilt-l2"><p class="hand">You have more tabs than friends. But who's counting?</p></div>
+        </div>
+        <div class="pile-foot">
+          <button class="btn-plain" id="more" type="button">Leave me another note</button>
+          <p class="hand counter"><span id="count">4</span> notes on the fridge. Tabby keeps count too, only on your computer.</p>
+        </div>
+      </section>
+
+      <!-- INDEX CARD: keyboard shortcuts. -->
+      <article class="card tilt-r" aria-labelledby="keys-h">
+        <span class="magnet-dot yellow" aria-hidden="true"></span>
+        <h2 id="keys-h" class="hand big">since you never read notes:</h2>
+        <dl class="keys">
+          <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd></dt><dd>open Tabby</dd></div>
+          <div><dt><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></dt><dd>feeling lucky, no questions</dd></div>
+        </dl>
+        <p class="hand small">On a Mac, Alt is Option. Change them at chrome://extensions/shortcuts</p>
+      </article>
+
+      <!-- ENVELOPE: one real easter egg at a time. -->
+      <article class="envelope-wrap tilt-l" aria-labelledby="egg-h">
+        <h2 id="egg-h" class="sr">Secret notes</h2>
+        <button class="envelope" id="envelope" type="button" aria-expanded="false" aria-controls="egg">
+          <span class="flap" aria-hidden="true"></span>
+          <span class="hand front">DO NOT OPEN<br><small>(104 notes I only leave when you do something specific)</small></span>
+        </button>
+        <div class="egg note yellow" id="egg" hidden>
+          <p class="hand small" id="egg-when"></p>
+          <p class="hand big" id="egg-quip"></p>
+          <button class="btn-plain" id="egg-again" type="button">Snoop another</button>
+        </div>
+      </article>
+
+      <!-- HOUSE RULES: the privacy summary. -->
+      <article class="rules tilt-r2" aria-labelledby="rules-h">
+        <span class="tape"></span>
+        <h2 id="rules-h" class="marker">HOUSE RULES</h2>
+        <ol class="hand">
+          <li>I look at your tab titles and addresses only while I'm counting, grouping or closing them.</li>
+          <li>I write down one thing: how many notes I've left you.</li>
+          <li>Nothing leaves this browser. No servers, no analytics, no account.</li>
+        </ol>
+        <a class="hand link" href="privacy.html">the full rules, in writing</a>
+      </article>
+
+      <!-- RECEIPT: who made it. -->
+      <aside class="receipt tilt-l2" aria-label="Who made this">
+        <p class="typed center">SKEPTICAL WOMBAT</p>
+        <p class="typed center small">made by Phazzie</p>
+        <p class="typed rule">--------------------------</p>
+        <p class="typed row2"><span>1x roommate</span><span>$0.00</span></p>
+        <p class="typed row2"><span>75 notes</span><span>$0.00</span></p>
+        <p class="typed row2"><span>104 secrets</span><span>$0.00</span></p>
+        <p class="typed row2"><span>your data</span><span>NOT TAKEN</span></p>
+        <p class="typed rule">--------------------------</p>
+        <p class="typed row2"><span>TOTAL</span><span>$0.00</span></p>
+        <p class="typed center small">MIT licensed · <a href="https://github.com/Phazzie/tabbymctabface">source</a></p>
+      </aside>
     </section>
   </main>
 
-  <footer class="wrap foot">
-    <span>© 2026 TabbyMcTabface</span>
-    <nav><a href="privacy.html">Privacy</a><a href="https://github.com/Phazzie/tabbymctabface">Source</a></nav>
-  </footer>
+  <noscript><p class="noscript hand">Tabby can't leave new notes without JavaScript. Everything on the fridge still reads fine.</p></noscript>
+  <script src="quips.js"></script>
+  <script src="fridge.js"></script>
 </body>
 </html>

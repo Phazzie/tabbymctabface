@@ -1,7 +1,9 @@
 <!doctype html>
 <!--
-  WHAT: Privacy policy for the TabbyMcTabface extension.
-  WHY: Required by the Chrome Web Store listing.
+  WHAT: Privacy policy for the TabbyMcTabface extension, written as the house
+        rules sheet taped to the fridge.
+  WHY: Required by the Chrome Web Store listing, so the words stay plain and
+       accurate. Only the paper is in-world. URL must stay /privacy.html.
   HOW DATA FLOWS: Static HTML, no scripts, no data collected.
   SEAMS: None.
 -->
@@ -9,52 +11,54 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Privacy policy · TabbyMcTabface</title>
+  <title>House rules (privacy policy) · TabbyMcTabface</title>
+  <meta name="description" content="TabbyMcTabface's privacy policy. Everything stays in your browser. Nothing is collected, sent, sold or shared.">
+  <meta name="theme-color" content="#e9e4d8">
   <link rel="icon" href="img/icon128.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="wrap nav">
-    <a class="brand" href="./"><img src="img/icon128.png" alt="" width="28" height="28"> TabbyMcTabface</a>
-    <nav><a href="./#features">Features</a><a href="./#faq">FAQ</a><a href="privacy.html">Privacy</a></nav>
-  </header>
+  <main class="fridge">
+    <section class="door sheet-door">
+      <span class="handle" aria-hidden="true"></span>
+      <a class="back hand" href="./">← back to the fridge</a>
+      <article class="sheet tilt-l2">
+        <span class="tape"></span>
+        <h1>HOUSE RULES</h1>
+        <p class="typed">TabbyMcTabface privacy policy · last updated November 27, 2026</p>
 
-  <main class="wrap doc">
-    <h1>Privacy policy</h1>
-    <p class="fine">Last updated November 27, 2026</p>
+        <p>TabbyMcTabface is a Chrome extension. This sheet says what it touches and what it does with it. Short version: everything stays in your browser, and nothing is collected, sent, sold or shared.</p>
 
-    <p>TabbyMcTabface is a Chrome extension. This page explains what it touches and what it does with it. The short version: everything stays in your browser, and nothing is collected, sent, sold or shared.</p>
+        <h2>1. What I read</h2>
+        <p>To count, close and group your tabs, the extension reads the title, address (URL), pinned state and group of your open tabs through Chrome's tabs API. It uses this only in the moment, to decide which tab to close, which tabs to group, and which note or easter egg fits.</p>
 
-    <h2>What the extension reads</h2>
-    <p>To count, close and group your tabs, the extension reads the title, address (URL), pinned state and group of your open tabs through Chrome's tabs API. It uses this only in the moment, to decide which tab to close, which tabs to group, and which quip or easter egg fits.</p>
+        <h2>2. What I write down</h2>
+        <p>One number, in Chrome's local extension storage: how many notes (quips) it has left you. It does not store your tab titles, addresses or browsing history.</p>
 
-    <h2>What it stores</h2>
-    <p>It keeps one number in Chrome's local extension storage: how many quips it has delivered. It does not store your tab titles, addresses or browsing history.</p>
+        <h2>3. What I send</h2>
+        <p>Nothing. The extension makes no network requests. No analytics, no tracking, no ads, no accounts. The notes and easter eggs are bundled inside the extension.</p>
 
-    <h2>What it sends</h2>
-    <p>Nothing. The extension makes no network requests. There are no analytics, no tracking, no ads and no accounts. Quips and easter eggs are bundled inside the extension.</p>
+        <h2>4. Keys I asked for (permissions)</h2>
+        <ul>
+          <li><b>tabs</b>: read open tabs and close the one picked by "I'm Feeling Lucky".</li>
+          <li><b>tabGroups</b>: create and name tab groups.</li>
+          <li><b>notifications</b>: show notes as Chrome notifications.</li>
+          <li><b>storage</b>: remember the notes-delivered count.</li>
+        </ul>
 
-    <h2>Permissions</h2>
-    <ul>
-      <li><b>tabs</b>: read open tabs and close the one picked by "I'm Feeling Lucky".</li>
-      <li><b>tabGroups</b>: create and name tab groups.</li>
-      <li><b>notifications</b>: show quips as Chrome notifications.</li>
-      <li><b>storage</b>: remember the quips-delivered count.</li>
-    </ul>
+        <h2>5. Moving out</h2>
+        <p>Uninstalling the extension deletes everything it stored.</p>
 
-    <h2>Removing your data</h2>
-    <p>Uninstalling the extension deletes everything it stored.</p>
+        <h2>6. If the rules change</h2>
+        <p>The new version goes on this page with a new date.</p>
 
-    <h2>Changes</h2>
-    <p>If this policy changes, the new version will be posted on this page with a new date.</p>
-
-    <h2>Contact</h2>
-    <p>Questions can go to the project's <a href="https://github.com/Phazzie/tabbymctabface/issues">GitHub issues page</a>.</p>
+        <h2>7. Complaints</h2>
+        <p>Questions go to the project's <a href="https://github.com/Phazzie/tabbymctabface/issues">GitHub issues page</a>.</p>
+      </article>
+    </section>
   </main>
-
-  <footer class="wrap foot">
-    <span>© 2026 TabbyMcTabface</span>
-    <nav><a href="privacy.html">Privacy</a><a href="https://github.com/Phazzie/tabbymctabface">Source</a></nav>
-  </footer>
 </body>
 </html>
