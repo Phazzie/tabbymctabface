@@ -38,6 +38,19 @@ async function init(): Promise<void> {
   cancelGroupBtn.addEventListener('click', handleCancelGroup);
 }
 
+const QUIP_COUNT_KEY = 'tabby_quips_delivered';
+
+function showQuipCount(value: unknown): void {
+  quipCountEl.textContent = String(typeof value === 'number' ? value : 0);
+}
+
+// Quips are delivered after the action returns, so follow the counter live
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes[QUIP_COUNT_KEY]) {
+    showQuipCount(changes[QUIP_COUNT_KEY].newValue);
+  }
+});
+
 async function updateStats(): Promise<void> {
   try {
     const response = await sendMessage<BrowserContext>({ action: 'getBrowserContext' });
@@ -45,9 +58,8 @@ async function updateStats(): Promise<void> {
       const context = response.result.value;
       tabCountEl.textContent = String(context.tabCount);
       groupCountEl.textContent = String(context.groupCount);
-      const stored = await chrome.storage.local.get('tabby_quips_delivered');
-      const quipCount = stored['tabby_quips_delivered'];
-      quipCountEl.textContent = String(typeof quipCount === 'number' ? quipCount : 0);
+      const stored = await chrome.storage.local.get(QUIP_COUNT_KEY);
+      showQuipCount(stored[QUIP_COUNT_KEY]);
     }
   } catch (error) {
     console.error('Failed to update stats:', error);

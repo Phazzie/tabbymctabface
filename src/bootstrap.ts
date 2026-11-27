@@ -19,6 +19,7 @@ import { TabManager } from './impl/TabManager';
 import { Result } from './utils/Result';
 
 export const QUIP_COUNT_KEY = 'tabby_quips_delivered';
+let quipCountWrite: Promise<void> = Promise.resolve();
 
 let extensionContext: ExtensionContext | null = null;
 
@@ -68,11 +69,16 @@ export async function initializeExtension(): Promise<InitializationResult> {
     const tabManager = new TabManager(chromeTabsAPI, humorSystem);
 
     // Count delivered quips so the popup can show the total
+    // Increments are chained so two quips delivered close together can't both
+    // read the same old count and lose one.
     humorSystem.notifications$.subscribe(() => {
-      chrome.storage.local.get(QUIP_COUNT_KEY).then(stored => {
-        const count = typeof stored[QUIP_COUNT_KEY] === 'number' ? stored[QUIP_COUNT_KEY] : 0;
-        return chrome.storage.local.set({ [QUIP_COUNT_KEY]: count + 1 });
-      }).catch(error => console.warn('[TabbyMcTabface] Failed to update quip count:', error));
+      quipCountWrite = quipCountWrite
+        .then(async () => {
+          const stored = await chrome.storage.local.get(QUIP_COUNT_KEY);
+          const count = typeof stored[QUIP_COUNT_KEY] === 'number' ? stored[QUIP_COUNT_KEY] : 0;
+          await chrome.storage.local.set({ [QUIP_COUNT_KEY]: count + 1 });
+        })
+        .catch(error => console.warn('[TabbyMcTabface] Failed to update quip count:', error));
     });
 
     extensionContext = { tabManager, humorSystem, easterEggFramework, quipStorage, chromeTabsAPI, chromeNotificationsAPI, chromeStorageAPI };
