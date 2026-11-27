@@ -14,7 +14,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "build": "npm run clean && npm run lint && npm run bundle && npm run copy-assets",
-    "build:watch": "esbuild src/background.ts --bundle --format=esm --target=chrome110 --outfile=dist/background.js --watch",
+    "build:watch": "esbuild src/background.ts --bundle --format=esm --target=chrome110 --outfile=dist/background.js --watch & esbuild src/ui/popup.ts --bundle --format=iife --target=chrome110 --outfile=dist/popup.js --watch",
     "clean": "rm -rf dist",
     "copy-assets": "cp manifest.json popup.html popup.css dist/ && mkdir -p dist/icons && cp icons/*.png dist/icons/",
     "lint": "tsc --noEmit",

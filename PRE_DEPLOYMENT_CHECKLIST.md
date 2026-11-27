@@ -134,7 +134,7 @@ dist/
 
 ### Final Package Creation (Requires Build)
 - [ ] Run `npm run package`
-- [ ] Verify `TabbyMcTabface-v1.0.0.zip` created
+- [ ] Verify `TabbyMcTabface.zip` created
 - [ ] Check ZIP contents (all files from dist/)
 - [ ] Verify ZIP is <10MB
 
@@ -143,7 +143,7 @@ dist/
 ### Chrome Web Store Submission
 - [ ] Go to https://chrome.google.com/webstore/devconsole
 - [ ] Click "New Item"
-- [ ] Upload `TabbyMcTabface-v1.0.0.zip`
+- [ ] Upload `TabbyMcTabface.zip`
 - [ ] Fill out store listing:
   - [ ] Product name: "TabbyMcTabface"
   - [ ] Summary (132 chars max)

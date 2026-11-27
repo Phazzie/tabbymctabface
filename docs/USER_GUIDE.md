@@ -127,7 +127,7 @@ Your tabs are now under passive-aggressive management. This extension helps you 
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| **Alt+Shift+T** (Mac)<br>**Alt+Shift+T** (Windows) | Open Popup | Opens TabbyMcTabface popup |
+| **Alt+Shift+Y** (Mac)<br>**Alt+Shift+Y** (Windows) | Open Popup | Opens TabbyMcTabface popup |
 | **Alt+Shift+L** (Mac)<br>**Alt+Shift+L** (Windows) | Feeling Lucky | Closes random tab immediately |
 
 **Customizing Shortcuts**:

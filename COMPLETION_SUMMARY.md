@@ -165,7 +165,7 @@ The project successfully validated **Seam-Driven Development** methodology:
    ```bash
    npm run package
    ```
-   Creates `TabbyMcTabface-v1.0.0.zip`
+   Creates `TabbyMcTabface.zip`
 
 9. **Publish to Chrome Web Store**
    - Upload zip to Chrome Web Store Developer Dashboard

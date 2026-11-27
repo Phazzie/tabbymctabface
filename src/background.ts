@@ -18,11 +18,23 @@
  * GENERATED: 2025-10-13
  */
 
-import { initializeExtension, getExtensionContext } from './bootstrap';
+import { initializeExtension, getExtensionContext, type ExtensionContext } from './bootstrap';
 
 /**
  * Initialize extension when service worker starts
  */
+/**
+ * Chrome stops idle service workers and starts a fresh module when a command
+ * or popup message arrives, without firing onStartup or onInstalled again.
+ * Every handler goes through this so the context is rebuilt when needed.
+ */
+async function ensureContext(): Promise<ExtensionContext | null> {
+  const existing = getExtensionContext();
+  if (existing) return existing;
+  const result = await initializeExtension();
+  return result.ok ? result.value : null;
+}
+
 chrome.runtime.onStartup.addListener(async () => {
   console.log('[TabbyMcTabface] Extension starting up...');
   const result = await initializeExtension();
@@ -68,7 +80,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('[TabbyMcTabface] Command received:', command);
 
-  const context = getExtensionContext();
+  const context = await ensureContext();
   if (!context) {
     console.error('[TabbyMcTabface] Extension not initialized');
     return;
@@ -107,14 +119,13 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   console.log('[TabbyMcTabface] Message received:', message);
 
-  const context = getExtensionContext();
-  if (!context) {
-    sendResponse({ error: 'Extension not initialized' });
-    return;
-  }
-
   // Handle async operations
   (async () => {
+    const context = await ensureContext();
+    if (!context) {
+      sendResponse({ error: 'Extension not initialized' });
+      return;
+    }
     try {
       switch (message.action) {
         case 'createGroup': {
